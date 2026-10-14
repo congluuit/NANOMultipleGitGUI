@@ -1,0 +1,59 @@
+[package]
+name = "nanomgg"
+description = "NANOMultipleGitGUI — multi-account Git GUI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[lib]
+# The `_lib` suffix avoids a name clash between the lib and bin targets on Windows
+# (https://github.com/rust-lang/cargo/issues/8519).
+name = "nanomgg_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+# Opens https links (OAuth pages, token pages) in the system browser.
+tauri-plugin-opener = "2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+# tauri-specta is pre-1.0: versions must be pinned exactly and kept in lockstep.
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+nanomgg-storage = { workspace = true }
+nanomgg-git-engine = { workspace = true, features = ["specta"] }
+nanomgg-lfs = { workspace = true, features = ["specta"] }
+nanomgg-logging = { workspace = true }
+# Multi-account core (PLAN §4): model/rule engine, keychain + credential server, SSH commands.
+nanomgg-accounts = { workspace = true, features = ["specta"] }
+nanomgg-credentials = { workspace = true, features = ["os-keychain"] }
+nanomgg-ssh-keys = { workspace = true }
+zeroize = "1"
+# Integrated terminal: ConPTY on Windows, openpty on macOS/Linux.
+portable-pty = "0.9"
+# Sign-in flows and provider API (PLAN §4.2): one shared reqwest client, background refresh.
+nanomgg-auth = { workspace = true, features = ["specta"] }
+nanomgg-providers = { workspace = true, features = ["specta"] }
+reqwest = { version = "0.13", default-features = false }
+tokio = { version = "1", features = ["time", "sync", "macros"] }
+# First-run import wizard (PLAN §4.2): read-only scan of ~/.gitconfig, ~/.ssh/config, gh, glab.
+nanomgg-import = { path = "../../../crates/import", features = ["specta"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+nanomgg-test-git-server = { workspace = true }
+wiremock = "0.6"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time", "sync"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,32 @@
+{
+  "name": "nanomultiplegitgui",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Open-source multi-account Git GUI for GitHub and GitLab (Tauri 2 + Rust + React)",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @nanomgg/desktop tauri dev",
+    "build": "pnpm --filter @nanomgg/desktop tauri build",
+    "tauri": "pnpm --filter @nanomgg/desktop tauri",
+    "dev:web": "pnpm --filter @nanomgg/desktop dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "rust:fmt": "cargo fmt --all",
+    "rust:check": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "rust:test": "cargo test --workspace",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm rust:check && pnpm rust:test",
+    "test": "pnpm -r test",
+    "fixture:graph": "node scripts/gen-history-fixture.mjs",
+    "bench:graph": "cargo run --release -p nanomgg-git-engine --example graph_bench --",
+    "test:lfs-200mb": "cargo test -p nanomgg-credential-helper --test multi_account -- --ignored --nocapture"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+target
+pnpm-lock.yaml
+.agent
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/icons
+LICENSE
+PLAN.md
+apps/desktop/src/ipc/bindings.ts

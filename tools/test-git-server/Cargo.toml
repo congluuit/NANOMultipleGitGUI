@@ -1,0 +1,22 @@
+[package]
+name = "nanomgg-test-git-server"
+description = "Local multi-user Git smart-HTTP + Git LFS server for integration tests (dev only)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+base64 = "0.22"
+futures-util = { version = "0.3", default-features = false }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "fs", "io-util", "process", "sync", "macros"] }
+tokio-util = { version = "0.7", features = ["io"] }
+
+[lints]
+workspace = true

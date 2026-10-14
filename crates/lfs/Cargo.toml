@@ -1,0 +1,29 @@
+[package]
+name = "nanomgg-lfs"
+description = "Large File Guard, Git LFS tracking/migration and transfer progress."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[features]
+# Derives `specta::Type` on public data types so the app can export them to TypeScript.
+specta = ["dep:specta", "nanomgg-git-engine/specta"]
+
+[dependencies]
+nanomgg-git-engine = { workspace = true }
+specta = { version = "=2.0.0-rc.25", features = ["derive"], optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+# Free disk space before LFS downloads (safe API).
+fs4 = "1"
+
+[dev-dependencies]
+nanomgg-test-git-server = { workspace = true }
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

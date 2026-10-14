@@ -1,0 +1,47 @@
+[workspace]
+resolver = "3"
+members = ["apps/desktop/src-tauri", "crates/*", "tools/*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.90"
+license = "Apache-2.0"
+authors = ["The NANOMultipleGitGUI Authors"]
+publish = false
+
+[workspace.dependencies]
+nanomgg-git-engine = { path = "crates/git-engine" }
+nanomgg-lfs = { path = "crates/lfs" }
+nanomgg-accounts = { path = "crates/accounts" }
+nanomgg-auth = { path = "crates/auth" }
+nanomgg-credentials = { path = "crates/credentials" }
+nanomgg-ssh-keys = { path = "crates/ssh-keys" }
+nanomgg-providers = { path = "crates/providers" }
+nanomgg-storage = { path = "crates/storage" }
+nanomgg-logging = { path = "crates/logging" }
+nanomgg-test-git-server = { path = "tools/test-git-server" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+rusqlite = { version = "0.40", features = ["bundled"] }
+regex = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
+tempfile = "3"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

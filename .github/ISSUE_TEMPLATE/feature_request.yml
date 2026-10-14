@@ -1,0 +1,28 @@
+name: Feature request / Đề xuất tính năng
+description: Suggest an idea or improvement. / Đề xuất ý tưởng hoặc cải tiến.
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Vấn đề
+      description: What are you trying to do, and what makes it hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution / Giải pháp đề xuất
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / workarounds you considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the roadmap in PLAN.md.
+          required: true

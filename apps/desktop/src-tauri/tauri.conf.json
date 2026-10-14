@@ -1,0 +1,67 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NANOMultipleGitGUI",
+  "mainBinaryName": "nanomgg",
+  "version": "../package.json",
+  "identifier": "io.github.nanomgg.nanomultiplegitgui",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "NANOMultipleGitGUI",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 960,
+        "minHeight": 600,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi", "app", "dmg", "appimage", "deb", "rpm"],
+    "publisher": "The NANOMultipleGitGUI Authors",
+    "copyright": "Copyright 2026 The NANOMultipleGitGUI Authors. Licensed under Apache-2.0.",
+    "category": "DeveloperTool",
+    "shortDescription": "Multi-account Git GUI for GitHub and GitLab",
+    "longDescription": "Open-source Git GUI that manages many GitHub/GitLab accounts at once and switches accounts per repository for clone, commit and push.",
+    "licenseFile": "../../../LICENSE",
+    "externalBin": ["binaries/nanomgg-credential"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "signCommand": {
+        "cmd": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "../../../scripts/sign-windows.ps1",
+          "%1"
+        ]
+      },
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "macOS": {
+      "signingIdentity": "-",
+      "minimumSystemVersion": "11.0"
+    }
+  }
+}

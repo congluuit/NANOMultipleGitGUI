@@ -1,0 +1,35 @@
+[package]
+name = "nanomgg-auth"
+description = "OAuth device flow / PKCE, personal access tokens and token lifecycle."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[features]
+# Derives `specta::Type` on public data types so the app can export them to TypeScript.
+specta = ["dep:specta", "nanomgg-providers/specta"]
+
+[dependencies]
+nanomgg-providers = { workspace = true }
+specta = { version = "=2.0.0-rc.25", features = ["derive"], optional = true }
+base64 = "0.22"
+getrandom = "0.3"
+reqwest = { version = "0.13", default-features = false, features = ["form"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = "0.10"
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["net", "time", "io-util", "macros"] }
+tokio-util = "0.7"
+url = "2"
+zeroize = { version = "1", features = ["serde"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros"] }
+wiremock = "0.6"
+
+[lints]
+workspace = true

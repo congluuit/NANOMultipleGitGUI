@@ -1,0 +1,42 @@
+import { create } from "zustand";
+import type { ResolvedTheme } from "@/theme/theme";
+
+export type View = "workspace" | "palette";
+
+export interface Notice {
+  kind: "error" | "info";
+  message: string;
+}
+
+/** Pending `git init` confirmation: for a folder that is not a repo, or a brand-new repo. */
+export interface InitRequest {
+  path: string;
+  reason: "notRepository" | "new";
+}
+
+interface UiState {
+  view: View;
+  settingsOpen: boolean;
+  resolvedTheme: ResolvedTheme;
+  /** Run the scroll benchmark once the graph is first painted (`--bench-graph`). */
+  benchOnLoad: boolean;
+  notice: Notice | null;
+  initRequest: InitRequest | null;
+  setView: (view: View) => void;
+  setSettingsOpen: (open: boolean) => void;
+  showNotice: (notice: Notice | null) => void;
+  requestInit: (request: InitRequest | null) => void;
+}
+
+export const useUi = create<UiState>()((set) => ({
+  view: "workspace",
+  settingsOpen: false,
+  resolvedTheme: "light",
+  benchOnLoad: false,
+  notice: null,
+  initRequest: null,
+  setView: (view) => set({ view }),
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  showNotice: (notice) => set({ notice }),
+  requestInit: (initRequest) => set({ initRequest }),
+}));

@@ -1,0 +1,67 @@
+/*
+ * Design tokens — single source of truth for every color in the app
+ * (Tailwind utilities, Monaco, xterm.js and the graph canvas all read these).
+ * Contrast pairs are verified by src/theme/contrast.test.ts (WCAG 2.1 AA).
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --surface-2: #f2eee8;
+  --border: #e4ded5;
+  --text: #1f1b16;
+  --text-muted: #6b635a;
+
+  --primary: #c2410c;
+  --primary-hover: #a63e00;
+  --primary-fg: #ffffff;
+
+  --success: #237a35;
+  --warning: #8f5b00;
+  --danger: #c92a2a;
+  --info: #1a68b0;
+
+  --lane-0: #d9480f;
+  --lane-1: #1971c2;
+  --lane-2: #7048e8;
+  --lane-3: #2f9e44;
+  --lane-4: #c2255c;
+  --lane-5: #b35f00;
+  --lane-6: #5c940d;
+  --lane-7: #c92a2a;
+
+  --shadow-color: 31 27 22;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #16130f;
+  --surface: #1f1b17;
+  --surface-2: #2a251f;
+  --border: #3a332b;
+  --text: #f1ece4;
+  --text-muted: #a39a8f;
+
+  --primary: #ff8a3d;
+  --primary-hover: #ffa463;
+  --primary-fg: #1f1b16;
+
+  --success: #51cf66;
+  --warning: #fcc419;
+  --danger: #ff6b6b;
+  --info: #4dabf7;
+
+  --lane-0: #ff8a3d;
+  --lane-1: #4dabf7;
+  --lane-2: #b197fc;
+  --lane-3: #69db7c;
+  --lane-4: #f783ac;
+  --lane-5: #ffd43b;
+  --lane-6: #a9e34b;
+  --lane-7: #e8590c;
+
+  --shadow-color: 0 0 0;
+}
