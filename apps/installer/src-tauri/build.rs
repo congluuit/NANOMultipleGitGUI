@@ -11,8 +11,11 @@ fn main() {
         .filter(|p| !p.trim().is_empty())
     {
         Some(src) => {
-            println!("cargo:rerun-if-changed={src}");
-            std::fs::copy(&src, &out)
+            // Relative paths are taken from the repository root, not from this crate.
+            let root = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("../../..");
+            let path = root.join(&src);
+            println!("cargo:rerun-if-changed={}", path.display());
+            std::fs::copy(&path, &out)
                 .unwrap_or_else(|e| panic!("NANOMGG_SETUP_PAYLOAD={src}: {e}"));
         }
         None => std::fs::write(&out, b"").unwrap(),
