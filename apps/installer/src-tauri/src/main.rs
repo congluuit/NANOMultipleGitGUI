@@ -1,5 +1,8 @@
 // No console window next to the setup in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// The setup only ships for Windows; on other systems (CI builds the whole workspace) the
+// registry and WebView2 parts are compiled out and would otherwise trip `-D warnings`.
+#![cfg_attr(not(windows), allow(dead_code))]
 
 mod install;
 
