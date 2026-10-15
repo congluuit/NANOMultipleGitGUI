@@ -1,6 +1,8 @@
 [workspace]
 resolver = "3"
 members = ["apps/desktop/src-tauri", "crates/*", "tools/*"]
+# Not a Rust crate (HTML + Python promo video renderer).
+exclude = ["tools/promo-video"]
 
 [workspace.package]
 version = "1.0.0"

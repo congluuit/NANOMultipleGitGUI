@@ -345,6 +345,16 @@ mod tests {
                 use std::os::unix::fs::PermissionsExt;
                 std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
             }
+            // A test thread forking at that moment keeps the file open for writing until its
+            // child execs; running it meanwhile fails with ETXTBSY. Wait until it runs.
+            for _ in 0..100 {
+                match std::process::Command::new(&p).arg("--probe").output() {
+                    Err(e) if e.raw_os_error() == Some(26) => {
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                    _ => break,
+                }
+            }
             p
         }
     }
