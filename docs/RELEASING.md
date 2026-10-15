@@ -2,6 +2,23 @@
 
 Tài liệu này hướng dẫn cách đưa một bản mới lên GitHub Releases để người dùng tải về, và để app của người dùng tự thấy bản mới và cập nhật (**Check for Update**, PLAN 3B.4).
 
+## Phát hành nhanh (tóm tắt)
+
+Repo đã được thiết lập sẵn (mục A): khóa ký bản cập nhật, Client ID đăng nhập GitHub. Mỗi lần phát hành chỉ cần:
+
+1. Đổi version và ghi `CHANGELOG.md` (mục B, bước 1–2). **Bản 1.0.0 đầu tiên đã sẵn sàng, bỏ qua bước này.**
+2. Gắn tag và đẩy lên GitHub:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. Chờ khoảng 20–30 phút: GitHub tự build bộ cài Windows, macOS, Linux (xem tiến độ ở tab **Actions → Release**) và tạo một bản **nháp** (draft) trên trang **Releases**.
+4. Mở trang [Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases) → bản nháp → kiểm tra mục **Assets** có đủ file → bấm **Edit** → **Publish release**. Từ lúc này mọi người tải được, và app đã cài sẽ tự thấy bản mới.
+
+**Khóa ký bản cập nhật** nằm ở `~/.tauri/nanomgg-updater.key` (mật khẩu trong `~/.tauri/nanomgg-updater.password.txt`). Hãy sao lưu cả hai vào trình quản lý mật khẩu: nếu mất, người dùng cũ sẽ không tự cập nhật được nữa và phải tải bộ cài mới bằng tay.
+
+---
+
 Nguyên tắc: **app chỉ thấy bản đã Publish.** Workflow `release.yml` luôn tạo bản _draft_; người dùng không thấy gì cho tới khi bạn bấm Publish trên GitHub. Kênh `stable` đọc `https://github.com/<owner>/<repo>/releases/latest/download/latest.json` — GitHub chỉ trỏ `latest` tới bản đã Publish và **không** phải pre-release, nên draft và bản beta không bao giờ lọt vào kênh stable.
 
 ---

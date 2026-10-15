@@ -29,6 +29,8 @@ interface UiState {
   view: View;
   settingsOpen: boolean;
   resolvedTheme: ResolvedTheme;
+  /** Phase 6.2: bumped whenever theme colors change (custom themes), so token readers repaint. */
+  themeVersion: number;
   /** Run the scroll benchmark once the graph is first painted (`--bench-graph`). */
   benchOnLoad: boolean;
   notice: Notice | null;
@@ -43,6 +45,7 @@ export const useUi = create<UiState>()((set) => ({
   view: "workspace",
   settingsOpen: false,
   resolvedTheme: "light",
+  themeVersion: 0,
   benchOnLoad: false,
   notice: null,
   initRequest: null,

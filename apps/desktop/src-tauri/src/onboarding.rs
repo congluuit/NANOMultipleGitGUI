@@ -249,7 +249,7 @@ fn exists_file(p: &Path) -> bool {
 }
 
 /// `name` in `dir`, trying the Windows executable extensions.
-fn find_in(dir: &Path, name: &str, env: &ProbeEnv) -> Option<PathBuf> {
+pub(crate) fn find_in(dir: &Path, name: &str, env: &ProbeEnv) -> Option<PathBuf> {
     if env.os == TargetOs::Windows {
         env.exts
             .iter()
@@ -330,7 +330,7 @@ fn locate(tool: SetupToolId, name: &str, env: &ProbeEnv) -> Option<(PathBuf, boo
 
 // ----- running tools -------------------------------------------------------------------------
 
-fn command(program: &Path) -> Command {
+pub(crate) fn command(program: &Path) -> Command {
     let mut cmd = Command::new(program);
     cmd.stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -545,7 +545,7 @@ pub(crate) struct InstallPlan {
 }
 
 impl InstallPlan {
-    fn display(&self) -> String {
+    pub(crate) fn display(&self) -> String {
         let name = self
             .program
             .file_stem()

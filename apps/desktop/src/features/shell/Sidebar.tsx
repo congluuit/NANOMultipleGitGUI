@@ -22,6 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commits/RefMenuItems";
+import { switchBranch } from "@/features/branch-switch/actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -82,6 +83,7 @@ function Item({
   indent = 8,
   title,
   onClick,
+  onActivate,
   menu,
   drag,
 }: {
@@ -90,6 +92,8 @@ function Item({
   indent?: number;
   title?: string;
   onClick?: () => void;
+  /** Phase 6.1: double-click / Enter (switch to the branch); a single click keeps `onClick`. */
+  onActivate?: () => void;
   /** Context menu content (items) for the row. */
   menu?: ReactNode;
   /** Local branch row: drag it onto another branch to merge / rebase (step 3.1). */
@@ -107,6 +111,17 @@ function Item({
       data-drop-branch={drag?.branch}
       onPointerDown={drag && ((e) => startBranchDrag(e, drag.repoId, drag.branch))}
       onClick={onClick}
+      onDoubleClick={onActivate}
+      onKeyDown={
+        onActivate &&
+        ((e) => {
+          // Enter would also "click" (jump to the commit); switching is what Enter means here.
+          if (e.key === "Enter" && !e.repeat) {
+            e.preventDefault();
+            onActivate();
+          }
+        })
+      }
       style={{ paddingLeft: indent * 4 }}
       className={className}
     >
@@ -293,6 +308,11 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                   key={b.name}
                   active={b.isHead}
                   onClick={jumpTo(b.oid)}
+                  onActivate={
+                    repo
+                      ? () => void switchBranch(repo.id, { kind: "local", name: b.name })
+                      : undefined
+                  }
                   drag={repo ? { repoId: repo.id, branch: b.name } : undefined}
                   menu={
                     repo && (
@@ -304,13 +324,16 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                       />
                     )
                   }
-                  title={
+                  title={[
                     b.upstreamGone
                       ? t("sidebar.upstreamGone")
                       : b.upstream
                         ? t("sidebar.tracking", { upstream: b.upstream })
-                        : undefined
-                  }
+                        : null,
+                    b.isHead ? t("branchSwitch.tip.current") : t("branchSwitch.tip.local"),
+                  ]
+                    .filter(Boolean)
+                    .join("\n")}
                 >
                   <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className={cn("flex-1 truncate", b.upstreamGone && "line-through")}>
@@ -360,6 +383,16 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                           key={b.name}
                           indent={11}
                           onClick={jumpTo(b.oid)}
+                          onActivate={
+                            repo && b.name !== "HEAD"
+                              ? () =>
+                                  void switchBranch(repo.id, {
+                                    kind: "remote",
+                                    remote: r.name,
+                                    branch: b.name,
+                                  })
+                              : undefined
+                          }
                           menu={
                             repo && (
                               <RemoteBranchItems
@@ -370,7 +403,7 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                               />
                             )
                           }
-                          title={t("sidebar.jumpTo")}
+                          title={`${t("sidebar.jumpTo")}\n${t("branchSwitch.tip.remote")}`}
                         >
                           <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
                           <span className="truncate">{b.name}</span>

@@ -35,6 +35,7 @@ export default function TerminalView({ tabKey, repoId, visible }: Props) {
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const theme = useUi((s) => s.resolvedTheme);
+  const themeVersion = useUi((s) => s.themeVersion);
 
   useEffect(() => {
     const el = host.current;
@@ -134,7 +135,7 @@ export default function TerminalView({ tabKey, repoId, visible }: Props) {
   useEffect(() => {
     const term = termRef.current;
     if (term) term.options.theme = xtermTheme(theme);
-  }, [theme]);
+  }, [theme, themeVersion]);
 
   useEffect(() => {
     const el = host.current;

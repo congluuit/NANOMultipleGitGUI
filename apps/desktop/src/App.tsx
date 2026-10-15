@@ -2,8 +2,13 @@ import { useEffect } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CliSyncNoticeHost } from "@/features/accounts/cli-sync";
 import { AccountManagerHost } from "@/features/accounts/manager";
+import { AiSettingsHost } from "@/features/ai/AiSettingsDialog";
+import { BackupHost } from "@/features/backup/BackupHost";
+import { BranchSwitchDialogHost } from "@/features/branch-switch/BranchSwitchDialog";
+import { GuideHost } from "@/features/guide/GuideDialog";
 import { CloneDialogHost } from "@/features/clone/CloneDialog";
 import { CommandPalette } from "@/features/command-palette";
+import { ThemeManagerHost } from "@/features/custom-theme/ThemeManager";
 import { ForkDialogHost } from "@/features/forks/ForkDialog";
 import { GuardDialogsHost } from "@/features/guards";
 import { ImportWizardHost } from "@/features/onboarding/ImportWizard";
@@ -56,6 +61,13 @@ export default function App() {
       <IssueCreateHost />
       <MyWorkHost />
       <CreatePullDialogHost />
+      <BackupHost />
+      <ThemeManagerHost />
+      {/* Phase 6.1 / 6.7 */}
+      <BranchSwitchDialogHost />
+      <GuideHost />
+      {/* Phase 6.4 */}
+      <AiSettingsHost />
     </TooltipProvider>
   );
 }

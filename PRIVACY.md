@@ -6,12 +6,12 @@
 
 ## What stays on your device
 
-| Data                                                                                                                         | Where                                                          |
-| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Settings, account metadata (username, display name, avatar URL, colors, labels), repository list, account bindings and rules | Local SQLite database in the app data directory                |
-| Access tokens, refresh tokens, SSH key passphrases                                                                           | Operating-system keychain only                                 |
-| SSH private keys created by the app                                                                                          | App data directory with user-only permissions, or the keychain |
-| Logs (with secrets redacted)                                                                                                 | App log directory, rotated daily, 14 files kept                |
+| Data                                                                                                                                                                     | Where                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Settings, account metadata (username, display name, avatar URL, colors, labels), repository list, account bindings and rules, custom themes, personal notes, AI settings | Local SQLite database in the app data directory                |
+| Access tokens, refresh tokens, SSH key passphrases, AI API keys                                                                                                          | Operating-system keychain only                                 |
+| SSH private keys created by the app                                                                                                                                      | App data directory with user-only permissions, or the keychain |
+| Logs (with secrets redacted)                                                                                                                                             | App log directory, rotated daily, 14 files kept                |
 
 Uninstalling the app does not delete these by default; you can remove the app data and log directories manually (paths are listed in the install guides).
 
@@ -22,7 +22,10 @@ The app only connects to services **you** configure or trigger:
 - the Git remotes of your repositories (fetch, pull, push, clone, Git LFS),
 - the APIs of the GitHub / GitLab instances you sign in to (repositories, pull/merge requests, CI status, avatars),
 - GitHub Releases of this project, when checking for updates (auto-update can be disabled),
-- the official Git LFS / MinGit download locations, only when you ask the app to install them.
+- the official Git LFS / MinGit download locations, only when you ask the app to install them,
+- the AI service you choose for commit message suggestions (off by default): when you click ✨, the staged changes, branch name and recent commit titles are sent to that service (OpenAI, Anthropic, Google Gemini or the OpenAI-compatible address you entered). With Ollama the request goes to your own computer (`127.0.0.1`), and downloading Ollama or its models only happens when you ask for it.
+
+Export and backup files are encrypted with the password you choose and saved only where you put them.
 
 Requests to providers are made with the account you selected and are subject to those providers' own privacy policies.
 

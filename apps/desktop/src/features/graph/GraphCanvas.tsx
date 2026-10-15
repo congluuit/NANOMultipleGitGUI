@@ -4,6 +4,7 @@ import { commands, type GraphRow, type GraphSummary } from "@/ipc";
 import { useAccounts, useIdentities } from "@/features/accounts/queries";
 import { registerDropResolver, startBranchDrag, useDnd } from "@/features/dnd/store";
 import { useSettings } from "@/stores/settings";
+import { useUi } from "@/stores/ui";
 import type { ResolvedTheme } from "@/theme/theme";
 import { accountAvatarMap, AvatarCache } from "./avatars";
 import type { FrameStats } from "./benchmark";
@@ -207,11 +208,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     return labelWidthsRef.current;
   }
 
-  // Re-read colors when the theme changes.
+  // Re-read colors when the theme changes (`themeVersion`: custom theme colors, Phase 6.2).
+  const themeVersion = useUi((s) => s.themeVersion);
   useEffect(() => {
     paletteRef.current = null;
     schedule();
-  }, [theme]);
+  }, [theme, themeVersion]);
 
   useEffect(() => {
     avatars.setEnabled(avatarsOn);

@@ -25,6 +25,7 @@ import {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
+import { switchBranch } from "@/features/branch-switch/actions";
 import { useHostedRemotes } from "@/features/issues/queries";
 import { openCreatePull } from "@/features/pulls/store";
 import { RebaseBranchItems } from "@/features/rebase/MenuItems";
@@ -256,13 +257,8 @@ export function LocalBranchItems({
 
       <ContextMenuItem
         disabled={isCurrent}
-        onSelect={() =>
-          void runOutcome(
-            repoId,
-            () => commands.branchCheckout(repoId, name),
-            () => t("ops.checkedOut", { name }),
-          )
-        }
+        // Phase 6.1: same safe switch as double-clicking the branch (autostash…).
+        onSelect={() => void switchBranch(repoId, { kind: "local", name })}
       >
         <LogIn />
         {t("branchMenu.checkout", { name })}
@@ -429,13 +425,8 @@ export function RemoteBranchItems({
   return (
     <>
       <ContextMenuItem
-        onSelect={() =>
-          void runOutcome(
-            repoId,
-            () => commands.branchCheckoutRemote(repoId, remote, branch, null),
-            (name) => t("ops.checkedOut", { name }),
-          )
-        }
+        // Phase 6.1: switches to the tracking branch, creating it when needed.
+        onSelect={() => void switchBranch(repoId, { kind: "remote", remote, branch })}
       >
         <LogIn />
         {t("menu.checkoutRemote")}

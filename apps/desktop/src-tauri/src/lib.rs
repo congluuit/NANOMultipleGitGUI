@@ -1,7 +1,13 @@
 pub mod accounts;
+// Phase 6.4: AI commit message suggestions (Ollama local / user API keys).
+mod ai;
 // Phase 3B.3: log / cache / app-data folders (Settings → Storage).
 mod app_paths;
 pub mod auth;
+// Phase 6.3 / 6.6: encrypted account export/import, full backup/restore.
+mod backup;
+// Phase 6.1: safe branch switch (double-click a branch, autostash).
+mod branch_switch;
 mod branches;
 // Phase 4.3: CI status of commits.
 mod ci;
@@ -41,6 +47,8 @@ mod terminal;
 mod undo;
 // Phase 3B.4: Check for Update (GitHub Releases).
 mod updater;
+// Phase 6.2 / 6.5: custom themes and personal notes (stored in the settings table).
+mod user_data;
 mod worktree;
 
 use std::path::PathBuf;
@@ -311,6 +319,52 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             app_paths::storage_clear_cache,
             app_paths::storage_prune_logs,
             app_paths::storage_restart,
+            // Phase 6.1: safe branch switch (double-click a branch, autostash).
+            branch_switch::branch_switch_check,
+            branch_switch::branch_switch_run,
+            branch_switch::branch_switch_restore,
+            branch_switch::branch_switch_prefs_get,
+            branch_switch::branch_switch_prefs_set,
+            // Phase 6.2 / 6.5: custom themes, personal notes, Settings → Storage summary.
+            user_data::custom_theme_list,
+            user_data::custom_theme_save,
+            user_data::custom_theme_delete,
+            user_data::custom_theme_delete_all,
+            user_data::custom_theme_set_active,
+            user_data::custom_theme_export,
+            user_data::custom_theme_import,
+            user_data::notes_load,
+            user_data::notes_save,
+            user_data::notes_delete,
+            user_data::notes_delete_all,
+            user_data::notes_tag_save,
+            user_data::notes_tag_delete,
+            user_data::notes_export_file,
+            user_data::notes_import_file,
+            user_data::notes_export_markdown,
+            user_data::user_data_summary,
+            // Phase 6.4: AI commit message suggestions (settings, keys, Ollama helpers).
+            ai::ai_settings,
+            ai::ai_settings_save,
+            ai::ai_key_set,
+            ai::ai_key_delete,
+            ai::ai_test,
+            ai::ai_generate,
+            ai::ai_cancel,
+            ai::ai_ollama_status,
+            ai::ai_ollama_install,
+            ai::ai_ollama_install_cancel,
+            ai::ai_ollama_start,
+            ai::ai_ollama_pull,
+            ai::ai_ollama_delete,
+            // Phase 6.3 / 6.6: account export/import, full backup/restore.
+            backup::backup_accounts_export,
+            backup::backup_accounts_open,
+            backup::backup_accounts_import,
+            backup::backup_full_create,
+            backup::backup_full_open,
+            backup::backup_full_restore,
+            backup::backup_restore_notice,
         ])
         .events(collect_events![
             repos::RepoChanged,
@@ -320,7 +374,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             clone::CloneListUpdated,
             updater::UpdateProgress,
             // Phase 3B.3: log/cache folder move progress.
-            app_paths::StorageMoveProgress
+            app_paths::StorageMoveProgress,
+            // Phase 6.4: Ollama model download progress.
+            ai::ollama::AiPullProgress
         ])
 }
 
@@ -375,6 +431,8 @@ pub fn run() {
             let log_dir = paths.get(nanomgg_app_paths::StorageKind::Log);
             let data_dir = paths.data_dir();
             app.manage(paths);
+            // Phase 6.6: a restore staged last session replaces the database before it opens.
+            app.manage(backup::apply_pending_restore(&data_dir));
 
             let storage = std::sync::Arc::new(nanomgg_storage::Storage::open(
                 &data_dir.join("nanomgg.db"),

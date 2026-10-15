@@ -27,6 +27,9 @@ import { relativeTime } from "@/features/clone/model";
 import { problemActions } from "@/features/issues/actions";
 import { describeIssueError } from "@/features/issues/errors";
 import { hostName } from "@/features/issues/model";
+import { MyWorkTabs } from "@/features/notes/MyWorkTabs";
+import { NotesPanel } from "@/features/notes/NotesPanel";
+import { useNotesUi } from "@/features/notes/store";
 import { issueKeys } from "@/features/issues/queries";
 import { commands, type Account, type WorkAccount } from "@/ipc";
 import { cn } from "@/lib/utils";
@@ -93,6 +96,8 @@ function MyWorkPanel() {
   const failed = (data?.accounts ?? []).filter((a) => a.error);
   const listed = (data?.accounts ?? []).filter((a) => a.lists);
   const [now] = useState(() => Date.now());
+  // Phase 6.5: "My notes" tab.
+  const tab = useNotesUi((s) => s.tab);
 
   const openRow = (row: WorkRow) => {
     const account = byId.get(row.accountId);
@@ -118,105 +123,123 @@ function MyWorkPanel() {
   };
 
   return (
-    <DialogContent className="flex h-[min(44rem,calc(100dvh-4rem))] flex-col gap-3 sm:max-w-3xl">
+    <DialogContent
+      className={cn(
+        "flex h-[min(44rem,calc(100dvh-4rem))] flex-col gap-3",
+        tab === "notes" ? "sm:max-w-5xl" : "sm:max-w-3xl",
+      )}
+    >
       <DialogHeader>
         <DialogTitle>{t("mywork.title")}</DialogTitle>
-        <DialogDescription>{t("mywork.description")}</DialogDescription>
+        <DialogDescription>
+          {tab === "notes" ? t("notes.description") : t("mywork.description")}
+        </DialogDescription>
       </DialogHeader>
-      <div className="flex flex-wrap items-center gap-1 text-xs">
-        <FilterChip active={filter === null} onClick={() => setFilter(null)}>
-          {t("mywork.allAccounts")}
-        </FilterChip>
-        {(data?.accounts ?? []).map((a) => (
-          <FilterChip
-            key={`f-${a.accountId}`}
-            active={filter === a.accountId}
-            onClick={() => setFilter(filter === a.accountId ? null : a.accountId)}
-          >
-            <Dot account={byId.get(a.accountId)} />
-            {name(a.accountId)}
-          </FilterChip>
-        ))}
-        <span className="flex-1" />
-        {work.isFetching ? (
-          <Button size="xs" variant="ghost" onClick={() => void cancelMyWork()}>
-            <Square />
-            {t("mywork.stop")}
-          </Button>
-        ) : null}
-        <Button
-          size="xs"
-          variant="outline"
-          disabled={work.isFetching}
-          onClick={() => void refreshMyWork().catch(() => undefined)}
-        >
-          <RefreshCw className={cn(work.isFetching && "animate-spin")} />
-          {t("mywork.refresh")}
-        </Button>
-      </div>
-      <ScrollArea className="min-h-0 flex-1 rounded-md border">
-        <div className="space-y-4 p-3 text-xs">
-          {work.isPending && (
-            <p className="flex items-center gap-2 text-muted-foreground">
-              <LoaderCircle className="size-4 animate-spin" />
-              {t("mywork.loading")}
-            </p>
-          )}
-          {work.isError && <p className="text-danger">{String(work.error)}</p>}
-          {data && data.accounts.length === 0 && (
-            <div className="space-y-1 text-muted-foreground">
-              <p>{t(accounts.length ? "mywork.noTokens" : "mywork.noAccounts")}</p>
-              <Button size="xs" variant="outline" onClick={() => openManager()}>
-                {t("mywork.manageAccounts")}
-              </Button>
-            </div>
-          )}
-          {failed
-            .filter((a) => !filter || a.accountId === filter)
-            .map((a) => (
-              <AccountProblem key={`e-${a.accountId}`} work={a} account={byId.get(a.accountId)} />
-            ))}
-          {data && data.withoutToken.length > 0 && !filter && (
-            <p className="text-muted-foreground">
-              {t("mywork.withoutToken", {
-                count: data.withoutToken.length,
-                names: data.withoutToken.map(name).join(", "),
-              })}{" "}
-              <button
-                type="button"
-                className="text-primary underline-offset-2 hover:underline"
-                onClick={() => openManager({ accountId: data.withoutToken[0] ?? null })}
+      <MyWorkTabs />
+      {tab === "notes" ? (
+        <NotesPanel onLeave={() => setOpen(false)} />
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            <FilterChip active={filter === null} onClick={() => setFilter(null)}>
+              {t("mywork.allAccounts")}
+            </FilterChip>
+            {(data?.accounts ?? []).map((a) => (
+              <FilterChip
+                key={`f-${a.accountId}`}
+                active={filter === a.accountId}
+                onClick={() => setFilter(filter === a.accountId ? null : a.accountId)}
               >
-                {t("mywork.manageAccounts")}
-              </button>
-            </p>
-          )}
-          {data &&
-            listed.length > 0 &&
-            GROUPS.map((g) => (
-              <Group
-                key={`g-${g}`}
-                group={g}
-                rows={groupRows(data.accounts, g, filter)}
-                total={groupTotal(data.accounts, g, filter)}
-                render={(row) => (
-                  <Row
-                    key={`r-${g}-${row.accountId}-${row.item.fullName}-${row.item.number}`}
-                    row={row}
-                    account={byId.get(row.accountId)}
-                    accountName={name(row.accountId)}
-                    when={
-                      row.item.updatedAt != null
-                        ? relativeTime(row.item.updatedAt, now, i18n.language)
-                        : ""
-                    }
-                    onOpen={() => openRow(row)}
-                  />
-                )}
-              />
+                <Dot account={byId.get(a.accountId)} />
+                {name(a.accountId)}
+              </FilterChip>
             ))}
-        </div>
-      </ScrollArea>
+            <span className="flex-1" />
+            {work.isFetching ? (
+              <Button size="xs" variant="ghost" onClick={() => void cancelMyWork()}>
+                <Square />
+                {t("mywork.stop")}
+              </Button>
+            ) : null}
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={work.isFetching}
+              onClick={() => void refreshMyWork().catch(() => undefined)}
+            >
+              <RefreshCw className={cn(work.isFetching && "animate-spin")} />
+              {t("mywork.refresh")}
+            </Button>
+          </div>
+          <ScrollArea className="min-h-0 flex-1 rounded-md border">
+            <div className="space-y-4 p-3 text-xs">
+              {work.isPending && (
+                <p className="flex items-center gap-2 text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  {t("mywork.loading")}
+                </p>
+              )}
+              {work.isError && <p className="text-danger">{String(work.error)}</p>}
+              {data && data.accounts.length === 0 && (
+                <div className="space-y-1 text-muted-foreground">
+                  <p>{t(accounts.length ? "mywork.noTokens" : "mywork.noAccounts")}</p>
+                  <Button size="xs" variant="outline" onClick={() => openManager()}>
+                    {t("mywork.manageAccounts")}
+                  </Button>
+                </div>
+              )}
+              {failed
+                .filter((a) => !filter || a.accountId === filter)
+                .map((a) => (
+                  <AccountProblem
+                    key={`e-${a.accountId}`}
+                    work={a}
+                    account={byId.get(a.accountId)}
+                  />
+                ))}
+              {data && data.withoutToken.length > 0 && !filter && (
+                <p className="text-muted-foreground">
+                  {t("mywork.withoutToken", {
+                    count: data.withoutToken.length,
+                    names: data.withoutToken.map(name).join(", "),
+                  })}{" "}
+                  <button
+                    type="button"
+                    className="text-primary underline-offset-2 hover:underline"
+                    onClick={() => openManager({ accountId: data.withoutToken[0] ?? null })}
+                  >
+                    {t("mywork.manageAccounts")}
+                  </button>
+                </p>
+              )}
+              {data &&
+                listed.length > 0 &&
+                GROUPS.map((g) => (
+                  <Group
+                    key={`g-${g}`}
+                    group={g}
+                    rows={groupRows(data.accounts, g, filter)}
+                    total={groupTotal(data.accounts, g, filter)}
+                    render={(row) => (
+                      <Row
+                        key={`r-${g}-${row.accountId}-${row.item.fullName}-${row.item.number}`}
+                        row={row}
+                        account={byId.get(row.accountId)}
+                        accountName={name(row.accountId)}
+                        when={
+                          row.item.updatedAt != null
+                            ? relativeTime(row.item.updatedAt, now, i18n.language)
+                            : ""
+                        }
+                        onOpen={() => openRow(row)}
+                      />
+                    )}
+                  />
+                ))}
+            </div>
+          </ScrollArea>
+        </>
+      )}
     </DialogContent>
   );
 }

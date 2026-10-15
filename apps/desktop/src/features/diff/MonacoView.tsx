@@ -12,6 +12,7 @@ export default function MonacoView({ path, value }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const theme = useUi((s) => s.resolvedTheme);
+  const themeVersion = useUi((s) => s.themeVersion);
 
   useEffect(() => {
     const el = host.current;
@@ -44,7 +45,7 @@ export default function MonacoView({ path, value }: Props) {
 
   useEffect(() => {
     applyMonacoTheme(theme);
-  }, [theme]);
+  }, [theme, themeVersion]);
 
   return <div ref={host} className="min-h-0 flex-1" data-testid="monaco-view" />;
 }

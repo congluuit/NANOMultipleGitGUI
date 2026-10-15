@@ -11,6 +11,7 @@ import { queryClient } from "./lib/queryClient";
 import { useSettings } from "./stores/settings";
 import { useUi } from "./stores/ui";
 import { useWorkspace } from "./stores/workspace";
+import { applyCustomColors, readCustomCache } from "./theme/custom";
 import { applyTheme, resolveTheme, systemPrefersDark } from "./theme/theme";
 import "./index.css";
 
@@ -31,7 +32,10 @@ if (import.meta.env.DEV) {
 }
 
 const { theme, language } = useSettings.getState();
-applyTheme(resolveTheme(theme, systemPrefersDark()));
+// Phase 6.2: a custom theme paints from its localStorage cache until SQLite is read.
+const customTheme = theme === "custom" ? readCustomCache() : null;
+applyTheme(resolveTheme(theme, systemPrefersDark(), customTheme?.base));
+applyCustomColors(customTheme?.colors ?? null);
 initI18n(language);
 void startSettingsSync();
 

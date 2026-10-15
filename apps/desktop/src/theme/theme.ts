@@ -1,9 +1,11 @@
 import { expandHex } from "./color";
 
-export type ThemeMode = "light" | "dark" | "system";
+/** `custom` (Phase 6.2): a preset or user theme, see `features/custom-theme`. */
+export type ThemeMode = "light" | "dark" | "system" | "custom";
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
+/** Modes with a built-in palette (`custom` also needs a theme picked). */
+export const THEME_MODES = ["light", "dark", "system"] as const;
 
 const darkQuery = "(prefers-color-scheme: dark)";
 
@@ -11,8 +13,14 @@ export function systemPrefersDark(): boolean {
   return typeof window !== "undefined" && !!window.matchMedia?.(darkQuery).matches;
 }
 
-export function resolveTheme(mode: ThemeMode, systemDark: boolean): ResolvedTheme {
-  if (mode === "system") return systemDark ? "dark" : "light";
+/** `custom` resolves to the base of its theme, or follows the OS while no theme is known. */
+export function resolveTheme(
+  mode: ThemeMode,
+  systemDark: boolean,
+  customBase?: ResolvedTheme | null,
+): ResolvedTheme {
+  if (mode === "custom" && customBase) return customBase;
+  if (mode === "system" || mode === "custom") return systemDark ? "dark" : "light";
   return mode;
 }
 

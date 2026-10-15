@@ -86,6 +86,19 @@ impl Storage {
         migrations::schema_version(&self.conn())
     }
 
+    /// Phase 6.6: writes a consistent copy of the whole database (WAL content included) to a
+    /// new file at `path` (`VACUUM INTO`; the file must not exist yet).
+    pub fn snapshot_to(&self, path: &Path) -> Result<()> {
+        let target = path.to_str().ok_or_else(|| {
+            StorageError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "the snapshot path is not valid UTF-8",
+            ))
+        })?;
+        self.conn().execute("VACUUM INTO ?1", params![target])?;
+        Ok(())
+    }
+
     pub fn get_setting<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let raw: Option<String> = self
             .conn()
@@ -481,6 +494,24 @@ mod tests {
         assert_eq!(db.schema_version().unwrap(), LATEST_VERSION);
         assert_eq!(
             db.get_setting::<String>("language").unwrap().as_deref(),
+            Some("vi")
+        );
+    }
+
+    #[test]
+    fn snapshot_is_a_complete_database() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = Storage::open(&dir.path().join("live.db")).unwrap();
+        db.set_setting("language", "vi").unwrap();
+        let copy = dir.path().join("copy.db");
+        db.snapshot_to(&copy).unwrap();
+        assert!(db.snapshot_to(&copy).is_err(), "never overwrites");
+        let restored = Storage::open(&copy).unwrap();
+        assert_eq!(
+            restored
+                .get_setting::<String>("language")
+                .unwrap()
+                .as_deref(),
             Some("vi")
         );
     }

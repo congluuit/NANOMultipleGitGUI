@@ -93,7 +93,12 @@ describe("CommandPalette", () => {
     await user.type(input(), "giao dien");
     expect(selected()).toHaveTextContent("Giao diện…");
     await user.keyboard("{Enter}");
-    expect(options().map((o) => o.textContent)).toEqual(["Sáng", "Tối", "Theo hệ thống"]);
+    expect(options().map((o) => o.textContent)).toEqual([
+      "Sáng",
+      "Tối",
+      "Theo hệ thống",
+      "Tùy chỉnh",
+    ]);
     expect(input()).toHaveValue("");
 
     await user.keyboard("{Backspace}");

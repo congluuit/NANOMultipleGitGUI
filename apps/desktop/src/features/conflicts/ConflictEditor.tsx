@@ -98,6 +98,7 @@ export default function ConflictEditor({
 }) {
   const { t } = useTranslation();
   const theme = useUi((s) => s.resolvedTheme);
+  const themeVersion = useUi((s) => s.themeVersion);
   const oursHost = useRef<HTMLDivElement>(null);
   const theirsHost = useRef<HTMLDivElement>(null);
   const resultHost = useRef<HTMLDivElement>(null);
@@ -189,7 +190,7 @@ export default function ConflictEditor({
 
   useEffect(() => {
     applyMonacoTheme(theme);
-  }, [theme]);
+  }, [theme, themeVersion]);
 
   const apply = (choice: BlockChoice) => {
     const e = result.current;

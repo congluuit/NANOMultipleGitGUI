@@ -649,10 +649,107 @@ export const commands = {
 	storagePruneLogs: () => __TAURI_INVOKE<CleanReport>("storage_prune_logs"),
 	/**  Restarts the app (after the user confirmed, to apply a scheduled data move). */
 	storageRestart: () => __TAURI_INVOKE<void>("storage_restart"),
+	/**  What switching to `target` would run into (reads only). */
+	branchSwitchCheck: (repoId: number, target: SwitchTarget) => __TAURI_INVOKE<BranchSwitchCheck>("branch_switch_check", { repoId, target }),
+	/**  Switches to `target` (see the module docs). `autoRestore` comes from the preferences. */
+	branchSwitchRun: (repoId: number, target: SwitchTarget, mode: SwitchDirtyMode) => __TAURI_INVOKE<BranchSwitchResult>("branch_switch_run", { repoId, target, mode }),
+	/**  Pops the newest autostash of the checked-out `branch`; `None` when there is none. */
+	branchSwitchRestore: (repoId: number, branch: string) => __TAURI_INVOKE<{
+	status: RestoreStatus,
+	/**  Files in the stash entry. */
+	files: number,
+	/**  Conflicted paths (`Conflicts`). */
+	conflicts: string[],
+	/**  The working tree was not clean (`Pending`). */
+	dirty: boolean,
+	/**  git's explanation (`Failed`). */
+	message: string | null,
+} | null>("branch_switch_restore", { repoId, branch }),
+	branchSwitchPrefsGet: () => __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_get"),
+	branchSwitchPrefsSet: (patch: BranchSwitchPrefsPatch) => __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_set", { patch }),
+	customThemeList: () => __TAURI_INVOKE<CustomThemes>("custom_theme_list"),
+	customThemeSave: (input: CustomThemeInput) => __TAURI_INVOKE<CustomTheme>("custom_theme_save", { input }),
+	customThemeDelete: (id: string) => __TAURI_INVOKE<CustomThemes>("custom_theme_delete", { id }),
+	customThemeDeleteAll: () => __TAURI_INVOKE<CustomThemes>("custom_theme_delete_all"),
+	customThemeSetActive: (id: string | null) => __TAURI_INVOKE<CustomThemes>("custom_theme_set_active", { id }),
+	customThemeExport: (path: string, input: CustomThemeInput) => __TAURI_INVOKE<null>("custom_theme_export", { path, input }),
+	customThemeImport: (path: string) => __TAURI_INVOKE<ThemeImportResult>("custom_theme_import", { path }),
+	notesLoad: () => __TAURI_INVOKE<NotesData>("notes_load"),
+	notesSave: (input: NoteInput) => __TAURI_INVOKE<NotesData>("notes_save", { input }),
+	notesDelete: (ids: string[]) => __TAURI_INVOKE<NotesData>("notes_delete", { ids }),
+	notesDeleteAll: (withTags: boolean) => __TAURI_INVOKE<NotesData>("notes_delete_all", { withTags }),
+	notesTagSave: (input: NoteTagInput) => __TAURI_INVOKE<NotesData>("notes_tag_save", { input }),
+	notesTagDelete: (id: string) => __TAURI_INVOKE<NotesData>("notes_tag_delete", { id }),
+	/**  `ids: None` exports every note. Returns how many notes were written. */
+	notesExportFile: (path: string, ids: string[] | null) => __TAURI_INVOKE<number>("notes_export_file", { path, ids }),
+	notesImportFile: (path: string) => __TAURI_INVOKE<NotesImportReport>("notes_import_file", { path }),
+	notesExportMarkdown: (path: string, content: string) => __TAURI_INVOKE<null>("notes_export_markdown", { path, content }),
+	userDataSummary: () => __TAURI_INVOKE<UserDataSummary>("user_data_summary"),
+	aiSettings: () => __TAURI_INVOKE<AiSettingsView>("ai_settings"),
+	aiSettingsSave: (config: AiConfig) => __TAURI_INVOKE<AiSettingsView>("ai_settings_save", { config }),
+	/**  Stores the API key of a cloud service in the keychain. */
+	aiKeySet: (provider: AiProvider, key: string) => __TAURI_INVOKE<AiSettingsView>("ai_key_set", { provider, key }),
+	aiKeyDelete: (provider: AiProvider) => __TAURI_INVOKE<AiSettingsView>("ai_key_delete", { provider }),
+	/**  "Kiểm tra kết nối": lists the service's models with `config` (may be unsaved). */
+	aiTest: (config: AiConfig, requestId: string) => __TAURI_INVOKE<AiTestResult>("ai_test", { config, requestId }),
+	/**
+	 *  Suggests a commit message for the staged changes of `repo_id` (or, with `unstaged`, the
+	 *  working-tree changes when nothing is staged). `app_language`: `vi` / `en`.
+	 */
+	aiGenerate: (repoId: number, requestId: string, appLanguage: string, unstaged: boolean) => __TAURI_INVOKE<AiSuggestion>("ai_generate", { repoId, requestId, appLanguage, unstaged }),
+	/**  Cancels a running `ai_generate` / `ai_test` / `ai_ollama_pull` / `ai_ollama_start`. */
+	aiCancel: (requestId: string) => __TAURI_INVOKE<boolean>("ai_cancel", { requestId }),
+	aiOllamaStatus: () => __TAURI_INVOKE<OllamaStatus>("ai_ollama_status"),
+	/**
+	 *  Installs Ollama with winget (Windows) / Homebrew (macOS). Linux / no manager →
+	 *  `managerMissing` (the UI opens the download page).
+	 */
+	aiOllamaInstall: () => __TAURI_INVOKE<AiInstallResult>("ai_ollama_install"),
+	aiOllamaInstallCancel: () => __TAURI_INVOKE<boolean>("ai_ollama_install_cancel"),
+	/**  Starts `ollama serve` in the background (macOS: opens Ollama.app) and waits for it. */
+	aiOllamaStart: (requestId: string) => __TAURI_INVOKE<OllamaStatus>("ai_ollama_start", { requestId }),
+	/**  Downloads an Ollama model; progress arrives as [`AiPullProgress`]. */
+	aiOllamaPull: (model: string, requestId: string) => __TAURI_INVOKE<null>("ai_ollama_pull", { model, requestId }),
+	aiOllamaDelete: (model: string) => __TAURI_INVOKE<null>("ai_ollama_delete", { model }),
+	/**
+	 *  Writes the chosen accounts (all when `accountIds` is empty) to an encrypted file. Tokens and
+	 *  the app's SSH keys only with `includeSecrets`.
+	 */
+	backupAccountsExport: (path: string, password: string, accountIds: string[], includeSecrets: boolean) => __TAURI_INVOKE<BackupWriteResult>("backup_accounts_export", { path, password, accountIds, includeSecrets }),
+	/**  Decrypts an account export and lists its accounts, marking those already on this machine. */
+	backupAccountsOpen: (path: string, password: string) => __TAURI_INVOKE<AccountsFileResult>("backup_accounts_open", { path, password }),
+	/**
+	 *  Imports the accounts named by `keys` (ids inside the file). Existing accounts are skipped,
+	 *  or get only their label/color when `updateExisting`. All or nothing.
+	 */
+	backupAccountsImport: (path: string, password: string, keys: string[], updateExisting: boolean) => __TAURI_INVOKE<AccountsImportResult>("backup_accounts_import", { path, password, keys, updateExisting }),
+	/**
+	 *  Writes an encrypted snapshot of all app data; with `includeSecrets` also the tokens, SSH
+	 *  passphrases, AI keys and the app's SSH key files.
+	 */
+	backupFullCreate: (path: string, password: string, includeSecrets: boolean) => __TAURI_INVOKE<BackupWriteResult>("backup_full_create", { path, password, includeSecrets }),
+	/**  Decrypts a full backup and describes it (counts read from a throw-away copy). */
+	backupFullOpen: (path: string, password: string) => __TAURI_INVOKE<FullBackupFileResult>("backup_full_open", { path, password }),
+	/**
+	 *  Stages the restore (database next to the live one, secrets, key files). The caller then
+	 *  restarts the app (`storage_restart`); the swap happens before the database opens.
+	 */
+	backupFullRestore: (path: string, password: string) => __TAURI_INVOKE<FullRestoreResult>("backup_full_restore", { path, password }),
+	/**  The restore applied at this start, once (later calls return `null`). */
+	backupRestoreNotice: () => __TAURI_INVOKE<{
+	ok: boolean,
+	error: string | null,
+	/**  When the backup was made (Unix ms). */
+	createdAt: number | null,
+	appVersion: string | null,
+	/**  Copy of the replaced database. */
+	previousCopy: string | null,
+} | null>("backup_restore_notice"),
 };
 
 /** Events */
 export const events = {
+	aiPullProgress: makeEvent<AiPullProgress>("ai-pull-progress"),
 	cloneListUpdated: makeEvent<CloneListUpdated>("clone-list-updated"),
 	cloneProgress: makeEvent<CloneProgress>("clone-progress"),
 	lfsTransferProgress: makeEvent<LfsTransferProgress>("lfs-transfer-progress"),
@@ -773,6 +870,29 @@ export type AccountOverride = {
 	identityId?: string | null,
 };
 
+export type AccountPreview = {
+	/**  Id of the account inside the file (what the import selection names). */
+	key: string,
+	username: string,
+	displayName: string | null,
+	label: string | null,
+	color: string,
+	providerName: string,
+	providerKind: ProviderKind,
+	host: string,
+	authMethod: AuthMethod,
+	identities: number,
+	rules: number,
+	sshKeys: number,
+	/**  SSH private keys included in the file. */
+	sshKeyFiles: number,
+	hasToken: boolean,
+	/**  Same provider host + user name already exists on this machine. */
+	existingAccountId: string | null,
+	/**  The provider (self-hosted instance) is not configured here yet. */
+	newProvider: boolean,
+};
+
 /**  One account's part of the list. */
 export type AccountRepos = {
 	accountId: string,
@@ -813,6 +933,159 @@ export type AccountSuggestion = {
 	identityId: string | null,
 	email: string | null,
 	reason: SuggestionReason,
+};
+
+export type AccountsFileResult = {
+	problem: BackupProblem | null,
+	info: BackupInfo | null,
+	preview: AccountsPreview | null,
+};
+
+export type AccountsImportReport = {
+	added: number,
+	/**  Existing accounts whose label/color were updated. */
+	updated: number,
+	/**  Selected accounts that already existed (left untouched). */
+	skipped: number,
+	providersAdded: number,
+	/**  New accounts whose token came from the file. */
+	tokens: number,
+	sshKeys: number,
+	/**  New accounts without a token: they must sign in again (ids on this machine). */
+	needSignIn: string[],
+	/**  Identities whose SSH signing key does not exist here: signing was turned off. */
+	signingDisabled: number,
+};
+
+export type AccountsImportResult = {
+	problem: BackupProblem | null,
+	report: AccountsImportReport | null,
+};
+
+export type AccountsPreview = {
+	accounts: AccountPreview[],
+	/**  At least one account carries a token. */
+	hasSecrets: boolean,
+};
+
+/**  Stored under [`KEY_AI_CONFIG`]. Off by default. */
+export type AiConfig = {
+	enabled?: boolean,
+	provider?: AiProvider,
+	models?: AiModels,
+	/**  Base URL of the OpenAI-compatible service, e.g. `https://openrouter.ai/api/v1`. */
+	compatibleBaseUrl?: string,
+	ollamaUrl?: string,
+	language?: AiMessageLanguage,
+	style?: AiMessageStyle,
+	/**  Also write a body under the summary line. */
+	includeBody?: boolean,
+};
+
+/**  Which changes the message describes. */
+export type AiDiffSource = "staged" | 
+/**  Nothing was staged and the user asked to use the unstaged changes. */
+"unstaged";
+
+/**
+ *  Errors of the AI commands, serialized as `{ kind, message, ... }` (like [`AppError`]) so the
+ *  generic `errorMessage()` helper works; the UI explains each kind in plain words.
+ */
+export type AiError = { kind: "notEnabled"; message: string } | { kind: "missingKey"; message: string } | { kind: "missingModel"; message: string } | { kind: "missingBaseUrl"; message: string } | 
+/**  Nothing staged; `hasUnstaged` offers "use the unstaged changes". */
+{ kind: "nothingStaged"; message: string; hasUnstaged: boolean } | 
+/**  401 or an "API key not valid" answer. */
+{ kind: "invalidKey"; message: string } | 
+/**  403: the key may not use this model / region. */
+{ kind: "accessDenied"; message: string } | 
+/**  Out of credits / billing. */
+{ kind: "quotaExceeded"; message: string } | 
+/**  429 / overloaded: try again later. */
+{ kind: "rateLimited"; message: string } | { kind: "modelNotFound"; message: string; model: string } | { kind: "ollamaNotRunning"; message: string } | { kind: "ollamaNotInstalled"; message: string } | { kind: "network"; message: string } | { kind: "timeout"; message: string } | { kind: "cancelled"; message: string } | 
+/**  Any other HTTP error of the service. */
+{ kind: "service"; message: string; status: number } | { kind: "emptyAnswer"; message: string } | { kind: "busy"; message: string } | { kind: "invalidInput"; message: string } | { kind: "git"; message: string } | { kind: "internal"; message: string };
+
+export type AiHostOs = "windows" | "macos" | "linux";
+
+export type AiInstallResult = {
+	outcome: SetupInstallOutcome,
+	manager: SetupPackageManager | null,
+	command: string | null,
+	exitCode: number | null,
+	output: string,
+};
+
+/**  Whether the API key of each service is stored (values never leave the backend). */
+export type AiKeyStatus = {
+	openai: boolean,
+	anthropic: boolean,
+	gemini: boolean,
+	compatible: boolean,
+};
+
+export type AiMessageLanguage = 
+/**  Same language as the app. */
+"app" | "en" | "vi";
+
+export type AiMessageStyle = 
+/**  `feat: add login page`. */
+"conventional" | 
+/**  `Add login page`. */
+"plain";
+
+/**  Chosen model of each service (kept when switching service). */
+export type AiModels = {
+	ollama?: string,
+	openai?: string,
+	anthropic?: string,
+	gemini?: string,
+	compatible?: string,
+};
+
+/**  Where the message is written. */
+export type AiProvider = 
+/**  Ollama on this computer: free, the code never leaves the machine. */
+"ollama" | "openai" | "anthropic" | "gemini" | 
+/**  Any OpenAI-compatible endpoint (OpenRouter, Groq, LM Studio, vLLM...). */
+"compatible";
+
+/**  Download progress of `ai_ollama_pull` (event `ai-pull-progress`). */
+export type AiPullProgress = {
+	requestId: string,
+	model: string,
+	/**
+	 *  Ollama's status line (`pulling manifest`, `pulling 2bada8a74506`, `verifying sha256 digest`,
+	 *  `success`).
+	 */
+	status: string,
+	/**  Bytes over every layer seen so far. */
+	completed: number,
+	total: number,
+	percent: number | null,
+	done: boolean,
+};
+
+/**  Settings as the UI sees them: the config plus which keys are stored. */
+export type AiSettingsView = {
+	config: AiConfig,
+	keys: AiKeyStatus,
+};
+
+export type AiSuggestion = {
+	summary: string,
+	body: string,
+	source: AiDiffSource,
+	/**  Part of the diff was left out to keep the request small. */
+	truncated: boolean,
+	provider: AiProvider,
+	model: string,
+};
+
+export type AiTestResult = {
+	/**  Models the service offers (sorted, at most 500). */
+	models: string[],
+	/**  The chosen model is among them (`None` when no model is chosen). */
+	modelFound: boolean | null,
 };
 
 /**
@@ -929,6 +1202,19 @@ export type AuthMethod = "oauth" | "pat" |
  */
 "importedCli";
 
+/**  The autostash of the branch that was just checked out. */
+export type AutostashRestore = {
+	status: RestoreStatus,
+	/**  Files in the stash entry. */
+	files: number,
+	/**  Conflicted paths (`Conflicts`). */
+	conflicts: string[],
+	/**  The working tree was not clean (`Pending`). */
+	dirty: boolean,
+	/**  git's explanation (`Failed`). */
+	message: string | null,
+};
+
 export type AvailableUpdate = {
 	version: string,
 	/**  Unix seconds, from the manifest's `pub_date`. */
@@ -939,6 +1225,35 @@ export type AvailableUpdate = {
 	skipped: boolean,
 	releaseUrl: string | null,
 };
+
+/**  Facts readable without the password. */
+export type BackupInfo = {
+	kind: BackupKind,
+	/**  Unix milliseconds. */
+	createdAt: number,
+	appVersion: string,
+};
+
+/**
+ *  What the file holds. Stored in clear (and authenticated) so the UI can refuse the wrong
+ *  kind of file before asking for the password.
+ */
+export type BackupKind = 
+/**  Account configuration (Phase 6.3). */
+"accounts" | 
+/**  The whole app (Phase 6.6). */
+"full";
+
+/**  What is wrong with a chosen file or password, for the dialog to explain. */
+export type BackupProblem = 
+/**  Wrong password, or the file was modified (cannot be told apart). */
+"wrongPassword" | "notABackup" | 
+/**  An account export where a full backup is expected, or the reverse. */
+"wrongKind" | 
+/**  Made by a newer app version (file format or database schema). */
+"newerVersion" | "tooLarge" | 
+/**  Decrypted, but the content is damaged. */
+"corrupt" | "weakPassword";
 
 /**  A backup ref made before a rewrite. */
 export type BackupRef = {
@@ -952,6 +1267,13 @@ export type BackupRef = {
 	/**  Unix seconds, from the ref name. */
 	createdAt: number,
 	summary: string,
+};
+
+export type BackupWriteResult = {
+	path: string,
+	bytes: number,
+	/**  Accounts in the file. */
+	accounts: number,
 };
 
 /**  "Use for this repo": binds the repo (or one remote) to an account. */
@@ -1045,6 +1367,76 @@ export type BranchRelation = {
 	/**  `target` can be fast-forwarded to `source` (it is an ancestor and they differ). */
 	canFastForward: boolean,
 	current: string | null,
+};
+
+/**  Read-only pre-flight of a switch. */
+export type BranchSwitchCheck = {
+	/**  Local branch that will be checked out. */
+	branch: string,
+	/**  It does not exist yet: it will be created from the remote branch, tracking it. */
+	create: boolean,
+	/**  Checked-out branch; `None` when HEAD is detached. */
+	current: string | null,
+	/**  Already on `branch`: nothing to do. */
+	alreadyCurrent: boolean,
+	/**  Merge / rebase / cherry-pick / revert… stopped half-way. */
+	operation: RepoOperation | null,
+	/**  Files still in conflict. */
+	conflicts: number,
+	/**
+	 *  Files with uncommitted changes (staged, unstaged and untracked; changes inside
+	 *  submodules are not counted: a stash cannot hold them and checkout leaves them alone).
+	 */
+	changes: number,
+	/**  Folder of another worktree where `branch` is checked out. */
+	checkedOutAt: string | null,
+	/**
+	 *  HEAD is detached on a commit that no branch contains: leaving it makes those commits
+	 *  hard to find.
+	 */
+	detachedOrphan: boolean,
+	/**  Short id of the detached commit. */
+	headShort: string | null,
+	/**  No commit yet (stashing is impossible). */
+	unborn: boolean,
+};
+
+export type BranchSwitchPrefs = {
+	dirtyAction: DirtyAction,
+	/**  Pop the autostash of a branch when coming back to it. */
+	autoRestore: boolean,
+};
+
+/**  Partial update of [`BranchSwitchPrefs`]. */
+export type BranchSwitchPrefsPatch = {
+	dirtyAction?: DirtyAction | null,
+	autoRestore?: boolean | null,
+};
+
+export type BranchSwitchResult = {
+	status: SwitchStatus,
+	/**  Local branch switched to (or the one that was asked for). */
+	branch: string,
+	/**  Branch (or `None` = detached HEAD) we came from. */
+	from: string | null,
+	/**  The local branch was created from the remote branch. */
+	created: boolean,
+	/**  The uncommitted changes were stashed (autostash of `from`). */
+	stashed: boolean,
+	/**  Files with uncommitted changes before the switch (see [`BranchSwitchCheck::changes`]). */
+	changes: number,
+	restore: AutostashRestore | null,
+	/**  Submodules now checked out at another commit than the one the branch records. */
+	submodules: string[],
+	reason: FailureKind | null,
+	message: string | null,
+	/**  `checkedOutElsewhere`: folder of that worktree. */
+	worktree: string | null,
+	/**
+	 *  Blocked after stashing and the stash could not be popped back: the changes are in the
+	 *  newest stash entry.
+	 */
+	stashKept: boolean,
 };
 
 export type ChangeKind = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "untracked" | "conflicted";
@@ -1539,6 +1931,32 @@ export type ConflictStage = {
 /**  Where a resolved account came from, for the account pill and banner. */
 export type ContextSource = "locked" | "manual" | "clone" | "rule" | "none";
 
+/**  A theme the user made: a light or dark base plus overridden color tokens. */
+export type CustomTheme = {
+	id: string,
+	name: string,
+	base: ThemeBase,
+	/**  `--token` → `#rrggbb`. Tokens left out fall back to the base theme. */
+	colors: { [key in string]: string },
+	/**  Unix time in milliseconds. */
+	createdAt: number,
+	updatedAt: number,
+};
+
+export type CustomThemeInput = {
+	/**  `None` creates a new theme. */
+	id?: string | null,
+	name: string,
+	base: ThemeBase,
+	colors: { [key in string]: string },
+};
+
+export type CustomThemes = {
+	themes: CustomTheme[],
+	/**  Theme used when the theme mode is "custom": a preset id, a theme id or `None`. */
+	activeId: string | null,
+};
+
 /**  What the UI shows while waiting: the code to type and where. */
 export type DevicePrompt = {
 	/**  e.g. `WDJB-MJHT` — show large, offer "copy". */
@@ -1585,6 +2003,9 @@ export type DiffSide =
 "untracked" | 
 /**  A commit against its first parent. */
 "commit";
+
+/**  Saved answer to "you have uncommitted changes". */
+export type DirtyAction = "ask" | "stash" | "carry";
 
 /**  What a download would transfer, and whether it fits on the disk. */
 export type DownloadEstimate = {
@@ -1868,6 +2289,31 @@ export type FsckProblemKind =
 export type FsckReport = {
 	ok: boolean,
 	problems: FsckProblem[],
+};
+
+export type FullBackupFileResult = {
+	problem: BackupProblem | null,
+	info: BackupInfo | null,
+	preview: FullPreview | null,
+};
+
+export type FullPreview = {
+	accounts: number,
+	repos: number,
+	/**  `None` when the backup has no such setting. */
+	notes: number | null,
+	customThemes: number | null,
+	includesSecrets: boolean,
+	secrets: number,
+	sshKeyFiles: number,
+	/**  Data folder of the source machine. */
+	dataDir: string,
+};
+
+export type FullRestoreResult = {
+	problem: BackupProblem | null,
+	/**  Staged: restart the app to finish. */
+	staged: StagedRestore | null,
 };
 
 /**  The identity git will record, as configured for this repository. */
@@ -2639,6 +3085,96 @@ export type MissingScope = {
 
 /**  Stage of a move, for progress events. */
 export type MovePhase = "copying" | "verifying" | "cleaning";
+
+export type Note = {
+	id: string,
+	title: string,
+	/**  Plain text, shown as-is (never rendered as HTML / Markdown). */
+	body: string,
+	/**  Tag ids (built-in or user-defined). */
+	tags: string[],
+	priority: NotePriority,
+	done: boolean,
+	pinned: boolean,
+	/**  Due date `YYYY-MM-DD`. */
+	due: string | null,
+	/**  Repository the note is about (path + display name). */
+	repoPath: string | null,
+	repoName: string | null,
+	/**  Unix time in milliseconds. */
+	createdAt: number,
+	updatedAt: number,
+};
+
+export type NoteInput = {
+	/**  `None` creates a new note. */
+	id?: string | null,
+	title: string,
+	body: string,
+	tags: string[],
+	priority: NotePriority,
+	done: boolean,
+	pinned: boolean,
+	due: string | null,
+	repoPath: string | null,
+	repoName: string | null,
+};
+
+export type NotePriority = "low" | "normal" | "high" | "urgent";
+
+export type NoteTag = {
+	id: string,
+	name: string,
+	/**  `#rrggbb` background of the label. */
+	color: string,
+};
+
+export type NoteTagInput = {
+	id?: string | null,
+	name: string,
+	color: string,
+};
+
+export type NotesData = {
+	notes: Note[],
+	/**  User-defined tags (built-in tags are not stored). */
+	tags: NoteTag[],
+};
+
+export type NotesImportReport = {
+	problem: UserFileProblem | null,
+	added: number,
+	updated: number,
+	/**  Notes not newer than the copy already here, or damaged. */
+	skipped: number,
+	tagsAdded: number,
+	data: NotesData,
+};
+
+export type OllamaModel = {
+	name: string,
+	/**  Bytes on disk. */
+	size: number,
+	parameterSize: string | null,
+	quantization: string | null,
+};
+
+export type OllamaStatus = {
+	/**  The server answers on the configured address. */
+	running: boolean,
+	version: string | null,
+	/**  The program was found (CLI or, on macOS, Ollama.app). */
+	installed: boolean,
+	cliPath: string | null,
+	/**  macOS `Ollama.app`. */
+	appPath: string | null,
+	/**  Models already downloaded (empty while the server is down). */
+	models: OllamaModel[],
+	/**  "Cài Ollama giúp tôi" is possible with this package manager. */
+	installer: SetupPackageManager | null,
+	os: AiHostOs,
+	downloadUrl: string,
+};
 
 export type OnboardingStatus = {
 	importDone: boolean,
@@ -3504,6 +4040,17 @@ export type ResetMode =
 /**  Discard everything (index and working tree) — destructive. */
 "hard";
 
+/**  Outcome of a restore applied at this start (shown once). */
+export type RestoreNotice = {
+	ok: boolean,
+	error: string | null,
+	/**  When the backup was made (Unix ms). */
+	createdAt: number | null,
+	appVersion: string | null,
+	/**  Copy of the replaced database. */
+	previousCopy: string | null,
+};
+
 export type RestoreOutcome = {
 	branch: string,
 	/**  Branch tip before the restore. */
@@ -3512,6 +4059,16 @@ export type RestoreOutcome = {
 	/**  Backup of `previous` (so the undo itself can be undone). */
 	backupRef: string,
 };
+
+export type RestoreStatus = 
+/**  Popped cleanly. */
+"restored" | 
+/**  Popped with conflicts: the files hold conflict markers, the stash entry is kept. */
+"conflicts" | 
+/**  Not popped: automatic restore is off, or the working tree had changes (`dirty`). */
+"pending" | 
+/**  git refused (e.g. it would overwrite local changes); the stash entry is kept. */
+"failed";
 
 export type RewriteOutcome = {
 	branch: string,
@@ -3829,6 +4386,14 @@ export type SshUploadResult = { kind: "uploaded"; key: SshKeyInfo } |
 { kind: "noToken" } | 
 /**  Token rejected (expired / revoked): sign in again. */
 { kind: "unauthorized" };
+
+/**  What [`stage_restore`] wrote. */
+export type StagedRestore = {
+	secrets: number,
+	sshKeyFiles: number,
+	/**  Key files skipped because a different key with the same id exists here. */
+	sshKeyConflicts: number,
+};
 
 export type StartupArgs = {
 	/**  Repository passed on the command line (`nanomgg <path>` or `--open <path>`). */
@@ -4148,6 +4713,29 @@ export type SuggestionReason =
 /**  Same provider host as the remote. */
 "sameHost";
 
+/**  What to do with uncommitted changes. */
+export type SwitchDirtyMode = 
+/**  Stash them (autostash) before switching. */
+"stash" | 
+/**  Plain checkout: git keeps them when they do not clash with the other branch. */
+"carry";
+
+export type SwitchStatus = 
+/**  Already on that branch; nothing was done. */
+"unchanged" | "switched" | 
+/**  Refused (`reason`, `message`); the repository is as before, except when `stashKept`. */
+"blocked";
+
+/**  Branch to switch to. */
+export type SwitchTarget = 
+/**  A local branch (`refs/heads/<name>`). */
+{ kind: "local"; name: string } | 
+/**
+ *  A remote-tracking branch `<remote>/<branch>`: switches to the local branch tracking it,
+ *  creating it when there is none.
+ */
+{ kind: "remote"; remote: string; branch: string };
+
 export type Tag = {
 	name: string,
 	/**  Commit the tag points to (peeled for annotated tags). */
@@ -4180,7 +4768,17 @@ export type TerminalInfo = {
 	shell: string,
 };
 
-export type ThemeMode = "light" | "dark" | "system";
+export type ThemeBase = "light" | "dark";
+
+export type ThemeImportResult = {
+	problem: UserFileProblem | null,
+	/**  The imported theme (saved under a new id). */
+	theme: CustomTheme | null,
+};
+
+export type ThemeMode = "light" | "dark" | "system" | 
+/**  Phase 6.2: a user / preset theme (`theme.activeCustom`); the system theme when none is set. */
+"custom";
 
 /**  Action of one todo row. */
 export type TodoAction = "pick" | 
@@ -4394,6 +4992,28 @@ export type UpdaterStatus = {
 };
 
 export type UrlScheme = "https" | "http" | "ssh" | "git" | "local";
+
+export type UserDataSummary = {
+	themes: number,
+	notes: number,
+	userTags: number,
+	/**  Approximate size of the stored JSON. */
+	themesBytes: number,
+	notesBytes: number,
+};
+
+/**  Why a file chosen by the user could not be imported. */
+export type UserFileProblem = 
+/**  Could not read the file (gone, no permission). */
+"unreadable" | "tooLarge" | 
+/**  Not JSON at all (or not UTF-8). */
+"notJson" | 
+/**  JSON, but not a file this app exported (wrong `format`). */
+"wrongFormat" | 
+/**  Exported by a newer version of the app. */
+"newerVersion" | 
+/**  The right kind of file, but the content is damaged or empty. */
+"invalid";
 
 export type Version = {
 	major: number,

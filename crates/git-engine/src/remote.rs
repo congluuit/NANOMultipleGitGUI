@@ -653,6 +653,16 @@ mod tests {
         let hooks = s._dir.path().join("hooks");
         std::fs::create_dir_all(&hooks).unwrap();
         std::fs::write(hooks.join("pre-push"), "#!/bin/sh\nwhile :; do :; done\n").unwrap();
+        // git silently skips hooks that are not executable.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(
+                hooks.join("pre-push"),
+                std::fs::Permissions::from_mode(0o755),
+            )
+            .unwrap();
+        }
         w.git(&[
             "config",
             "core.hooksPath",

@@ -53,6 +53,8 @@ nanomgg-app-paths = { path = "../../../crates/app-paths", features = ["specta"] 
 # Phase 3B.4: Check for Update from GitHub Releases (configured at runtime, see updater.rs).
 tauri-plugin-updater = "2"
 semver = "1"
+# Phase 6.3 / 6.6: encrypted account export/import and full backup/restore.
+nanomgg-backup = { path = "../../../crates/backup", features = ["specta"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

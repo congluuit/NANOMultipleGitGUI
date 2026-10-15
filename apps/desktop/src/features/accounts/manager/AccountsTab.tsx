@@ -13,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { AccountsBackupButtons } from "@/features/backup/AccountsBackupButtons";
 import { commands, errorMessage, type Account, type AccountHealth, type Provider } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { AccountAvatar } from "../AccountAvatar";
@@ -57,6 +58,7 @@ export function AccountsTab({ accounts, providers, health, focusId, onAdd, onRea
     <div className="grid gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[11px] text-muted-foreground">{t("accounts.list.orderHint")}</p>
+        <AccountsBackupButtons canExport={accounts.length > 0} />
         <Button size="sm" onClick={onAdd}>
           <Plus />
           {t("accounts.list.add")}

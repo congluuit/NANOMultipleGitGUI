@@ -11,6 +11,8 @@ pub enum ThemeMode {
     Dark,
     #[default]
     System,
+    /// Phase 6.2: a user / preset theme (`theme.activeCustom`); the system theme when none is set.
+    Custom,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

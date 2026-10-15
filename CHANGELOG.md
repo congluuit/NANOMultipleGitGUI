@@ -11,6 +11,13 @@ First public release.
 
 ### Added
 
+- Double-click a branch in the left panel to switch to it safely: uncommitted changes can be stashed automatically and are restored when you come back to that branch.
+- Custom themes: two High Contrast presets and a theme editor (export / import as JSON).
+- Export / import account settings between computers through a password-encrypted file (sign-in tokens optional).
+- AI commit message suggestions with your own API key (OpenAI, Anthropic, Gemini, OpenAI-compatible) or a local model through Ollama.
+- "My notes" tab in My Work: colored tags, priority, pin, due date, export / import.
+- Full backup and restore of all app data through a password-encrypted file.
+- Full Guide in Settings: every feature explained in plain language (English / Vietnamese).
 - Monorepo scaffold: Tauri 2 desktop app (React 19 + TypeScript + Vite) and a Cargo workspace of crates.
 - Design tokens for Light / Dark / System themes (warm stone + ember palette) with automated WCAG AA contrast tests and a palette preview page.
 - Main window: account pill, repository tabs, toolbar, sidebar, commit panel and status bar.

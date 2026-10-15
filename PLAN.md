@@ -51,6 +51,13 @@
 | 5.2–5.6 | Kiểm chứng thật, macOS/Linux, hiệu năng, trải nghiệm, phát hành | ✅ Người dùng xác nhận xong (2026-10-15) — xem "Còn lại sau v1.0" ở mục 10 |
 | 5.7 | Beta công khai | ⏭️ Bỏ — phát hành thẳng v1.0.0 (quyết định của người dùng) |
 | 1.0 | **v1.0.0** — đổi bundle identifier `io.github.congluuit.nanomultiplegitgui` (+ tự chép dữ liệu bản thử), README/CHANGELOG 1.0.0 | ✅ Sẵn sàng tag (2026-10-15) |
+| 6.1 | Nhấp đúp nhánh ở panel trái để chuyển nhánh an toàn (cất tạm tự động + tự khôi phục khi quay lại) | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.2 | Theme tùy chỉnh: 2 preset Tương phản cao + trình tạo theme riêng | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.3 | Xuất / nhập cấu hình tài khoản qua file mã hóa (token tùy chọn) | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.4 | Gợi ý commit message bằng AI (OpenAI / Anthropic / Gemini / tương thích OpenAI / Ollama local) | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.5 | "Ghi chú của tôi" trong "Việc của tôi" (tag màu, ưu tiên, xuất / nhập) | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.6 | Sao lưu / khôi phục toàn bộ dữ liệu app (file mã hóa) | ✅ Xong (2026-10-15) — chờ người dùng test |
+| 6.7 | "Hướng dẫn đầy đủ" trong Cài đặt (vi + en, 22 chủ đề) | ✅ Xong (2026-10-15) — chờ người dùng test |
 
 Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 
@@ -1049,10 +1056,27 @@ Thứ tự đề xuất: 5.1 → (5.2 ∥ 5.3) → 5.4 → 5.5 → 5.6 → 5.7. 
 
 ### Sau v1.0
 - Bitbucket, Gitea/Forgejo, Azure DevOps.
-- Theme High Contrast, cho phép người dùng tạo theme riêng.
 - Hệ thống plugin/extension.
-- Gợi ý commit message bằng AI (tùy chọn, dùng key của người dùng hoặc model local).
-- Đồng bộ cấu hình tài khoản (không gồm secret) giữa nhiều máy qua file export mã hóa.
+- (Đã làm ở Phase 6: theme High Contrast + theme riêng, gợi ý commit bằng AI, đồng bộ cấu hình tài khoản qua file mã hóa.)
+
+### Phase 6 — Tính năng sau v1.0 (2026-10-15, 4 sub-agent song song; brief `.agent/phase6/BRIEF.md`, báo cáo `.agent/phase6/6.x.md`)
+Không đổi version (vẫn 1.0.0). Không thêm migration SQL: dữ liệu mới nằm trong bảng `settings` (khóa `theme.custom`, `theme.activeCustom`, `notes.items`, `notes.tags`, `ai.config`, `branchSwitch.dirtyAction`, `branchSwitch.autoRestore`); bí mật mới (key AI) trong keychain với owner `ai_openai` / `ai_anthropic` / `ai_gemini` / `ai_compatible`. Quyền `dialog:allow-save` được thêm vào capabilities.
+
+**6.1 — Nhấp đúp chuyển nhánh** (`branch_switch.rs`, `features/branch-switch/`): nhấp đúp / Enter vào nhánh Local để chuyển; nhánh Remote → dùng nhánh local đang theo dõi hoặc tạo mới. Menu chuột phải "Checkout" và lệnh palette đi cùng luồng. `branch_switch_check` (chỉ đọc) + `branch_switch_run` (kiểm lại → `stash push -u` với message `nanomgg-autostash: <nhánh>` → checkout → tự trả stash nếu checkout lỗi → tự `stash pop` khi quay về nhánh có stash tự động). Dừng và giải thích khi: đang dở merge/rebase/cherry-pick/revert hoặc còn xung đột, đang pull/push/fetch, nhánh đang mở ở worktree khác ("Mở worktree đó"), HEAD tách rời có commit không thuộc nhánh nào ("Tạo nhánh ở đây trước"). Có thay đổi chưa commit → hỏi "Cất tạm rồi chuyển" (mặc định) / "Mang thay đổi sang" / Hủy, "Ghi nhớ lựa chọn"; Cài đặt → Chuyển nhánh. Notice sau khi chuyển có "Quay lại <nhánh cũ>"; submodule lệch → "Cập nhật submodule". Hạn chế: không thấy lệnh git gõ trong terminal; stash tạo khi HEAD tách rời không tự khôi phục; thay đổi bên trong submodule không được cất.
+
+**6.2 — Theme tùy chỉnh** (`user_data.rs`, `features/custom-theme/`, `theme/custom.ts`): `ThemeMode` thêm `custom`; preset chỉ-đọc "Tương phản cao — Tối/Sáng" (chữ ≥ 7:1, có test); trình quản lý: tạo (từ Sáng/Tối/preset/nhân bản), đổi tên, xóa, xuất/nhập `.json`, sửa 21 token theo 5 nhóm, nền gốc sáng/tối, xem trước trực tiếp, cảnh báo tương phản. Monaco/xterm/graph vẽ lại theo `useUi.themeVersion`; cache localStorage để lần vẽ đầu không nháy; theme đang dùng bị xóa → về Theo hệ thống.
+
+**6.3 — Xuất/nhập cấu hình tài khoản** (crate mới `crates/backup`: Argon2id 64 MiB/t=3 → XChaCha20-Poly1305, header trong AAD; `backup.rs`, `features/backup/`): provider, tài khoản, identity, rule; mặc định không gồm bí mật, checkbox thêm token + refresh token + SSH key (cảnh báo refresh token OAuth chỉ dùng một lần). Nhập: xem trước, đánh dấu tài khoản đã có (host + username), id mới, tất cả-hoặc-không (hoàn tác ngược khi lỗi).
+
+**6.4 — Gợi ý commit bằng AI** (`ai.rs` + `ai/`, `features/ai/`): mặc định tắt; OpenAI, Anthropic, Gemini, dịch vụ tương thích OpenAI (base URL), Ollama local. Diff đã stage (lock file / nhị phân / `.min.*` chỉ ghi tên, cắt ~14 KB), tên nhánh, 8 tiêu đề gần nhất. Ollama: phát hiện server/CLI, "Cài Ollama giúp tôi" (winget / brew, Linux mở trang tải), "Khởi động Ollama", 5 model nhẹ gợi ý (`qwen2.5-coder:1.5b` khuyến nghị, `llama3.2:1b`, `gemma3:1b`, `qwen2.5-coder:3b`, `llama3.2:3b`), tải model qua `/api/pull` có % và hủy. Nút ✨ cạnh ô tóm tắt commit, hỏi trước khi thay chữ có sẵn, Hoàn tác một lần. Hạn chế: amend không stage gì chưa dùng diff của commit cũ; `ollama serve` do app mở vẫn chạy sau khi đóng app.
+
+**6.5 — Ghi chú của tôi** (`user_data.rs`, `features/notes/`): tab trong "Việc của tôi"; tiêu đề, nội dung, nhiều tag màu (7 tag có sẵn + tag riêng), ưu tiên 4 mức, Xong, Ghim, hạn chót, liên kết repo; tìm (bỏ dấu), lọc, sắp xếp, tự lưu 0,7 s. Xuất JSON (`format: "nanomgg-notes"`) / Markdown, nhập gộp theo id (bản sửa mới hơn thắng). Cài đặt → Lưu trữ → "Dữ liệu của bạn trong app": xóa theme / ghi chú (gõ xác nhận).
+
+**6.6 — Sao lưu toàn bộ** (`backup.rs`, `Storage::snapshot_to` qua `VACUUM INTO`): Cài đặt → Sao lưu & khôi phục. Bản chụp DB + (mặc định) token, passphrase SSH, file SSH key, key AI. Khôi phục: xem trước, xác nhận, ghi `nanomgg.db.restore` + bí mật + SSH key, khởi động lại; lúc khởi động (trước `Storage::open`) chép DB cũ vào `backups/pre-restore-*.db` (giữ 3) rồi thay. Từ chối bản sao lưu có schema mới hơn; file chờ hỏng → giữ DB cũ. Không gồm `locations.json`, log, cache, localStorage.
+
+**6.7 — Hướng dẫn đầy đủ** (`features/guide/`, nội dung `content/{vi,en}.ts`): nút dưới "Hướng dẫn ban đầu" trong Cài đặt + lệnh palette; 22 chủ đề, ô tìm không cần dấu, giải thích từ git bằng lời thường.
+
+**Kiểm (điều phối):** typecheck, eslint, prettier sạch; vitest 98 file / 855 test qua (sửa 3 test do lệnh palette mới: tên lệnh AI đổi thành "Gợi ý commit bằng AI: cài đặt…", danh sách theme có thêm "Tùy chỉnh"); Rust fmt + clippy `-D warnings` + `cargo test --workspace` (684 test qua, app 192). Bộ cài build lại (version giữ 1.0.0): `NANOMultipleGitGUI_1.0.0_x64-setup.exe` (7,9 MB), `…_x64_en-US.msi` (12,0 MB). Chưa chạy trên app thật — người dùng tự test bản release. Khi test nhập/khôi phục có bí mật: app ghi vào keychain thật (`nanomgg:acc_*`, `nanomgg:key_*`, `nanomgg:ai_*`).
 
 ---
 

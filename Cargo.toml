@@ -46,3 +46,10 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Phase 6.3/6.6: Argon2id over 64 MiB takes seconds unoptimized; keep debug builds responsive.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3

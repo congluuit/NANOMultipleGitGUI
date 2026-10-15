@@ -794,6 +794,43 @@ mod tests {
             Some(event)
         }
 
+        /// Output without escape sequences: newer ConPTY builds emit mode switches in the
+        /// middle of a program's text (`a\x1b[?9001l\x1b[?1004llice@…`).
+        fn text(&self) -> String {
+            let mut out = String::with_capacity(self.output.len());
+            let mut chars = self.output.chars().peekable();
+            while let Some(c) = chars.next() {
+                if c != '\x1b' {
+                    out.push(c);
+                    continue;
+                }
+                match chars.next() {
+                    // CSI: parameters up to a final byte in `@`..=`~`.
+                    Some('[') => {
+                        for c in chars.by_ref() {
+                            if ('@'..='~').contains(&c) {
+                                break;
+                            }
+                        }
+                    }
+                    // OSC: up to BEL or ST (`ESC \`).
+                    Some(']') => {
+                        while let Some(c) = chars.next() {
+                            if c == '\x07' {
+                                break;
+                            }
+                            if c == '\x1b' && chars.peek() == Some(&'\\') {
+                                chars.next();
+                                break;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            out
+        }
+
         fn wait_exit(&mut self) -> Option<u32> {
             let deadline = Instant::now() + TIMEOUT;
             while let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
@@ -813,7 +850,7 @@ mod tests {
         let terms = Terminals::default();
         let mut run = start(&terms, request("git", &["--version"], dir.path(), vec![]));
         assert_eq!(run.wait_exit(), Some(0));
-        assert!(run.output.contains("git version"), "{:?}", run.output);
+        assert!(run.text().contains("git version"), "{:?}", run.output);
         assert_eq!(terms.len(), 0, "finished sessions are removed");
     }
 
@@ -834,7 +871,7 @@ mod tests {
             ),
         );
         assert_eq!(run.wait_exit(), Some(0));
-        assert!(run.output.contains("alice@acme.dev"), "{:?}", run.output);
+        assert!(run.text().contains("alice@acme.dev"), "{:?}", run.output);
 
         // And the shell sees the raw variables.
         #[cfg(windows)]
@@ -844,7 +881,7 @@ mod tests {
         let (program, args): (&str, &[&str]) = ("/bin/sh", &["-c", "echo count=$GIT_CONFIG_COUNT"]);
         let mut run = start(&terms, request(program, args, dir.path(), env));
         assert_eq!(run.wait_exit(), Some(0));
-        assert!(run.output.contains("count=2"), "{:?}", run.output);
+        assert!(run.text().contains("count=2"), "{:?}", run.output);
     }
 
     /// The real interactive shell (Git Bash on Windows, `$SHELL -l` elsewhere) starts in the repo
@@ -873,12 +910,12 @@ mod tests {
             .unwrap();
         assert_eq!(run.wait_exit(), Some(7));
         assert!(
-            run.output.contains("count=2 email=alice@acme.dev"),
+            run.text().contains("count=2 email=alice@acme.dev"),
             "{:?}",
             run.output
         );
         let name = dir.path().file_name().unwrap().to_string_lossy();
-        assert!(run.output.contains(name.as_ref()), "cwd: {:?}", run.output);
+        assert!(run.text().contains(name.as_ref()), "cwd: {:?}", run.output);
     }
 
     /// Number of running `sleep <seconds>` processes (identified by their unusual duration).
@@ -897,7 +934,7 @@ mod tests {
             .unwrap();
         #[cfg(not(windows))]
         let out = std::process::Command::new("sh")
-            .args(["-c", &format!("pgrep -f 'sleep {seconds}' | wc -l")])
+            .args(["-c", &format!("pgrep -f '[s]leep {seconds}' | wc -l")])
             .output()
             .unwrap();
         String::from_utf8_lossy(&out.stdout)

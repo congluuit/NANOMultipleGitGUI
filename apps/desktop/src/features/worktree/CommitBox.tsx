@@ -3,6 +3,7 @@ import { LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { CommitAs, asAccountOf, settleOneShot, takeOneShot } from "@/features/accounts/switcher";
+import { AiSuggestButton } from "@/features/ai/AiSuggestButton";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
 import { useIssueRefSuggest } from "@/features/issues/IssueRefSuggest";
@@ -129,27 +130,31 @@ export function CommitBox({
 
   return (
     <div className="space-y-2 border-t p-3">
-      <div className="relative">
-        <input
-          value={draft.summary}
-          onChange={(e) => update(repoId, { summary: e.target.value })}
-          onKeyDown={(e) => summarySuggest.onKeyDown(e) || onKeyDown(e)}
-          onSelect={summarySuggest.onCaret}
-          onBlur={summarySuggest.onBlur}
-          placeholder={t("commit.summary")}
-          aria-label={t("commit.summary")}
-          className="h-8 w-full rounded-md border bg-background pr-12 pl-2 text-xs focus:border-primary focus:outline-none"
-        />
-        <span
-          className={cn(
-            "absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[10px] tabular-nums",
-            over ? "text-warning" : "text-muted-foreground",
-          )}
-          title={t("commit.summaryHint", { limit: SUMMARY_LIMIT })}
-        >
-          {SUMMARY_LIMIT - draft.summary.length}
-        </span>
-        {summarySuggest.popup}
+      {/* Phase 6.4: ✨ AI suggestion next to the summary (only when turned on). */}
+      <div className="flex items-center gap-1">
+        <div className="relative min-w-0 flex-1">
+          <input
+            value={draft.summary}
+            onChange={(e) => update(repoId, { summary: e.target.value })}
+            onKeyDown={(e) => summarySuggest.onKeyDown(e) || onKeyDown(e)}
+            onSelect={summarySuggest.onCaret}
+            onBlur={summarySuggest.onBlur}
+            placeholder={t("commit.summary")}
+            aria-label={t("commit.summary")}
+            className="h-8 w-full rounded-md border bg-background pr-12 pl-2 text-xs focus:border-primary focus:outline-none"
+          />
+          <span
+            className={cn(
+              "absolute top-1/2 right-2 -translate-y-1/2 font-mono text-[10px] tabular-nums",
+              over ? "text-warning" : "text-muted-foreground",
+            )}
+            title={t("commit.summaryHint", { limit: SUMMARY_LIMIT })}
+          >
+            {SUMMARY_LIMIT - draft.summary.length}
+          </span>
+          {summarySuggest.popup}
+        </div>
+        <AiSuggestButton repoId={repoId} />
       </div>
       <div className="relative">
         <textarea

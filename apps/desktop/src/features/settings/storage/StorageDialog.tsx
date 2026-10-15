@@ -35,6 +35,7 @@ import { formatBytes } from "@/lib/format";
 import { problemText, progressPercent } from "./model";
 import { storageKeys, useStorageOverview, useStorageStatus } from "./queries";
 import { useStorageUi } from "./store";
+import { UserDataSection } from "./UserDataSection";
 
 interface PendingChange {
   kind: StorageKind;
@@ -314,6 +315,8 @@ export function StorageDialog() {
                 {t("storage.openAccounts")}
               </Button>
             </div>
+
+            <UserDataSection onLeave={() => setOpen(false)} />
           </div>
         </DialogContent>
       </Dialog>

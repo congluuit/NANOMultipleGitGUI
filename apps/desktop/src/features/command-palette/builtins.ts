@@ -30,8 +30,9 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { runOutcome } from "@/features/commits/outcome";
+import { switchBranch } from "@/features/branch-switch/actions";
 import { useRefDialog } from "@/features/commits/store";
+import { enableCustomMode } from "@/features/custom-theme/store";
 import { pushPlan } from "@/features/remote/plan";
 import {
   closeRepository,
@@ -44,7 +45,6 @@ import { useStashUi } from "@/features/stash/store";
 import { hasLocalChanges, topStash } from "@/features/stash/useStashToolbar";
 import { useTerminal } from "@/features/terminal/store";
 import { LANGUAGES } from "@/i18n";
-import { commands } from "@/ipc";
 import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
@@ -283,17 +283,9 @@ function branchCommands(c: PaletteContext): PaletteCommand[] {
       keywords: ["checkout", "switch branch", "chuyen nhanh"],
       when: () => local.length + remote.length > 0,
       children: () => [
+        // Phase 6.1: the safe switch (asks about uncommitted changes, autostash).
         ...local.map((b) =>
-          branchItem(
-            b.name,
-            false,
-            () =>
-              void runOutcome(
-                id,
-                () => commands.branchCheckout(id, b.name),
-                () => t("ops.checkedOut", { name: b.name }),
-              ),
-          ),
+          branchItem(b.name, false, () => void switchBranch(id, { kind: "local", name: b.name })),
         ),
         ...remote.map((full) => {
           const slash = full.indexOf("/");
@@ -301,17 +293,11 @@ function branchCommands(c: PaletteContext): PaletteCommand[] {
             full,
             true,
             () =>
-              void runOutcome(
-                id,
-                () =>
-                  commands.branchCheckoutRemote(
-                    id,
-                    full.slice(0, slash),
-                    full.slice(slash + 1),
-                    null,
-                  ),
-                (name) => t("ops.checkedOut", { name }),
-              ),
+              void switchBranch(id, {
+                kind: "remote",
+                remote: full.slice(0, slash),
+                branch: full.slice(slash + 1),
+              }),
           );
         }),
       ],
@@ -447,8 +433,8 @@ function appCommands(c: PaletteContext): PaletteCommand[] {
       icon: SunMoon,
       keywords: ["theme", "giao dien"],
       flatten: true,
-      children: (x) =>
-        THEME_MODES.map((mode) => ({
+      children: (x) => [
+        ...THEME_MODES.map((mode) => ({
           id: mode,
           title: t(themeLabel[mode]),
           group: "",
@@ -456,6 +442,16 @@ function appCommands(c: PaletteContext): PaletteCommand[] {
           checked: x.theme === mode,
           run: () => useSettings.getState().setTheme(mode),
         })),
+        // Phase 6.2: custom / high-contrast themes.
+        {
+          id: "custom",
+          title: t("customTheme.mode"),
+          group: "",
+          keywords: ["custom", "high contrast", "tuong phan cao"],
+          checked: x.theme === "custom",
+          run: () => void enableCustomMode(),
+        },
+      ],
     },
     {
       id: "language",

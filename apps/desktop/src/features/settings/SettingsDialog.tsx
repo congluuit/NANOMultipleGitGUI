@@ -1,4 +1,4 @@
-import { Monitor, Moon, Palette, Sun, Users } from "lucide-react";
+import { Palette, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,24 +16,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAccountDialogs } from "@/features/accounts/dialogs";
+import { AiSettingsSection } from "@/features/ai/AiSettingsSection";
 import { useAppInfo } from "@/features/app/useAppInfo";
+import { BackupSettingsSection } from "@/features/backup/BackupSettingsSection";
+import { BranchSwitchSettingsSection } from "@/features/branch-switch/BranchSwitchSettingsSection";
+import { GuideSettingsButton } from "@/features/guide/GuideSettingsButton";
+import { ThemeSettingsSection } from "@/features/custom-theme/ThemeSettingsSection";
 import { SetupSettingsSection } from "@/features/onboarding/setup/SetupSettingsSection";
 import { UpdaterSettingsSection } from "@/features/updater/UpdaterSettingsSection";
 import { StorageSection } from "@/features/settings/storage/StorageSection";
 import { LANGUAGES, type Language } from "@/i18n";
 import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
-import type { ThemeMode } from "@/theme/theme";
 
 export function SettingsDialog() {
   const { t } = useTranslation();
   const open = useUi((s) => s.settingsOpen);
   const setOpen = useUi((s) => s.setSettingsOpen);
   const setView = useUi((s) => s.setView);
-  const theme = useSettings((s) => s.theme);
-  const setTheme = useSettings((s) => s.setTheme);
   const language = useSettings((s) => s.language);
   const setLanguage = useSettings((s) => s.setLanguage);
   const ciEnabled = useSettings((s) => s.ciEnabled);
@@ -41,12 +42,6 @@ export function SettingsDialog() {
   const authorAvatars = useSettings((s) => s.authorAvatars);
   const setAuthorAvatars = useSettings((s) => s.setAuthorAvatars);
   const appInfo = useAppInfo();
-
-  const themes: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
-    { value: "light", label: t("settings.themeLight"), icon: Sun },
-    { value: "dark", label: t("settings.themeDark"), icon: Moon },
-    { value: "system", label: t("settings.themeSystem"), icon: Monitor },
-  ];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -57,28 +52,7 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          <div className="space-y-2">
-            <div className="text-xs font-semibold">{t("settings.theme")}</div>
-            <ToggleGroup
-              type="single"
-              variant="outline"
-              value={theme}
-              onValueChange={(v) => v && setTheme(v as ThemeMode)}
-              className="w-full"
-            >
-              {themes.map(({ value, label, icon: Icon }) => (
-                <ToggleGroupItem
-                  key={value}
-                  value={value}
-                  aria-label={label}
-                  className="flex-1 gap-1.5 text-xs data-[state=on]:border-primary data-[state=on]:text-primary"
-                >
-                  <Icon className="size-3.5" />
-                  {label}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
+          <ThemeSettingsSection />
 
           <div className="space-y-2">
             <div className="text-xs font-semibold">{t("settings.language")}</div>
@@ -140,6 +114,10 @@ export function SettingsDialog() {
           </Button>
 
           <SetupSettingsSection />
+          <GuideSettingsButton />
+          <BranchSwitchSettingsSection />
+          <AiSettingsSection />
+          <BackupSettingsSection />
           <UpdaterSettingsSection />
           <StorageSection />
         </div>
