@@ -560,7 +560,15 @@ async fn pkce_start_uses_the_configured_loopback_port() {
     // The port is taken while the login runs; cancelling frees it.
     assert!(std::net::TcpListener::bind(("127.0.0.1", free)).is_err());
     assert!(rt.cancel(&start.flow_id));
-    assert!(std::net::TcpListener::bind(("127.0.0.1", free)).is_ok());
+    // The listener closes on the login task, a moment after `cancel` returns.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while std::net::TcpListener::bind(("127.0.0.1", free)).is_err() {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "port {free} still taken"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
 
     // PKCE is GitLab only.
     let other = MockServer::start().await;
