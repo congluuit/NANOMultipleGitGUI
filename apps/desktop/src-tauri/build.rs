@@ -114,6 +114,31 @@ fn prepare_credential_sidecar() {
         None => build_helper(&workspace, &target, exe),
     };
     copy_if_changed(&built, &dest);
+    if target.ends_with("-apple-darwin") {
+        make_universal_sidecar(&manifest_dir.join("binaries"));
+    }
+}
+
+/// `tauri build --target universal-apple-darwin` builds both architectures, then bundles
+/// `binaries/nanomgg-credential-universal-apple-darwin`: glue the two together with `lipo`
+/// once both exist.
+fn make_universal_sidecar(dir: &Path) {
+    let arm = dir.join("nanomgg-credential-aarch64-apple-darwin");
+    let intel = dir.join("nanomgg-credential-x86_64-apple-darwin");
+    if !(arm.exists() && intel.exists()) {
+        return;
+    }
+    let out = dir.join("nanomgg-credential-universal-apple-darwin");
+    let status = std::process::Command::new("lipo")
+        .arg("-create")
+        .arg("-output")
+        .arg(&out)
+        .arg(&arm)
+        .arg(&intel)
+        .status();
+    if !status.as_ref().is_ok_and(|s| s.success()) {
+        println!("cargo:warning=could not create the universal sidecar with lipo: {status:?}");
+    }
 }
 
 fn build_helper(workspace: &Path, target: &str, exe: &str) -> PathBuf {

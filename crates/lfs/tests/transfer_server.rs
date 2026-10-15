@@ -60,6 +60,11 @@ impl Harness {
              echo \"username=$TEST_ACCOUNT_USER\"\necho \"password=$TEST_ACCOUNT_TOKEN\"\n",
         )
         .unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&helper, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
         let git = GitRunner::default()
             .with_env("GIT_CONFIG_NOSYSTEM", "1")
             .with_env("GIT_CONFIG_GLOBAL", global.to_string_lossy());
