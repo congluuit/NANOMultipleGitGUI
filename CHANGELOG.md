@@ -5,6 +5,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-16
+
+### Added
+
+- Publish a new project to GitHub / GitLab in one step: the Push button becomes **Publish** while a repository has no remote. Choose the account, where to create it (your account or an organization / group), the name and Private / Public — the app creates the repository, adds it as `origin` with that account and pushes your branch.
+- Already created the repository on the web? Add it by URL (toolbar Push menu, the Remote section of the left panel, or the command palette).
+- A "New project" checklist under the toolbar walks a freshly created repository through first commit → publish → push.
+
+### Changed
+
+- The first push of a branch that is not on the server yet is now labelled **Publish branch**.
+
 ## [1.0.0] - 2026-10-15
 
 First public release.
