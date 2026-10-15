@@ -438,6 +438,49 @@ async fn background_refresh_rotates_tokens_and_flags_rejection() {
     assert!(service::health(&st, &later).unwrap().needs_sign_in);
 }
 
+/// GitHub's expiring user tokens (8 h + refresh token) are refreshed in the background like
+/// GitLab's, instead of showing "expires today — sign in again" right after signing in.
+#[tokio::test]
+async fn github_expiring_user_tokens_refresh_in_background() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/login/oauth/access_token"))
+        .and(body_string_contains("grant_type=refresh_token"))
+        .and(body_string_contains("refresh_token=old-refresh"))
+        .and(body_string_contains("client_id=gh-app"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "ghu_new", "refresh_token": "ghr_new", "token_type": "bearer",
+            "expires_in": 28800, "refresh_token_expires_in": 15897600, "scope": ""
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let st = state();
+    let rt = runtime();
+    let p = ghe(&st, &server, Some("gh-app"));
+    let id = gitlab_oauth_account(&st, &p, 8 * 3600);
+
+    let h = service::health(&st, &id).unwrap();
+    assert!(
+        h.auto_refresh && !h.expires_soon && !h.expired && !h.needs_sign_in,
+        "{h:?}"
+    );
+    assert_eq!(service::refresh_due(&st, &rt, now_unix()).await, 0);
+    // Eight hours later (app left open, or started the next day) the token is renewed.
+    assert_eq!(
+        service::refresh_due(&st, &rt, now_unix() + 8 * 3600).await,
+        1
+    );
+    let token = account_secret(&st, &id, AccountSecret::Token)
+        .unwrap()
+        .unwrap();
+    assert_eq!(token.as_str(), "ghu_new");
+    let refresh = account_secret(&st, &id, AccountSecret::RefreshToken)
+        .unwrap()
+        .unwrap();
+    assert_eq!(refresh.as_str(), "ghr_new");
+}
+
 fn gitlab_oauth_account_named(
     st: &AppState,
     p: &Provider,

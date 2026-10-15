@@ -104,6 +104,56 @@ async fn refresh_rejected_means_sign_in_again() {
 }
 
 #[tokio::test]
+async fn github_refresh_rotates_expiring_user_tokens() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/login/oauth/access_token"))
+        .and(body_string_contains("grant_type=refresh_token"))
+        .and(body_string_contains("refresh_token=ghr_old"))
+        .and(body_string_contains("client_id=Ov23app"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "ghu_new", "token_type": "bearer", "expires_in": 28800,
+            "refresh_token": "ghr_new", "refresh_token_expires_in": 15897600, "scope": ""
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let set = refresh_github_token(
+        &http(),
+        &github(&server),
+        "Ov23app",
+        &SecretToken::new("ghr_old"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(set.access_token.expose(), "ghu_new");
+    assert_eq!(set.refresh_token.as_ref().unwrap().expose(), "ghr_new");
+    assert!(set.expires_at.unwrap() > now_unix() + 28_000);
+}
+
+#[tokio::test]
+async fn github_bad_refresh_token_means_sign_in_again() {
+    let server = MockServer::start().await;
+    // GitHub reports OAuth errors with HTTP 200.
+    Mock::given(method("POST"))
+        .and(path("/login/oauth/access_token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "error": "bad_refresh_token", "error_description": "The refresh token passed is incorrect or expired."
+        })))
+        .mount(&server)
+        .await;
+    let e = refresh_github_token(
+        &http(),
+        &github(&server),
+        "Ov23app",
+        &SecretToken::new("ghr_dead"),
+    )
+    .await
+    .unwrap_err();
+    assert!(matches!(e, AuthError::RefreshRejected { .. }), "{e:?}");
+}
+
+#[tokio::test]
 async fn github_classic_pat_scopes_and_expiry() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))

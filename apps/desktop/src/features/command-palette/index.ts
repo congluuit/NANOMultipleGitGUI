@@ -14,9 +14,13 @@ import "./builtins";
 import "@/features/accounts/commands";
 import "@/features/ssh/commands";
 import "@/features/clone/commands";
+import "@/features/forks/commands";
 import "@/features/file-history/commands";
 import "@/features/rebase/commands";
 import "@/features/undo/commands";
+import "@/features/issues/palette";
+import "@/features/mywork/palette";
+import "@/features/pulls/palette";
 
 export { CommandPalette } from "./CommandPalette";
 export {

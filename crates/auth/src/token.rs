@@ -185,11 +185,14 @@ pub async fn refresh_access_token(
             }
             Ok(set)
         }
+        // GitHub answers an unusable refresh token with `bad_refresh_token` (HTTP 200).
         TokenReply::Error {
             error, description, ..
-        } if error == "invalid_grant" => Err(AuthError::RefreshRejected {
-            message: description.unwrap_or(error),
-        }),
+        } if error == "invalid_grant" || error == "bad_refresh_token" => {
+            Err(AuthError::RefreshRejected {
+                message: description.unwrap_or(error),
+            })
+        }
         TokenReply::Error {
             error, description, ..
         } => Err(AuthError::OAuth { error, description }),
@@ -204,6 +207,19 @@ pub async fn refresh_gitlab_token(
     refresh_token: &SecretToken,
 ) -> Result<TokenSet, AuthError> {
     let url = endpoint.web("oauth/token")?;
+    refresh_access_token(http, &url, client_id, refresh_token).await
+}
+
+/// [`refresh_access_token`] against `<github>/login/oauth/access_token`. GitHub only issues
+/// refresh tokens for expiring user tokens (8 h access / 6 months refresh); for tokens from the
+/// device flow the client secret is not needed.
+pub async fn refresh_github_token(
+    http: &reqwest::Client,
+    endpoint: &ProviderEndpoint,
+    client_id: &str,
+    refresh_token: &SecretToken,
+) -> Result<TokenSet, AuthError> {
+    let url = endpoint.web("login/oauth/access_token")?;
     refresh_access_token(http, &url, client_id, refresh_token).await
 }
 

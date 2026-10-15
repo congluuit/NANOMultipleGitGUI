@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CommitAs, asAccountOf, settleOneShot, takeOneShot } from "@/features/accounts/switcher";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
+import { useIssueRefSuggest } from "@/features/issues/IssueRefSuggest";
 import { useLargeFileGuard } from "@/features/lfs/useLargeFileGuard";
 import { commitErrorNotice } from "@/features/signing/commitError";
 import { commands } from "@/ipc";
@@ -38,6 +39,13 @@ export function CommitBox({
   const clear = useWorktreeStore((s) => s.clearDraft);
   const guard = useLargeFileGuard(repoId);
   const [busy, setBusy] = useState(false);
+  // Phase 4.2: typing `#` suggests open issues (inserts `#123` / `Closes #123`).
+  const summarySuggest = useIssueRefSuggest<HTMLInputElement>(repoId, draft.summary, (summary) =>
+    update(repoId, { summary }),
+  );
+  const bodySuggest = useIssueRefSuggest<HTMLTextAreaElement>(repoId, draft.body, (body) =>
+    update(repoId, { body }),
+  );
 
   const message = draft.body.trim()
     ? `${draft.summary.trim()}\n\n${draft.body.trim()}`
@@ -125,7 +133,9 @@ export function CommitBox({
         <input
           value={draft.summary}
           onChange={(e) => update(repoId, { summary: e.target.value })}
-          onKeyDown={onKeyDown}
+          onKeyDown={(e) => summarySuggest.onKeyDown(e) || onKeyDown(e)}
+          onSelect={summarySuggest.onCaret}
+          onBlur={summarySuggest.onBlur}
           placeholder={t("commit.summary")}
           aria-label={t("commit.summary")}
           className="h-8 w-full rounded-md border bg-background pr-12 pl-2 text-xs focus:border-primary focus:outline-none"
@@ -139,16 +149,22 @@ export function CommitBox({
         >
           {SUMMARY_LIMIT - draft.summary.length}
         </span>
+        {summarySuggest.popup}
       </div>
-      <textarea
-        value={draft.body}
-        onChange={(e) => update(repoId, { body: e.target.value })}
-        onKeyDown={onKeyDown}
-        placeholder={t("commit.body")}
-        aria-label={t("commit.body")}
-        rows={4}
-        className="w-full resize-y rounded-md border bg-background px-2 py-1.5 font-mono text-xs focus:border-primary focus:outline-none"
-      />
+      <div className="relative">
+        <textarea
+          value={draft.body}
+          onChange={(e) => update(repoId, { body: e.target.value })}
+          onKeyDown={(e) => bodySuggest.onKeyDown(e) || onKeyDown(e)}
+          onSelect={bodySuggest.onCaret}
+          onBlur={bodySuggest.onBlur}
+          placeholder={t("commit.body")}
+          aria-label={t("commit.body")}
+          rows={4}
+          className="w-full resize-y rounded-md border bg-background px-2 py-1.5 font-mono text-xs focus:border-primary focus:outline-none"
+        />
+        {bodySuggest.popup}
+      </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
         <label className="flex items-center gap-1.5">
           <input

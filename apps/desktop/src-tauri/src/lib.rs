@@ -3,6 +3,8 @@ pub mod accounts;
 mod app_paths;
 pub mod auth;
 mod branches;
+// Phase 4.3: CI status of commits.
+mod ci;
 // Phase 3B.1: accounts signed in with the gh / glab CLI.
 mod cli_accounts;
 mod clone;
@@ -10,14 +12,23 @@ mod commands;
 mod conflicts;
 mod error;
 mod file_views;
+// Phase 4.3: fork & clone, fork the open repository.
+mod forks;
 mod graph;
 mod guards;
+mod hosting;
 mod import;
+// Phase 4.2: issues of a repository, "My work" across accounts.
+mod issues;
 mod lfs;
 mod lfs_transfer;
 mod linked_worktrees;
+// Phase 4.2: "My work" across accounts.
+mod mywork;
 // Phase 3B.2: first-run setup (tool check / install, progress).
 mod onboarding;
+// Phase 4.1: pull requests (GitHub) / merge requests (GitLab).
+mod pulls;
 mod rebase;
 mod repos;
 mod settings;
@@ -245,6 +256,45 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             signing::signing_gpg_keys,
             signing::signing_test,
             signing::commit_signature,
+            // Phase 4: hosted project of each remote (shared by PR/MR, issues, CI, forks).
+            hosting::hosted_remote_list,
+            // Phase 4.2: issues of a repository, "My work" across accounts.
+            issues::issue_list,
+            issues::issue_get,
+            issues::issue_comments,
+            issues::issue_comment_create,
+            issues::issue_create,
+            issues::issue_update,
+            issues::issue_labels,
+            issues::issue_assignable_users,
+            issues::issue_branch_name,
+            issues::issue_branch_create,
+            mywork::mywork_list,
+            mywork::mywork_cancel,
+            // Phase 4.3: CI status of commits, fork & clone, fork the open repository.
+            ci::ci_statuses,
+            ci::ci_status_for,
+            forks::fork_namespaces,
+            forks::fork_find,
+            forks::fork_create,
+            forks::fork_wait,
+            forks::fork_add_upstream,
+            forks::fork_attach,
+            // Phase 4.1: pull requests (GitHub) / merge requests (GitLab).
+            pulls::pull_list,
+            pulls::pull_detail,
+            pulls::pull_reviews,
+            pulls::pull_commits,
+            pulls::pull_files,
+            pulls::pull_comments,
+            pulls::pull_comment_create,
+            pulls::pull_review_submit,
+            pulls::pull_create,
+            pulls::pull_merge,
+            pulls::pull_set_open,
+            pulls::pull_create_context,
+            pulls::pull_checkout,
+            pulls::pull_local_diff,
             // Phase 3B.4: Check for Update (GitHub Releases).
             updater::updater_status,
             updater::updater_check,

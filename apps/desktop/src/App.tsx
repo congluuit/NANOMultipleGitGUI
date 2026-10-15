@@ -4,10 +4,14 @@ import { CliSyncNoticeHost } from "@/features/accounts/cli-sync";
 import { AccountManagerHost } from "@/features/accounts/manager";
 import { CloneDialogHost } from "@/features/clone/CloneDialog";
 import { CommandPalette } from "@/features/command-palette";
+import { ForkDialogHost } from "@/features/forks/ForkDialog";
 import { GuardDialogsHost } from "@/features/guards";
 import { ImportWizardHost } from "@/features/onboarding/ImportWizard";
+import { IssueCreateHost } from "@/features/issues/IssueCreateDialog";
+import { MyWorkHost } from "@/features/mywork/MyWorkPanel";
 import { SetupHost } from "@/features/onboarding/setup/SetupWizard";
 import { PalettePage } from "@/features/palette/PalettePage";
+import { CreatePullDialogHost } from "@/features/pulls/CreatePullDialog";
 import { InitRepoDialog } from "@/features/repos/InitRepoDialog";
 import { useRepoChangeEvents } from "@/features/repos/queries";
 import { useTransferEvents } from "@/features/remote/transfers";
@@ -44,10 +48,14 @@ export default function App() {
       <ImportWizardHost />
       <SetupHost />
       <CloneDialogHost />
+      <ForkDialogHost />
       <GuardDialogsHost />
       <UpdaterHost />
       <CliSyncNoticeHost />
       <StorageHost />
+      <IssueCreateHost />
+      <MyWorkHost />
+      <CreatePullDialogHost />
     </TooltipProvider>
   );
 }

@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { useGraphStore } from "@/stores/graph";
 import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
 import { SignatureRow } from "@/features/signing/SignatureRow";
+import { CommitCiRow } from "@/features/ci/CommitCi";
+import { CommitMessageText } from "@/features/issues/CommitMessageText";
 import { fileStatusLetter, splitPath } from "./format";
 
 const MAX_FILES = 2000;
@@ -161,10 +163,12 @@ export function CommitDetailsPanel({ repoId, hash }: { repoId: number; hash: str
       {d && (
         <ScrollArea className="min-h-0 flex-1">
           <div className="space-y-3 border-b p-3 text-xs">
-            <h2 className="text-sm leading-snug font-semibold break-words">{d.summary}</h2>
+            <h2 className="text-sm leading-snug font-semibold break-words">
+              <CommitMessageText repoId={repoId} text={d.summary} />
+            </h2>
             {d.body && (
               <p className="max-h-48 overflow-y-auto font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap text-muted-foreground">
-                {d.body}
+                <CommitMessageText repoId={repoId} text={d.body} />
               </p>
             )}
             <div className="space-y-2">
@@ -194,6 +198,7 @@ export function CommitDetailsPanel({ repoId, hash }: { repoId: number; hash: str
               )}
               <PersonLine label={t("details.author")} person={d.author} locale={i18n.language} />
               <SignatureRow repoId={repoId} hash={d.hash} kind={d.signature} />
+              <CommitCiRow repoId={repoId} hash={d.hash} />
               {!sameCommitter && (
                 <PersonLine
                   label={t("details.committer")}

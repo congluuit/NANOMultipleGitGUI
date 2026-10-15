@@ -71,7 +71,13 @@
     "prevMatch": "Previous match (Shift+Enter)",
     "nextMatch": "Next match (Enter)",
     "clearSearch": "Clear search",
-    "notInHistory": "Commit {{oid}} is not in the loaded history."
+    "notInHistory": "Commit {{oid}} is not in the loaded history.",
+    "resizeColumn": "Resize the {{column}} column (double-click: default width)",
+    "columnName": {
+      "graph": "Branch / Graph",
+      "author": "Author",
+      "date": "Date"
+    }
   },
   "commit": {
     "title": "Commit / WIP",
@@ -214,7 +220,9 @@
     "selected_one": "{{count}} file selected",
     "more_one": "and {{count}} more file",
     "discardBody_one": "Unstaged changes in {{count}} file will be lost and a new untracked file deleted. This cannot be undone.",
-    "conflictCount_one": "{{count}} conflict"
+    "conflictCount_one": "{{count}} conflict",
+    "undoShort": "Undo",
+    "resolvedShort": "Resolved"
   },
   "diff": {
     "title": "Diff",
@@ -2402,6 +2410,503 @@
     },
     "cmd": {
       "import": "Import accounts from gh/glab CLI…"
+    }
+  },
+  "ci": {
+    "title": "CI",
+    "short": "CI",
+    "loading": "Reading CI status…",
+    "state": {
+      "success": "CI: passed",
+      "failure": "CI: failed",
+      "pending": "CI: running",
+      "neutral": "CI: skipped / neutral",
+      "none": "No CI"
+    },
+    "jobState": {
+      "queued": "queued",
+      "running": "running",
+      "success": "passed",
+      "failure": "failed",
+      "cancelled": "cancelled",
+      "skipped": "skipped",
+      "neutral": "neutral",
+      "manual": "manual"
+    },
+    "jobCounts": "{{passed}}/{{total}} jobs passed",
+    "jobs": "CI jobs",
+    "noJobs": "No job list.",
+    "allowedToFail": "allowed to fail",
+    "openLog": "Open log",
+    "openLogOf": "Open the log of {{name}}",
+    "openPipeline": "Open pipeline on the web",
+    "showAll": "Show all {{count}} jobs",
+    "showLess": "Show less",
+    "truncated": "Too many jobs; only some are shown.",
+    "onRemote": "on {{remote}}",
+    "checksUnavailable": "Check runs could not be read, so the list may be incomplete.",
+    "action": {
+      "reauth": "Sign in again",
+      "authorizeSso": "Authorize the token for SSO"
+    },
+    "problem": {
+      "unbound": "Remote {{remote}} is not bound to an account, so CI cannot be shown. Choose an account with the account button in the top bar.",
+      "noToken": "Account {{account}} has no token, so CI cannot be shown."
+    },
+    "providerError": {
+      "unauthorized": "The token of {{account}} expired or was revoked. Sign in again to continue.",
+      "missingScopes": "The token of {{account}} lacks a permission: {{scopes}} is needed. Sign in again to grant it.",
+      "saml": "The organization requires SAML SSO: the token of {{account}} is not authorized for it yet.",
+      "oauthRestricted": "Organization {{org}} blocks OAuth apps it has not approved. Ask an owner to approve it, or sign in to {{account}} again with a fine-grained token.",
+      "tokenPermission": "The (fine-grained) token of {{account}} does not have this permission for the repository. Create a token with the needed permission (e.g. Checks: read, Administration/Contents) and sign in again.",
+      "notFound": "Account {{account}} cannot see this repository (private, or no access). Use another account for this remote.",
+      "forbidden": "Account {{account}} is not allowed: {{message}}",
+      "rateLimited": "API rate limit reached. Try again in a few minutes.",
+      "rateLimitedAt": "API rate limit reached. Try again after {{time}}.",
+      "network": "Cannot reach the server. Check the network and try again.",
+      "server": "The server failed (HTTP {{status}}). Try again later.",
+      "other": "Server error: {{message}}"
+    }
+  },
+  "forks": {
+    "title": "Fork this repository",
+    "description": "Make a copy (fork) of the repository on your account so you can push freely, then open pull/merge requests to the original.",
+    "paletteTitle": "Fork this repository…",
+    "menu": "Fork this repository…",
+    "copyUrl": "Copy URL",
+    "loading": "Loading…",
+    "noHostedRemote": "This repository has no GitHub / GitLab remote, so it cannot be forked.",
+    "source": "Original",
+    "asAccount": "As",
+    "noAccountOnHost": "No account on {{host}} yet. Add one in Manage accounts.",
+    "namespace": "Fork to",
+    "namespaceSelf": "My account ({{name}})",
+    "namespaceSelfPlain": "My account",
+    "remotes": "Remotes",
+    "remoteName": "Remote name for the fork",
+    "mode": {
+      "add": "Add the fork as remote",
+      "swap": "Rename origin → upstream, fork becomes origin",
+      "addHelp": "origin stays as it is; push to the fork through the new remote.",
+      "swapHelp": "The original remote is renamed to upstream (branches keep tracking it); a plain git push goes to the fork."
+    },
+    "ownRepoWarning": "This repository already belongs to the selected account — forking is usually not needed.",
+    "submit": "Fork",
+    "submitAs": "Fork as {{account}}",
+    "submitClone": "Fork & clone",
+    "cancel": "Stop waiting",
+    "close": "Close",
+    "cancelled": "Stopped. The fork (if created) stays on the server.",
+    "done": "Forked as {{name}} and added the remote.",
+    "doneExisting": "You already have the fork {{name}} — using it instead of creating one.",
+    "openOnWeb": "Open on the web",
+    "attached": "Added the fork {{name}} as remote {{remote}}.",
+    "fetched": "Fetched {{remote}}.",
+    "upstreamFailed": "The fork was cloned but the upstream remote could not be added: {{message}}",
+    "cloneLabel": "Fork",
+    "cloneOption": {
+      "before": "Fork to",
+      "after": "then clone"
+    },
+    "cloneHelp": "Forks {{source}} (or reuses your existing fork), clones the fork and adds an upstream remote pointing at the original.",
+    "phase": {
+      "forking": "Forking…",
+      "waiting": "Waiting for the fork to be ready (the server is copying the data)…",
+      "cloning": "Cloning…",
+      "linking": "Adding remotes…",
+      "fetching": "Fetching the fork…"
+    },
+    "error": {
+      "noToken": "Account {{account}} has no token. Sign in again to fork.",
+      "forkingDisabled": "This repository cannot be forked (organizations often block forking private repositories). Ask an organization admin to allow forking, or work on a branch of the original.",
+      "nameTaken": "The destination already has a repository with that name that is not a fork of this one. Choose another destination.",
+      "own": "You cannot fork your own repository into the same account. Choose an organization / group.",
+      "notReady": "The fork {{name}} was created but the server is still copying the data. Wait a few minutes and try again (the existing fork will be reused)."
+    }
+  },
+  "issues": {
+    "sidebar": "Issues",
+    "loading": "Loading…",
+    "refresh": "Refresh",
+    "loadMore": "Load more",
+    "noOpen": "No open issues 🎉",
+    "none": "No issues match the filter",
+    "openInBrowser": "Open in browser",
+    "actingAs": "as",
+    "actingAsHint": "The account that performs this action. Click to change it for this time only.",
+    "actingAsOnce": "Only for this action",
+    "signInAgain": "Sign in again",
+    "authorizeSso": "Authorize SSO",
+    "manageAccounts": "Manage accounts",
+    "state": {
+      "open": "Open",
+      "closed": "Closed",
+      "all": "All"
+    },
+    "filter": {
+      "title": "Filter issues",
+      "people": "People",
+      "assignedToMe": "Assigned to me",
+      "unassigned": "Unassigned",
+      "createdByMe": "Created by me",
+      "label": "Label",
+      "noLabels": "The project has no labels",
+      "clear": "Clear filter"
+    },
+    "context": {
+      "noRemote": "This repository has no GitHub / GitLab remote, so there are no issues. Add a remote pointing to GitHub or GitLab to see them.",
+      "unbound": "Remote “{{remote}}” is not bound to an account, so the app does not know which account should read its issues.",
+      "noToken": "The account of remote “{{remote}}” has no sign-in token (it may use SSH only). Sign in again to see issues.",
+      "bind": "Choose an account for this repository"
+    },
+    "error": {
+      "missingScopes": "The token of {{account}} lacks a required permission: {{scopes}}.",
+      "missingScopesHint": "Sign in again (or create a new token) with the permission above ticked, then retry.",
+      "oauthRestricted": "Organization {{org}} blocks OAuth apps, so {{account}} cannot read this project.",
+      "oauthRestrictedHint": "Ask an organization owner to approve the app, or sign in again with a fine-grained token.",
+      "saml": "The organization requires SSO: the token of {{account}} is not authorized for it yet.",
+      "samlHint": "Open the SSO page, click “Authorize”, then retry.",
+      "tokenPermission": "The token of {{account}} has no permission for this item.",
+      "tokenPermissionHint": "With a fine-grained token: edit it, add this repository and the Issues (Read and write) permission.",
+      "unauthorized": "The token of {{account}} no longer works (expired or revoked).",
+      "unauthorizedHint": "Sign in to this account again to continue.",
+      "notFound": "Account {{account}} cannot see this project / issue.",
+      "notFoundHint": "Private projects only show to accounts with access. Try another account, or ask the owner to invite {{account}}.",
+      "forbidden": "{{account}} is not allowed to do this.",
+      "rateLimited": "Too many API calls; the provider is throttling for now.",
+      "rateLimitedAt": "Too many API calls. Try again after {{time}}.",
+      "rateLimitedHint": "Wait a moment and press Refresh; nothing else to do.",
+      "rejected": "The provider rejected the request: {{message}}",
+      "network": "Cannot reach the server.",
+      "networkHint": "Check your network / VPN / proxy and retry.",
+      "server": "The provider's server is failing ({{status}}). Try again in a few minutes.",
+      "cancelled": "Stopped.",
+      "appHint": "Bind an account to the remote or sign in again in Manage accounts."
+    },
+    "create": {
+      "open": "New issue",
+      "title": "New issue",
+      "description": "On project {{project}}",
+      "titleLabel": "Title",
+      "bodyLabel": "Description",
+      "bodyPlaceholder": "Describe the problem, steps to reproduce, expected result… (Markdown)",
+      "labelsCount_one": "{{count}} label",
+      "labelsCount_other": "{{count}} labels",
+      "assigneesCount_one": "{{count}} assignee",
+      "assigneesCount_other": "{{count}} assignees",
+      "submit": "Create issue",
+      "done": "Created issue #{{number}}: {{title}}"
+    },
+    "view": {
+      "title": "Issue #{{number}}",
+      "close": "Close",
+      "isPullRequest": "This number is a pull request, not an issue.",
+      "openPullRequest": "Open the pull request",
+      "noBody": "No description.",
+      "opened": "opened {{when}}",
+      "closed": "closed {{when}}",
+      "locked": "Conversation locked",
+      "tryOtherAccount": "Try another account",
+      "labels": "Labels",
+      "noLabels": "No labels",
+      "editLabels": "Edit labels",
+      "assignees": "Assignees",
+      "noAssignees": "No one assigned",
+      "editAssignees": "Edit assignees",
+      "cannotLoad": "Could not load",
+      "loadingComments": "Loading comments…",
+      "comments_one": "{{count}} comment",
+      "comments_other": "{{count}} comments",
+      "moreComments": "There are older comments — open in the browser to see them all.",
+      "commentPlaceholder": "Write a comment… (Ctrl+Enter to send)",
+      "lockedPlaceholder": "The issue is locked: only project members can comment.",
+      "comment": "Comment",
+      "closeIssue": "Close issue",
+      "closeWithComment": "Close with comment",
+      "reopen": "Reopen issue"
+    },
+    "branch": {
+      "open": "Create a branch for this issue",
+      "name": "Branch name",
+      "hint": "The new branch starts at the current commit (HEAD) and only exists on your computer — it is not pushed.",
+      "checkout": "Switch to the new branch now",
+      "create": "Create branch",
+      "created": "Created branch {{branch}}",
+      "createdCheckedOut": "Created and switched to branch {{branch}}"
+    },
+    "suggest": {
+      "title": "Issue suggestions",
+      "error": "Could not load the issue list",
+      "none": "No open issue matches",
+      "closes": "Closes",
+      "closesHint": "Insert “Closes #number”: the issue closes when the commit reaches the main branch",
+      "keys": "Enter/Tab: insert #number · Shift+Enter: Closes #number · Esc: close"
+    },
+    "cmd": {
+      "group": "Issues & PRs",
+      "create": "New issue…",
+      "open": "Open issue #…",
+      "openPlaceholder": "Issue number, e.g. 123",
+      "openInvalid": "Enter an issue number, e.g. 123 or #123"
+    }
+  },
+  "mywork": {
+    "button": "My work",
+    "buttonCount": "Work ({{count}})",
+    "tooltip": "My work: PR/MRs to review, my PR/MRs, issues assigned to me (all accounts)",
+    "tooltipCount": "{{count}} PR/MRs are waiting for your review — click to see them",
+    "title": "My work",
+    "description": "Gathered from every signed-in account. Refreshes every 5 minutes while the app is open.",
+    "allAccounts": "All accounts",
+    "refresh": "Refresh",
+    "stop": "Stop",
+    "loading": "Loading from your accounts…",
+    "draft": "Draft",
+    "more": "{{count}} more (open in the browser to see them all)",
+    "noAccounts": "No GitHub / GitLab account yet. Add one to see your work.",
+    "noTokens": "No account has a sign-in token (they may use SSH only). Sign in again to see your work.",
+    "withoutToken_one": "{{count}} account has no token and is not included: {{names}}.",
+    "withoutToken_other": "{{count}} accounts have no token and are not included: {{names}}.",
+    "manageAccounts": "Manage accounts",
+    "group": {
+      "reviewRequested": "Waiting for my review",
+      "authored": "My PRs / MRs",
+      "assigned": "Issues assigned to me"
+    },
+    "empty": {
+      "reviewRequested": "No PR/MR is waiting for your review.",
+      "authored": "You have no open PR/MR.",
+      "assigned": "No issue is assigned to you."
+    },
+    "cmd": {
+      "open": "My work (PRs to review, assigned issues)",
+      "refresh": "Refresh “My work”"
+    }
+  },
+  "pulls": {
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "closed": "Closed.",
+    "reopened": "Reopened.",
+    "refresh": "Refresh",
+    "openWeb": "Open in browser",
+    "detailLabel": "{{term}} details",
+    "fromFork": "from fork {{repo}}",
+    "actingAs": "as",
+    "actingAsHint": "The account that performs this action. Click to change it for this action only.",
+    "actingAsOnce": "Only for this action",
+    "state": {
+      "open": "Open",
+      "draft": "Draft",
+      "merged": "Merged",
+      "closed": "Closed"
+    },
+    "decision": {
+      "approved": "Approved",
+      "changesRequested": "Changes requested",
+      "reviewRequired": "Review required",
+      "none": "No reviews"
+    },
+    "reviewer": {
+      "requested": "pending",
+      "approved": "approved",
+      "changesRequested": "requested changes",
+      "commented": "commented",
+      "dismissed": "dismissed"
+    },
+    "tab": {
+      "overview": "Overview",
+      "commits": "Commits",
+      "files": "Files changed"
+    },
+    "list": {
+      "loading": "Loading…",
+      "noRemote": "This repository has no GitHub/GitLab remote.",
+      "unbound": "Remote {{remote}} is not bound to an account, so PRs/MRs cannot be listed.",
+      "bind": "Bind an account",
+      "noToken": "The account of this remote is not signed in (no token).",
+      "signIn": "Sign in again",
+      "empty": "No {{term}} matches the filters.",
+      "more": "Load more",
+      "retry": "Retry",
+      "refresh": "Refresh list",
+      "state": "State",
+      "remote": "Remote",
+      "stateOption": {
+        "open": "Open",
+        "closed": "Closed",
+        "merged": "Merged",
+        "all": "All"
+      },
+      "filters": "Filter by author, reviewer, label",
+      "mine": "Mine",
+      "toReview": "Review requested from me",
+      "author": "Author",
+      "reviewer": "Reviewer",
+      "label": "Label",
+      "clearFilters": "Clear filters",
+      "by": "by {{user}}"
+    },
+    "overview": {
+      "noBody": "No description.",
+      "onLine": "commented on {{path}}:{{line}}",
+      "replies": "{{count}} replies",
+      "replies_one": "{{count}} reply",
+      "comment": "Comment",
+      "commentPlaceholder": "Write a comment… (Ctrl+Enter to send)"
+    },
+    "commits": {
+      "jump": "Go to this commit in the graph",
+      "copy": "Copy commit id",
+      "openRepoToJump": "Open this PR/MR's repository (active tab) to jump from a commit to the graph."
+    },
+    "files": {
+      "truncated": "The file list was cut (too many files) — see all of them in the browser.",
+      "truncatedRows": "The diff is too long; only the first {{count}} lines are shown.",
+      "none": "No files changed.",
+      "noPatch": "The provider did not send this file's diff (large or binary file). It can be computed with git on this computer (the PR/MR branch is fetched first).",
+      "noPatchNoRepo": "The provider did not send this file's diff. Open this repository in the app to diff it with git, or view it in the browser.",
+      "localDiff": "Diff with local git",
+      "localDiffLoading": "Fetching and computing the diff…",
+      "binary": "Binary file — no diff to show.",
+      "tooLarge": "The diff is too large to show.",
+      "noChanges": "No content changes.",
+      "outdated": "{{count}} outdated comment threads (lines no longer in the current diff)",
+      "outdated_one": "{{count}} outdated comment thread (line no longer in the current diff)",
+      "resolved": "Resolved",
+      "reply": "Reply",
+      "replyPlaceholder": "Write a reply…",
+      "comment": "Comment",
+      "commentLine": "Comment on this line",
+      "commentPlaceholder": "Comment on this line…",
+      "commentHint": "Hover a line and click the comment button to comment on it"
+    },
+    "side": {
+      "reviewers": "Reviewers",
+      "noReviewers": "No reviewers yet.",
+      "approvalsLeft": "{{count}} more approvals needed",
+      "approvalsLeft_one": "{{count}} more approval needed",
+      "approvalsUnavailable": "This GitLab server does not offer the approvals API.",
+      "assignees": "Assignees",
+      "status": "Status",
+      "mergedBy": "Merged by {{user}}.",
+      "closedState": "Closed without merging.",
+      "reopen": "Reopen",
+      "merge": "Merge",
+      "method": "Merge method",
+      "deleteBranch": "Delete source branch {{branch}} after merging",
+      "mergeButton": "Merge",
+      "close": "Close {{term}}",
+      "conflictHint": "To fix: click Checkout to get the branch locally, merge the target branch into it, resolve the conflicts and push again.",
+      "confirmMerge": "Merge {{number}}?",
+      "confirmMergeBody": "Merges {{source}} into {{target}} ({{method}}). This runs on the server and cannot be undone from the app.",
+      "confirmClose": "Close {{number}}?",
+      "confirmCloseBody": "It can be reopened later. The source branch is kept."
+    },
+    "mergeState": {
+      "clean": "Ready to merge.",
+      "conflicts": "Conflicts with {{target}} — cannot be merged yet.",
+      "blocked": "Blocked (missing approvals, required checks not passing or branch protection rules).",
+      "behind": "The source branch is behind {{target}} — update it (merge/rebase) first.",
+      "unstable": "Can be merged, but some checks are failing.",
+      "draft": "Draft — mark it ready for review in the browser to merge it.",
+      "checking": "The server is checking mergeability… refresh in a moment.",
+      "unknown": "Merge state unknown."
+    },
+    "method": {
+      "merge": "Create a merge commit",
+      "squash": "Squash into one commit",
+      "rebase": "Rebase and merge"
+    },
+    "merge": {
+      "done": "Merged {{number}}.",
+      "fetchHint": "Fetch to see the result in the graph.",
+      "deleteFailed": "But the source branch could not be deleted: {{message}}"
+    },
+    "review": {
+      "button": "Review",
+      "placeholder": "Overall comment (optional when approving)…",
+      "submit": "Submit review",
+      "event": {
+        "comment": "Comment only",
+        "approve": "Approve",
+        "requestChanges": "Request changes",
+        "unapprove": "Revoke approval"
+      },
+      "gitlabRequestChanges": "GitLab has no \"request changes\" API: the text is posted as a comment.",
+      "done": {
+        "comment": "Review comment posted.",
+        "approve": "Approved.",
+        "requestChanges": "Changes requested.",
+        "unapprove": "Approval revoked."
+      }
+    },
+    "checkout": {
+      "button": "Checkout",
+      "tip": "Get the PR/MR branch locally and switch to it",
+      "created": "Created and switched to branch {{branch}}.",
+      "switched": "Switched to branch {{branch}}."
+    },
+    "create": {
+      "open": "Create {{term}}",
+      "dialogTitle": "Create {{term}}",
+      "dialogDescription": "From branch {{branch}} ({{count}} new commits).",
+      "dialogDescription_one": "From branch {{branch}} ({{count}} new commit).",
+      "targetRemote": "Send to",
+      "targetBranch": "Target branch",
+      "title": "Title",
+      "body": "Description",
+      "reviewers": "Reviewers",
+      "reviewersPlaceholder": "logins, comma separated",
+      "labels": "Labels",
+      "labelsPlaceholder": "bug, ui",
+      "draft": "Create as draft",
+      "removeSource": "Delete the source branch when merged",
+      "submit": "Create {{term}}",
+      "notPushed": "Branch {{branch}} is not on remote {{remote}} yet. Push it before creating.",
+      "ahead": "{{count}} commits are not pushed — push first so the PR/MR has every change.",
+      "ahead_one": "{{count}} commit is not pushed — push first so the PR/MR has every change.",
+      "pushFirst": "Push first",
+      "checkoutToPush": "Check out branch {{branch}} and push it to continue.",
+      "crossRepoGitlab": "Creating an MR from a fork into the upstream project is not supported for GitLab yet — create it in the browser.",
+      "noAccount": "The target remote is not bound to a signed-in account — bind one first.",
+      "done": "Created {{term}} {{number}}.",
+      "warnings": "Some follow-up steps did not complete: {{warnings}}",
+      "afterPush": "Pushed new branch {{branch}}. Create a {{term}} from it?"
+    },
+    "cmd": {
+      "create": "Create pull request / merge request from current branch…",
+      "closeView": "Close PR/MR details"
+    },
+    "menu": {
+      "create": "Create PR/MR from this branch…"
+    },
+    "error": {
+      "thisAccount": "this account",
+      "reauth": "Sign in to {{account}} again",
+      "manage": "Manage accounts",
+      "unauthorized": "The server rejected the token of {{account}} (expired or revoked).",
+      "unauthorizedHint": "Sign in to this account again, then retry.",
+      "missingScopes": "The token of {{account}} lacks a required scope: {{scopes}}.",
+      "missingScopesHint": "Sign in again to grant it, or create a new token with these scopes.",
+      "saml": "The organization requires SAML SSO authorization for the token of {{account}}.",
+      "samlHint": "Open the SSO page, authorize the token, then retry.",
+      "samlOpen": "Open SSO page",
+      "oauthRestricted": "Organization {{org}} restricts OAuth apps, so {{account}} cannot access it.",
+      "oauthRestrictedHint": "Ask an organization owner to approve the app, or use a fine-grained token for this account.",
+      "tokenPermission": "The token of {{account}} has no permission on this repository's pull requests.",
+      "tokenPermissionHint": "For a fine-grained token: grant \"Pull requests: Read and write\" (and \"Contents\") on this repository.",
+      "forbidden": "{{account}} is not allowed to do this.",
+      "notFound": "{{account}} cannot see this repository or PR/MR.",
+      "notFoundHint": "The repository may be private: switch to an account with access (\"as\") or bind another account to the remote.",
+      "rateLimited": "API rate limit reached. Try again in a few minutes.",
+      "rateLimitedAt": "API rate limit reached. Try again after {{time}}.",
+      "rejected": "The server refused: {{message}}",
+      "refused": "The server could not do it: {{message}}",
+      "network": "Cannot reach the server. Check the network and retry.",
+      "server": "The server is having problems. Try again later.",
+      "unsupported": "Not supported by the server: {{message}}"
     }
   }
 }

@@ -26,6 +26,7 @@ import { failureTexts, formatBytes } from "@/features/transfers/format";
 import { errorMessage, commands, type PullMode, type PushEstimate, type PushRequest } from "@/ipc";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runPushGuard } from "@/features/guards";
+import { offerCreatePull } from "@/features/pulls/actions";
 import { pushPlan } from "./plan";
 import { startTransfer, useRepoTransfer } from "./transfers";
 
@@ -90,7 +91,10 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
           : t("remote.pushed", { branch: p.branch, remote: p.remote }),
       `${p.remote}/${p.remoteBranch ?? p.branch}`,
       shot,
-    );
+    ).then((s) => {
+      // Phase 4.1: a new branch on GitHub/GitLab → offer "Create PR/MR".
+      if (s && !s.upToDate && p.setUpstream) void offerCreatePull(repoId, p.remote, p.branch);
+    });
 
   /**
    * Push. In an LFS repository: 1) estimate the LFS upload, 2) after confirmation upload the

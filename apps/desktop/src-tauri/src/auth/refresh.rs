@@ -1,6 +1,6 @@
-//! Background task: every [`REFRESH_PERIOD`], refresh GitLab OAuth tokens that expire within
-//! [`REFRESH_MARGIN_SECS`](super::REFRESH_MARGIN_SECS) (GitLab access tokens live ~2 h), so the
-//! credential helper always hands git a valid token.
+//! Background task: every [`REFRESH_PERIOD`], refresh the OAuth tokens that expire within
+//! [`REFRESH_MARGIN_SECS`](super::REFRESH_MARGIN_SECS) — GitLab access tokens live ~2 h, GitHub's
+//! expiring user tokens 8 h — so the credential helper always hands git a valid token.
 
 use std::time::Duration;
 

@@ -40,7 +40,12 @@
 | 3B.4 | Check for Update theo GitHub Releases (stable/beta) | ✅ Xong (2026-10-15) — chờ repo GitHub + khóa ký minisign (việc của người dùng) |
 | 3B.5 | Layout co giãn: kéo chia panel, thu gọn về icon, toolbar "⋯", dialog cuộn | ✅ Xong (2026-10-15) |
 | 3B.6 | Tích hợp + kiểm chứng trên bản release | ✅ Xong (2026-10-15) |
-| 4.x | Phase 4 — Tích hợp provider (PR/MR, issues, CI, fork & clone) | ⏭️ Tiếp theo |
+| 3B.7 | Sửa theo góp ý: `.env.example`, nút Stage/Unstage/Hoàn tác dạng chữ, tự làm mới token GitHub 8 giờ, cột graph kéo đổi độ rộng + tooltip, English trước | ✅ Xong (2026-10-15) |
+| 4.1 | PR / MR: danh sách, chi tiết, bình luận, review, tạo, checkout (cả từ fork), merge | ✅ Xong (2026-10-15) |
+| 4.2 | Issues theo repo, tạo nhánh từ issue, `#123` trong commit, panel "Việc của tôi" gộp mọi tài khoản | ✅ Xong (2026-10-15) |
+| 4.3 | Trạng thái CI (graph, chi tiết commit, status bar, PR), Fork & clone, fork repo đang mở | ✅ Xong (2026-10-15) |
+| 4.4 | Tích hợp + kiểm chứng trên bản release với tài khoản GitHub thật (chỉ thao tác đọc) | ✅ Xong (2026-10-15) — thao tác ghi (tạo PR, merge, fork…) chưa thử thật |
+| 5.x | Phase 5 — Hoàn thiện v1.0 | ⏭️ Tiếp theo |
 
 Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 
@@ -916,6 +921,33 @@ App nhắm tới cả dev mới học git: mọi chỗ phải nói rõ "chuyện
 - Issues, trạng thái CI, panel "Cần review" gộp mọi tài khoản.
 - Fork & clone, tự thêm upstream.
 - 🚀 v0.5.
+
+#### Các bước của Phase 4 (3 sub-agent song song; báo cáo ở `.agent/phase4/4.x.md`)
+Nền chung (điều phối): `hosting.rs` (remote → dự án trên GitHub/GitLab + client API của đúng tài khoản resolver chọn, có override "chỉ cho thao tác này"), store `useHostingNav` để mở PR/MR hoặc issue từ bất kỳ đâu.
+- **4.1 — PR / MR:** danh sách theo repo (mở / đóng / đã merge, lọc theo tác giả / reviewer / nhãn), xem chi tiết (mô tả, commit, file thay đổi với diff, trạng thái review, conflict / mergeable), comment chung + comment theo dòng, review (approve / request changes / comment), tạo PR/MR từ nhánh (chọn nhánh đích, draft, reviewer, nhãn; gợi ý push trước nếu nhánh chưa lên remote), checkout nhánh PR/MR (kể cả từ fork: `refs/pull/N/head`, `refs/merge-requests/N/head`), merge (merge / squash / rebase theo quyền của repo, xóa nhánh nguồn).
+- **4.2 — Issues & panel "Việc của tôi":** issues theo repo (lọc, xem, comment, tạo, đóng / mở lại, gán nhãn / người), tạo nhánh từ issue (`feature/123-tieu-de`), liên kết issue trong commit message (`#123`, `Closes #123`); panel "Việc của tôi" gộp **mọi tài khoản**: PR/MR cần tôi review, PR/MR của tôi, issue gán cho tôi — mỗi dòng có màu tài khoản, bấm để mở.
+- **4.3 — CI & Fork:** trạng thái CI của commit (GitHub check runs + commit statuses, GitLab pipelines): badge trên graph cho các commit gần đầu nhánh, chi tiết trong "Chi tiết commit" (job, trạng thái, thời gian, link log), `✓ CI` ở status bar cho HEAD, tự làm mới khi đang chạy; component tóm tắt checks dùng lại được cho PR/MR. Fork & clone: fork repo về tài khoản đã chọn (chọn org/namespace), chờ fork sẵn sàng, clone fork qua luồng clone có sẵn, tự thêm `upstream`; với repo đang mở: "Fork repo này" thêm remote fork và gắn tài khoản.
+
+#### Nhật ký Phase 4
+**4.1 — PR / MR ✅ (2026-10-15)** — crate providers `pulls.rs` (+ `pulls/github.rs`, `pulls/gitlab.rs`, type `Pull…`): list (GitHub lọc tác giả/reviewer/nhãn/đã merge qua `/search/issues`), detail, reviews, commits, files, comments, comment, review, create, merge, đóng/mở lại; GitLab dùng `iid`, thiếu `/approvals` → `approvalsUnavailable`, thiếu `/diffs` → `/changes`. App `pulls.rs` 14 command (lỗi `PullCommandError` kèm `accountId`); checkout qua remote của project PR với account context đúng (cùng repo → nhánh tracking; fork → `refs/pull/N/head` / `refs/merge-requests/N/head`, trùng tên → `-prN`); diff cục bộ khi provider không gửi patch. UI `features/pulls/`: mục PR/MR ở sidebar (cả rail), view giữa (Tổng quan / Commits / Files + bình luận theo dòng), hộp Review, Merge (method + xóa nhánh nguồn), hộp thoại tạo PR (Push trước khi chưa push; lối vào: sidebar, menu nhánh, palette, notice sau push nhánh mới), "với tư cách ● tài khoản ▾" cho mọi thao tác ghi. Nội dung provider hiển thị dạng chữ (chỉ link `https://`). Hạn chế: GitLab chưa có merge "rebase", chưa tạo MR từ fork; chưa resolve luồng / sửa-xóa comment.
+
+**4.2 — Issues & "Việc của tôi" ✅ (2026-10-15)** — providers `issues.rs` (lọc bỏ PR khỏi issues GitHub, search khi có chữ, GitLab `assignee_ids`) + `mywork.rs` (3 truy vấn song song mỗi tài khoản). App `issues.rs` (theo repo qua `remote_client`, hoặc theo `accountId + fullName` để xem repo không mở; `issue_branch_create` → `feature/<số>-<slug không dấu>` qua `check-ref-format`, có Undo) + `mywork.rs` (mỗi tài khoản một task, lỗi riêng từng tài khoản, cache 60 s, hủy). UI: mục Issues ở sidebar, view issue, tạo issue, gợi ý `#` trong ô commit (Enter `#123`, Shift+Enter `Closes #123`), `#123`/`!12` trong chi tiết commit thành link, nút "Việc của tôi" trên toolbar (làm mới 5 phút) với 3 nhóm + lọc tài khoản.
+
+**4.3 — CI & Fork ✅ (2026-10-15)** — providers `ci.rs` (GitHub check runs + combined status, GitLab pipeline + jobs) và `forks.rs` (tạo fork, namespace được phép, chờ sẵn sàng, tìm fork có sẵn). App `ci.rs` (`ci_statuses` tối đa 40 sha, 4 request song song, hỏi thêm project hosted khác khi remote đầu không có CI; cache 10 phút / 2 phút / 15 s) và `forks.rs` (fork & clone qua `clone_start` có sẵn rồi thêm `upstream` cùng giao thức; fork repo đang mở → remote `fork` hoặc đổi origin↔upstream, binding khóa cho tài khoản fork). UI `features/ci/` (badge, danh sách job, `CiSummary` dùng trong PR) + `features/forks/` (tùy chọn trong Clone dialog, menu remote ở sidebar, palette).
+
+**4.4 — Tích hợp & kiểm chứng ✅ (2026-10-15)** (bản release, CDP; bản sao DB thật qua file trỏ của 3B.3 — DB thật so khớp từng byte sau khi xong; **chỉ thao tác đọc** trên `congluuit/NANOMultipleGitGUI`)
+- Nối: `CiSummary` vào chi tiết PR; badge CI trên graph qua điểm móc `decorate` của `drawGraph` (đầu mỗi nhánh + 20 commit mới nhất, tooltip trạng thái khi rê lên badge); gỡ `allow(dead_code)` của `hosting.rs`.
+- Đã thấy trên app thật: remote `origin` nhận đúng tài khoản; PR/Issues đọc được (repo chưa có PR/issue); CI của HEAD lấy đúng từ GitHub Actions — badge ✗ trên graph, danh sách job trong chi tiết commit, `✗ CI` ở status bar; "Việc của tôi" gộp 2 tài khoản và tìm thấy PR `congluuit/quanviahe#2`; bấm vào mở view PR (mô tả, timeline, khung CI, hộp Merge "với tư cách ● Sigrid").
+- **Phát hiện:** CI GitHub Actions của repo dự án đang **thất bại** ở 3 job Rust (ubuntu / macOS / Windows), job Frontend qua.
+- Chưa thử thật: tạo PR, comment, review, merge, checkout PR từ fork, tạo issue, fork & clone (đều có test wiremock / git thật).
+- **Test cuối:** Rust toàn workspace qua (app 136, git-engine 163, providers + test mới của pulls/issues/ci/forks…), clippy `-D warnings`, rustfmt; frontend 626 test / 88 file, typecheck, eslint, prettier sạch. Bộ cài: `NANOMultipleGitGUI_0.0.1_x64-setup.exe` (7,4 MB), `…msi` (11,3 MB).
+
+**3B.7 — Sửa theo góp ý của người dùng ✅ (2026-10-15)**
+- `.env.example` song ngữ: 4 khóa `build.rs` đọc từ `.env` (đều không bắt buộc) + các biến chỉ có tác dụng qua môi trường (`TAURI_SIGNING_PRIVATE_KEY`…).
+- Danh sách file: nút "Stage" / "Bỏ stage" / "Hoàn tác" dạng chữ thay cho icon `+`/`−`/`↶`; "Stage tất cả" / "Bỏ stage tất cả" có viền + icon.
+- **Lỗi vừa đăng nhập lại vẫn bị đòi đăng nhập lại:** GitHub cấp token OAuth hết hạn sau 8 giờ (+ refresh token 6 tháng) nhưng app chỉ tự làm mới token GitLab, nên token GitHub luôn ở trạng thái "hết hạn hôm nay" kèm nút "Đăng nhập lại", và thật sự hết hạn sau 8 giờ. Nay app tự làm mới mọi token OAuth có refresh token (`refresh_github_token`, device flow không cần client secret; `bad_refresh_token` → yêu cầu đăng nhập lại). Kiểm trên app thật: tài khoản GitHub chuyển sang "tự làm mới".
+- Graph: phần graph căn giữa cột "Nhánh / Graph"; kéo đổi độ rộng cột Graph / Tác giả / Thời gian (nhấp đúp về mặc định, lưu localStorage), mặc định cột commit message rộng nhất (≥ 1,5 lần cột khác); tooltip khi rê chuột lên ô bị cắt chữ (message, tác giả, thời gian; message kèm tác giả/ngày khi các cột đó bị ẩn vì cửa sổ hẹp). Bố cục cột dùng chung một hàm cho canvas, header và hit-test.
+- Ngôn ngữ: English đứng trước Tiếng Việt trong lựa chọn. Giữ nguyên kích thước cửa sổ tối thiểu 960×600 (quyết định của người dùng).
 
 ### Phase 5 — Hoàn thiện v1.0 (4–6 tuần)
 - Tối ưu hiệu năng (repo lớn như linux/chromium, repo LFS hàng chục GB), giảm RAM, startup < 1.5s.

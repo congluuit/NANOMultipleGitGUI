@@ -1,9 +1,33 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { commands, type GraphRow, type GraphSummary } from "@/ipc";
+import {
+  CI_BADGE_SIZE,
+  ciCandidateHashes,
+  drawCiBadge,
+  readCiColors,
+  useCiStatuses,
+  useCiTooltip,
+  type CiColors,
+} from "@/features/ci";
 import { registerDropResolver, startBranchDrag, useDnd } from "@/features/dnd/store";
+import { useRepoRefs } from "@/features/repos/queries";
 import type { ResolvedTheme } from "@/theme/theme";
 import type { FrameStats } from "./benchmark";
+import { useGraphColumns } from "./columns";
 import {
+  afterLabelsX,
+  cellAt,
+  cellTooltip,
+  columnLayout,
   drawGraph,
   labelAt,
   labelFont,
@@ -11,13 +35,16 @@ import {
   readPalette,
   refLabelBoxes,
   ROW_HEIGHT,
-  textColumnX,
   type Palette,
 } from "./draw";
 import { nextIndex, scrollTopFor, type ScrollAlign } from "./navigation";
 import { RowCache } from "./rowCache";
 
 const PREFETCH_ROWS = 600;
+/** Hover time before a cut-off cell shows its full text. */
+const TOOLTIP_DELAY_MS = 450;
+/** Commits at the top of the history whose CI status is shown (with every branch tip). */
+const CI_RECENT_ROWS = 20;
 
 export interface GraphCanvasHandle {
   scroller: HTMLDivElement | null;
@@ -42,6 +69,8 @@ interface Props {
   onFirstPaint?: () => void;
   /** Right-click on a loaded row (it is selected first). */
   onRowContextMenu?: (index: number, row: GraphRow) => void;
+  /** Width of the drawing area (without the scrollbar), for the column header. */
+  onWidthChange?: (width: number) => void;
 }
 
 export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCanvas(
@@ -57,6 +86,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     onTopRowChange,
     onFirstPaint,
     onRowContextMenu,
+    onWidthChange,
   },
   ref,
 ) {
@@ -81,6 +111,27 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
   const [dropTarget, setDropTarget] = useState<{ index: number; branch: string } | null>(null);
   const [overLabel, setOverLabel] = useState(false);
   const dragging = useDnd((s) => s.drag !== null);
+  const columns = useGraphColumns((s) => s.widths);
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const tipTimer = useRef<number | undefined>(undefined);
+  const tipKey = useRef("");
+  // CI status badges (PLAN 4.3) for the branch tips and the newest commits.
+  const refs = useRepoRefs(repoId).data;
+  const [recent, setRecent] = useState<{ hash: string }[]>([]);
+  const ciHashes = useMemo(() => ciCandidateHashes(refs, recent), [refs, recent]);
+  const ci = useCiStatuses(repoId, ciHashes);
+  const ciTooltip = useCiTooltip();
+  const ciColorsRef = useRef<CiColors | null>(null);
+  const ciEntry = useCallback((row: GraphRow) => ci.bySha.get(row.hash.toLowerCase()), [ci.bySha]);
+  const decorate = useCallback(
+    (ctx: CanvasRenderingContext2D, x: number, cy: number, row: GraphRow) => {
+      const state = ciEntry(row)?.status.state;
+      if (!state || state === "none") return 0;
+      ciColorsRef.current ??= readCiColors();
+      return drawCiBadge(ctx, x + CI_BADGE_SIZE / 2, cy, state, ciColorsRef.current);
+    },
+    [ciEntry],
+  );
 
   const scrollToIndex = useCallback((index: number, align: ScrollAlign) => {
     const el = scrollerRef.current;
@@ -131,6 +182,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
       highlight,
       locale,
       dropTarget: dragging ? dropTarget : null,
+      columns,
+      decorate,
     });
     statsRef.current.drawMs.push(performance.now() - t);
     if (statsRef.current.drawMs.length > 5000) statsRef.current.drawMs.shift();
@@ -142,6 +195,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     }
     if (!missing && !firstPaintDone.current) {
       firstPaintDone.current = true;
+      setRecent(
+        Array.from({ length: Math.min(CI_RECENT_ROWS, summary.total) }, (_, i) => cache.get(i))
+          .filter((r) => r !== undefined)
+          .map((r) => ({ hash: r.hash })),
+      );
       onFirstPaint?.();
     }
   }, [
@@ -156,6 +214,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     onTopRowChange,
     dragging,
     dropTarget,
+    columns,
+    decorate,
   ]);
 
   const drawRef = useRef(draw);
@@ -170,6 +230,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
   // Re-read colors when the theme changes.
   useEffect(() => {
     paletteRef.current = null;
+    ciColorsRef.current = null;
     schedule();
   }, [theme]);
 
@@ -182,10 +243,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     if (!el) return;
     const ro = new ResizeObserver(() => {
       setSize({ width: el.clientWidth, height: el.clientHeight });
+      onWidthChange?.(el.clientWidth);
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [onWidthChange]);
+
+  useEffect(() => () => window.clearTimeout(tipTimer.current), []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -230,7 +294,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
       ctx.font = labelFont(paletteRef.current);
       const boxes = refLabelBoxes(
         parseRefs(row.refs),
-        textColumnX(summary.maxLanes),
+        columnLayout(el.clientWidth, summary.maxLanes, columns).textX,
         (text) => ctx.measureText(text).width,
       );
       ctx.restore();
@@ -243,8 +307,81 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
             : null;
       return name ? { index: i, branch: name } : null;
     },
-    [cache, summary],
+    [cache, summary, columns],
   );
+
+  /** Full text of a cut-off cell under the pointer, shown after a short hover. */
+  const updateTooltip = (clientX: number, clientY: number) => {
+    const el = scrollerRef.current;
+    const ctx = canvasRef.current?.getContext("2d");
+    const i = rowAt(clientY);
+    const row = i === null ? undefined : cache.get(i);
+    if (!el || !ctx || !row || dragging) {
+      hideTooltip();
+      return;
+    }
+    const x = clientX - el.getBoundingClientRect().left;
+    const cols = columnLayout(el.clientWidth, summary.maxLanes, columns);
+    const cell = cellAt(cols, x);
+    const entry = ciEntry(row);
+    const badgeX = afterLabelsX(row, cols.textX, (t) => {
+      ctx.font = labelFont(paletteRef.current ?? (paletteRef.current = readPalette()));
+      return ctx.measureText(t).width;
+    });
+    const onBadge =
+      cell === "message" &&
+      entry !== undefined &&
+      entry.status.state !== "none" &&
+      x >= badgeX &&
+      x <= badgeX + CI_BADGE_SIZE;
+    const key = `${row.hash}:${onBadge ? "ci" : cell}`;
+    if (key === tipKey.current) return;
+    hideTooltip();
+    tipKey.current = key;
+    if (!cell || cell === "graph") return;
+    if (onBadge) {
+      const ciText = ciTooltip(entry.status.state, entry.status.jobs);
+      tipTimer.current = window.setTimeout(
+        () => setTip({ x: clientX, y: clientY, text: ciText }),
+        TOOLTIP_DELAY_MS,
+      );
+      return;
+    }
+    paletteRef.current ??= readPalette();
+    const palette = paletteRef.current;
+    const measureWith = (font: string) => (text: string) => {
+      ctx.font = font;
+      return ctx.measureText(text).width;
+    };
+    ctx.save();
+    const text = cellTooltip(
+      row,
+      cell,
+      cols,
+      {
+        label: measureWith(labelFont(palette)),
+        text: measureWith(`12px ${palette.font}`),
+        date: measureWith(`11px ${palette.mono}`),
+        mark: (r) => {
+          const state = ciEntry(r)?.status.state;
+          return state && state !== "none" ? CI_BADGE_SIZE : 0;
+        },
+      },
+      locale,
+    );
+    ctx.restore();
+    if (!text) return;
+    tipTimer.current = window.setTimeout(
+      () => setTip({ x: clientX, y: clientY, text }),
+      TOOLTIP_DELAY_MS,
+    );
+  };
+
+  function hideTooltip() {
+    window.clearTimeout(tipTimer.current);
+    tipKey.current = "";
+    setTip(null);
+  }
 
   // Drop target for branches dragged from the sidebar or from another label.
   useEffect(
@@ -290,12 +427,18 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
         setHovered(rowAt(e.clientY));
         const over = !dragging && branchAtPoint(e.clientX, e.clientY, false) !== null;
         if (over !== overLabel) setOverLabel(over);
+        updateTooltip(e.clientX, e.clientY);
       }}
-      onMouseLeave={() => setHovered(null)}
+      onMouseLeave={() => {
+        setHovered(null);
+        hideTooltip();
+      }}
+      onWheel={hideTooltip}
       onMouseDown={(e) => {
         const el = scrollerRef.current!;
         // Ignore presses on the scrollbar.
         if (e.clientX - el.getBoundingClientRect().left > el.clientWidth) return;
+        hideTooltip();
         selectIndex(rowAt(e.clientY));
         // Drag a local branch label onto another branch to merge / rebase.
         const label = branchAtPoint(e.clientX, e.clientY, false);
@@ -318,6 +461,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     >
       <canvas ref={canvasRef} className="sticky top-0 block" />
       <div style={{ height: Math.max(0, summary.total * ROW_HEIGHT - size.height) }} />
+      {tip &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="pointer-events-none fixed z-50 max-w-[min(560px,80vw)] rounded-md bg-foreground px-3 py-1.5 text-xs break-words whitespace-pre-line text-background shadow-md"
+            style={{
+              left: tip.x > window.innerWidth * 0.6 ? tip.x - 12 : tip.x + 12,
+              top: tip.y + 18,
+              transform: tip.x > window.innerWidth * 0.6 ? "translateX(-100%)" : undefined,
+            }}
+          >
+            {tip.text}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

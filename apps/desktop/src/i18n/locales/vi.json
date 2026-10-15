@@ -71,7 +71,13 @@
     "prevMatch": "Kết quả trước (Shift+Enter)",
     "nextMatch": "Kết quả sau (Enter)",
     "clearSearch": "Xóa tìm kiếm",
-    "notInHistory": "Commit {{oid}} không có trong lịch sử đã tải."
+    "notInHistory": "Commit {{oid}} không có trong lịch sử đã tải.",
+    "resizeColumn": "Kéo để đổi độ rộng cột {{column}} (nhấp đúp: về mặc định)",
+    "columnName": {
+      "graph": "Nhánh / Graph",
+      "author": "Tác giả",
+      "date": "Ngày"
+    }
   },
   "commit": {
     "title": "Commit / WIP",
@@ -214,7 +220,9 @@
     "selected_one": "{{count}} file đã chọn",
     "more_one": "và {{count}} file khác",
     "discardBody_one": "Thay đổi chưa stage của {{count}} file sẽ mất, file mới chưa theo dõi sẽ bị xóa. Không thể hoàn tác.",
-    "conflictCount_one": "{{count}} xung đột"
+    "conflictCount_one": "{{count}} xung đột",
+    "undoShort": "Hoàn tác",
+    "resolvedShort": "Đã giải quyết"
   },
   "diff": {
     "title": "Diff",
@@ -2402,6 +2410,503 @@
     },
     "cmd": {
       "import": "Nhập tài khoản từ gh/glab CLI…"
+    }
+  },
+  "ci": {
+    "title": "CI",
+    "short": "CI",
+    "loading": "Đang đọc trạng thái CI…",
+    "state": {
+      "success": "CI: thành công",
+      "failure": "CI: thất bại",
+      "pending": "CI: đang chạy",
+      "neutral": "CI: bỏ qua / không kết luận",
+      "none": "Không có CI"
+    },
+    "jobState": {
+      "queued": "đang chờ",
+      "running": "đang chạy",
+      "success": "đạt",
+      "failure": "lỗi",
+      "cancelled": "đã hủy",
+      "skipped": "bỏ qua",
+      "neutral": "không kết luận",
+      "manual": "chờ chạy tay"
+    },
+    "jobCounts": "{{passed}}/{{total}} job đạt",
+    "jobs": "Các job CI",
+    "noJobs": "Không có danh sách job.",
+    "allowedToFail": "được phép lỗi",
+    "openLog": "Mở log",
+    "openLogOf": "Mở log của {{name}}",
+    "openPipeline": "Mở pipeline trên web",
+    "showAll": "Xem tất cả {{count}} job",
+    "showLess": "Thu gọn",
+    "truncated": "Có quá nhiều job, chỉ hiện một phần.",
+    "onRemote": "trên {{remote}}",
+    "checksUnavailable": "Không đọc được check runs nên danh sách có thể thiếu.",
+    "action": {
+      "reauth": "Đăng nhập lại",
+      "authorizeSso": "Cấp quyền SSO cho token"
+    },
+    "problem": {
+      "unbound": "Remote {{remote}} chưa gắn tài khoản nên chưa xem được CI. Chọn tài khoản ở nút tài khoản trên thanh trên.",
+      "noToken": "Tài khoản {{account}} chưa có token nên chưa xem được CI."
+    },
+    "providerError": {
+      "unauthorized": "Token của {{account}} đã hết hạn hoặc bị thu hồi. Đăng nhập lại để tiếp tục.",
+      "missingScopes": "Token của {{account}} thiếu quyền: cần {{scopes}}. Đăng nhập lại để cấp thêm quyền.",
+      "saml": "Tổ chức yêu cầu SAML SSO: token của {{account}} chưa được cấp quyền cho tổ chức này.",
+      "oauthRestricted": "Tổ chức {{org}} chặn ứng dụng OAuth chưa được duyệt. Nhờ chủ tổ chức duyệt, hoặc đăng nhập lại {{account}} bằng fine-grained token.",
+      "tokenPermission": "Token của {{account}} (fine-grained) chưa được cấp quyền này cho repo. Tạo lại token có quyền cần thiết (ví dụ Checks: read, Administration/Contents) rồi đăng nhập lại.",
+      "notFound": "Tài khoản {{account}} không thấy repo này (repo private hoặc không có quyền). Đổi sang tài khoản khác cho remote này.",
+      "forbidden": "Tài khoản {{account}} không có quyền: {{message}}",
+      "rateLimited": "Đã vượt giới hạn gọi API. Thử lại sau ít phút.",
+      "rateLimitedAt": "Đã vượt giới hạn gọi API. Thử lại sau {{time}}.",
+      "network": "Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.",
+      "server": "Máy chủ đang lỗi (HTTP {{status}}). Thử lại sau.",
+      "other": "Lỗi từ máy chủ: {{message}}"
+    }
+  },
+  "forks": {
+    "title": "Fork repo này",
+    "description": "Tạo bản sao (fork) của repo trên tài khoản của bạn để tự do push, rồi gửi pull/merge request về repo gốc.",
+    "paletteTitle": "Fork repo này…",
+    "menu": "Fork repo này…",
+    "copyUrl": "Sao chép URL",
+    "loading": "Đang tải…",
+    "noHostedRemote": "Repo này không có remote GitHub / GitLab nên không fork được.",
+    "source": "Repo gốc",
+    "asAccount": "Với tư cách",
+    "noAccountOnHost": "Chưa có tài khoản nào trên {{host}}. Thêm tài khoản trong Quản lý tài khoản.",
+    "namespace": "Fork về",
+    "namespaceSelf": "Tài khoản của tôi ({{name}})",
+    "namespaceSelfPlain": "Tài khoản của tôi",
+    "remotes": "Remote",
+    "remoteName": "Tên remote cho fork",
+    "mode": {
+      "add": "Thêm fork thành remote",
+      "swap": "Đổi origin → upstream, fork thành origin",
+      "addHelp": "origin giữ nguyên; push lên fork bằng remote mới.",
+      "swapHelp": "Remote gốc đổi tên thành upstream (nhánh vẫn theo dõi repo gốc); git push mặc định sẽ đi tới fork."
+    },
+    "ownRepoWarning": "Repo này đã thuộc tài khoản đang chọn — thường không cần fork.",
+    "submit": "Fork",
+    "submitAs": "Fork với tư cách {{account}}",
+    "submitClone": "Fork rồi clone",
+    "cancel": "Dừng chờ",
+    "close": "Đóng",
+    "cancelled": "Đã dừng. Fork (nếu đã tạo) vẫn còn trên máy chủ.",
+    "done": "Đã fork thành {{name}} và thêm remote.",
+    "doneExisting": "Bạn đã có fork {{name}} — dùng fork đó, không tạo mới.",
+    "openOnWeb": "Mở trên web",
+    "attached": "Đã thêm fork {{name}} thành remote {{remote}}.",
+    "fetched": "Đã tải dữ liệu từ {{remote}}.",
+    "upstreamFailed": "Đã clone fork nhưng chưa thêm được remote upstream: {{message}}",
+    "cloneLabel": "Fork",
+    "cloneOption": {
+      "before": "Fork về tài khoản",
+      "after": "rồi clone"
+    },
+    "cloneHelp": "Tạo fork của {{source}} (dùng fork có sẵn nếu đã có), clone fork rồi tự thêm remote upstream trỏ về repo gốc.",
+    "phase": {
+      "forking": "Đang fork…",
+      "waiting": "Đang chờ fork sẵn sàng (máy chủ đang sao chép dữ liệu)…",
+      "cloning": "Đang clone…",
+      "linking": "Đang thêm remote…",
+      "fetching": "Đang tải dữ liệu từ fork…"
+    },
+    "error": {
+      "noToken": "Tài khoản {{account}} chưa có token. Đăng nhập lại để fork.",
+      "forkingDisabled": "Repo này không cho phép fork (tổ chức thường chặn fork repo private). Nhờ quản trị tổ chức bật quyền fork, hoặc làm việc bằng nhánh trên repo gốc.",
+      "nameTaken": "Nơi đích đã có repo trùng tên nhưng không phải fork của repo này. Chọn nơi fork khác.",
+      "own": "Không thể fork repo của chính bạn vào cùng tài khoản. Chọn một tổ chức / nhóm khác.",
+      "notReady": "Fork {{name}} đã được tạo nhưng máy chủ vẫn đang sao chép dữ liệu. Đợi vài phút rồi bấm lại (app sẽ dùng fork có sẵn)."
+    }
+  },
+  "issues": {
+    "sidebar": "Issues",
+    "loading": "Đang tải…",
+    "refresh": "Làm mới",
+    "loadMore": "Tải thêm",
+    "noOpen": "Không có issue nào đang mở 🎉",
+    "none": "Không có issue nào khớp bộ lọc",
+    "openInBrowser": "Mở trên trình duyệt",
+    "actingAs": "với tư cách",
+    "actingAsHint": "Tài khoản sẽ thực hiện thao tác này. Bấm để đổi riêng cho lần này.",
+    "actingAsOnce": "Chỉ cho thao tác này",
+    "signInAgain": "Đăng nhập lại",
+    "authorizeSso": "Cho phép SSO",
+    "manageAccounts": "Quản lý tài khoản",
+    "state": {
+      "open": "Mở",
+      "closed": "Đã đóng",
+      "all": "Tất cả"
+    },
+    "filter": {
+      "title": "Lọc issue",
+      "people": "Người",
+      "assignedToMe": "Giao cho tôi",
+      "unassigned": "Chưa giao cho ai",
+      "createdByMe": "Tôi tạo",
+      "label": "Nhãn",
+      "noLabels": "Dự án chưa có nhãn nào",
+      "clear": "Bỏ lọc"
+    },
+    "context": {
+      "noRemote": "Repo này chưa có remote GitHub / GitLab nên không có issue. Thêm remote trỏ tới GitHub hoặc GitLab để xem issue.",
+      "unbound": "Remote “{{remote}}” chưa gắn tài khoản nào, nên app chưa biết dùng tài khoản nào để đọc issue.",
+      "noToken": "Tài khoản của remote “{{remote}}” chưa có token đăng nhập (có thể chỉ dùng SSH). Đăng nhập lại để xem issue.",
+      "bind": "Chọn tài khoản cho repo"
+    },
+    "error": {
+      "missingScopes": "Token của {{account}} thiếu quyền cần thiết: {{scopes}}.",
+      "missingScopesHint": "Đăng nhập lại (hoặc tạo token mới) và nhớ tick đúng quyền ở trên, rồi thử lại.",
+      "oauthRestricted": "Tổ chức {{org}} đang chặn ứng dụng OAuth nên {{account}} không đọc được dự án này.",
+      "oauthRestrictedHint": "Nhờ quản trị tổ chức duyệt ứng dụng, hoặc đăng nhập lại bằng Fine-grained token.",
+      "saml": "Tổ chức yêu cầu SSO: token của {{account}} chưa được cho phép dùng với tổ chức này.",
+      "samlHint": "Mở trang cho phép SSO, bấm “Authorize” rồi thử lại.",
+      "tokenPermission": "Token của {{account}} không có quyền với mục này.",
+      "tokenPermissionHint": "Nếu dùng Fine-grained token: sửa token, thêm repo này và quyền Issues (Read and write).",
+      "unauthorized": "Token của {{account}} không còn dùng được (hết hạn hoặc đã bị thu hồi).",
+      "unauthorizedHint": "Đăng nhập lại tài khoản này để tiếp tục.",
+      "notFound": "Tài khoản {{account}} không thấy dự án / issue này.",
+      "notFoundHint": "Dự án riêng tư chỉ hiện với tài khoản có quyền. Thử đổi sang tài khoản khác, hoặc nhờ chủ dự án mời {{account}}.",
+      "forbidden": "{{account}} không được phép làm việc này.",
+      "rateLimited": "Đã gọi API quá nhiều lần, nhà cung cấp tạm chặn.",
+      "rateLimitedAt": "Đã gọi API quá nhiều lần. Thử lại sau {{time}}.",
+      "rateLimitedHint": "Đợi một lát rồi bấm Làm mới; không cần làm gì thêm.",
+      "rejected": "Nhà cung cấp từ chối yêu cầu: {{message}}",
+      "network": "Không kết nối được tới máy chủ.",
+      "networkHint": "Kiểm tra mạng / VPN / proxy rồi thử lại.",
+      "server": "Máy chủ của nhà cung cấp đang lỗi ({{status}}). Thử lại sau ít phút.",
+      "cancelled": "Đã dừng.",
+      "appHint": "Gắn tài khoản cho remote hoặc đăng nhập lại trong Quản lý tài khoản."
+    },
+    "create": {
+      "open": "Tạo issue",
+      "title": "Tạo issue mới",
+      "description": "Trên dự án {{project}}",
+      "titleLabel": "Tiêu đề",
+      "bodyLabel": "Mô tả",
+      "bodyPlaceholder": "Mô tả vấn đề, các bước để tái hiện, kết quả mong muốn… (hỗ trợ Markdown)",
+      "labelsCount_one": "{{count}} nhãn",
+      "labelsCount_other": "{{count}} nhãn",
+      "assigneesCount_one": "{{count}} người được giao",
+      "assigneesCount_other": "{{count}} người được giao",
+      "submit": "Tạo issue",
+      "done": "Đã tạo issue #{{number}}: {{title}}"
+    },
+    "view": {
+      "title": "Issue #{{number}}",
+      "close": "Đóng",
+      "isPullRequest": "Số này là một pull request, không phải issue.",
+      "openPullRequest": "Mở pull request",
+      "noBody": "Chưa có mô tả.",
+      "opened": "đã mở {{when}}",
+      "closed": "đã đóng {{when}}",
+      "locked": "Đã khóa bình luận",
+      "tryOtherAccount": "Thử tài khoản khác",
+      "labels": "Nhãn",
+      "noLabels": "Chưa có nhãn",
+      "editLabels": "Sửa nhãn",
+      "assignees": "Người được giao",
+      "noAssignees": "Chưa giao cho ai",
+      "editAssignees": "Sửa người được giao",
+      "cannotLoad": "Không tải được",
+      "loadingComments": "Đang tải bình luận…",
+      "comments_one": "{{count}} bình luận",
+      "comments_other": "{{count}} bình luận",
+      "moreComments": "Còn bình luận cũ hơn — mở trên trình duyệt để xem hết.",
+      "commentPlaceholder": "Viết bình luận… (Ctrl+Enter để gửi)",
+      "lockedPlaceholder": "Issue đã khóa: chỉ thành viên dự án bình luận được.",
+      "comment": "Bình luận",
+      "closeIssue": "Đóng issue",
+      "closeWithComment": "Bình luận và đóng",
+      "reopen": "Mở lại issue"
+    },
+    "branch": {
+      "open": "Tạo nhánh từ issue này",
+      "name": "Tên nhánh",
+      "hint": "Nhánh mới được tạo từ commit hiện tại (HEAD), chỉ ở máy bạn — chưa đẩy lên remote.",
+      "checkout": "Chuyển sang nhánh mới ngay",
+      "create": "Tạo nhánh",
+      "created": "Đã tạo nhánh {{branch}}",
+      "createdCheckedOut": "Đã tạo và chuyển sang nhánh {{branch}}"
+    },
+    "suggest": {
+      "title": "Gợi ý issue",
+      "error": "Không tải được danh sách issue",
+      "none": "Không có issue mở nào khớp",
+      "closes": "Closes",
+      "closesHint": "Chèn “Closes #số”: issue tự đóng khi commit vào nhánh chính",
+      "keys": "Enter/Tab: chèn #số · Shift+Enter: Closes #số · Esc: đóng"
+    },
+    "cmd": {
+      "group": "Issue & PR",
+      "create": "Tạo issue…",
+      "open": "Mở issue #…",
+      "openPlaceholder": "Số issue, ví dụ 123",
+      "openInvalid": "Nhập số issue, ví dụ 123 hoặc #123"
+    }
+  },
+  "mywork": {
+    "button": "Việc của tôi",
+    "buttonCount": "Việc ({{count}})",
+    "tooltip": "Việc của tôi: PR/MR cần review, PR/MR của tôi, issue giao cho tôi (mọi tài khoản)",
+    "tooltipCount": "{{count}} PR/MR đang chờ bạn review — bấm để xem",
+    "title": "Việc của tôi",
+    "description": "Gộp từ mọi tài khoản đã đăng nhập. Tự làm mới 5 phút một lần khi app đang mở.",
+    "allAccounts": "Mọi tài khoản",
+    "refresh": "Làm mới",
+    "stop": "Dừng",
+    "loading": "Đang tải từ các tài khoản…",
+    "draft": "Nháp",
+    "more": "Còn {{count}} mục nữa (mở trên trình duyệt để xem hết)",
+    "noAccounts": "Chưa có tài khoản GitHub / GitLab nào. Thêm tài khoản để xem việc của bạn.",
+    "noTokens": "Chưa tài khoản nào có token đăng nhập (có thể chỉ dùng SSH). Đăng nhập lại để xem việc của bạn.",
+    "withoutToken_one": "{{count}} tài khoản chưa có token nên không được tính: {{names}}.",
+    "withoutToken_other": "{{count}} tài khoản chưa có token nên không được tính: {{names}}.",
+    "manageAccounts": "Quản lý tài khoản",
+    "group": {
+      "reviewRequested": "Cần tôi review",
+      "authored": "PR / MR của tôi",
+      "assigned": "Issue giao cho tôi"
+    },
+    "empty": {
+      "reviewRequested": "Không có PR/MR nào đang chờ bạn review.",
+      "authored": "Bạn không có PR/MR nào đang mở.",
+      "assigned": "Không có issue nào đang giao cho bạn."
+    },
+    "cmd": {
+      "open": "Việc của tôi (PR cần review, issue được giao)",
+      "refresh": "Làm mới “Việc của tôi”"
+    }
+  },
+  "pulls": {
+    "loading": "Đang tải…",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "closed": "Đã đóng.",
+    "reopened": "Đã mở lại.",
+    "refresh": "Tải lại",
+    "openWeb": "Mở trên trình duyệt",
+    "detailLabel": "Chi tiết {{term}}",
+    "fromFork": "từ fork {{repo}}",
+    "actingAs": "với tư cách",
+    "actingAsHint": "Tài khoản sẽ thực hiện thao tác này. Bấm để đổi chỉ cho thao tác này.",
+    "actingAsOnce": "Chỉ cho thao tác này",
+    "state": {
+      "open": "Đang mở",
+      "draft": "Bản nháp",
+      "merged": "Đã merge",
+      "closed": "Đã đóng"
+    },
+    "decision": {
+      "approved": "Đã được duyệt",
+      "changesRequested": "Cần sửa theo review",
+      "reviewRequired": "Đang chờ review",
+      "none": "Chưa có review"
+    },
+    "reviewer": {
+      "requested": "đang chờ",
+      "approved": "đã duyệt",
+      "changesRequested": "yêu cầu sửa",
+      "commented": "đã bình luận",
+      "dismissed": "đã bị bỏ qua"
+    },
+    "tab": {
+      "overview": "Tổng quan",
+      "commits": "Commit",
+      "files": "File thay đổi"
+    },
+    "list": {
+      "loading": "Đang tải danh sách…",
+      "noRemote": "Repo này không có remote GitHub/GitLab.",
+      "unbound": "Remote {{remote}} chưa gắn tài khoản nên chưa xem được PR/MR.",
+      "bind": "Gắn tài khoản",
+      "noToken": "Tài khoản của remote này chưa đăng nhập (không có token).",
+      "signIn": "Đăng nhập lại",
+      "empty": "Không có {{term}} nào khớp bộ lọc.",
+      "more": "Tải thêm",
+      "retry": "Thử lại",
+      "refresh": "Tải lại danh sách",
+      "state": "Trạng thái",
+      "remote": "Remote",
+      "stateOption": {
+        "open": "Đang mở",
+        "closed": "Đã đóng",
+        "merged": "Đã merge",
+        "all": "Tất cả"
+      },
+      "filters": "Lọc theo tác giả, reviewer, nhãn",
+      "mine": "Của tôi",
+      "toReview": "Cần tôi review",
+      "author": "Tác giả",
+      "reviewer": "Reviewer",
+      "label": "Nhãn",
+      "clearFilters": "Bỏ lọc",
+      "by": "bởi {{user}}"
+    },
+    "overview": {
+      "noBody": "Không có mô tả.",
+      "onLine": "bình luận ở {{path}}:{{line}}",
+      "replies": "{{count}} trả lời",
+      "replies_one": "{{count}} trả lời",
+      "comment": "Bình luận",
+      "commentPlaceholder": "Viết bình luận… (Ctrl+Enter để gửi)"
+    },
+    "commits": {
+      "jump": "Tới commit này trong graph",
+      "copy": "Chép mã commit",
+      "openRepoToJump": "Mở repo của PR/MR này (tab đang chọn) để bấm vào commit và tới graph."
+    },
+    "files": {
+      "truncated": "Danh sách file bị cắt bớt (quá nhiều file) — xem đủ trên trình duyệt.",
+      "truncatedRows": "Diff quá dài, chỉ hiện {{count}} dòng đầu.",
+      "none": "Không có file nào thay đổi.",
+      "noPatch": "Nhà cung cấp không gửi diff của file này (file lớn hoặc nhị phân). Có thể tính diff bằng git trên máy (sẽ fetch nhánh của PR/MR về).",
+      "noPatchNoRepo": "Nhà cung cấp không gửi diff của file này. Mở repo này trong app để xem diff bằng git, hoặc xem trên trình duyệt.",
+      "localDiff": "Xem diff bằng git trên máy",
+      "localDiffLoading": "Đang fetch và tính diff…",
+      "binary": "File nhị phân — không hiển thị được diff.",
+      "tooLarge": "Diff quá lớn để hiển thị.",
+      "noChanges": "Không có thay đổi nội dung.",
+      "outdated": "{{count}} luồng bình luận đã cũ (dòng không còn trong diff hiện tại)",
+      "outdated_one": "{{count}} luồng bình luận đã cũ (dòng không còn trong diff hiện tại)",
+      "resolved": "Đã giải quyết",
+      "reply": "Trả lời",
+      "replyPlaceholder": "Viết câu trả lời…",
+      "comment": "Bình luận",
+      "commentLine": "Bình luận vào dòng này",
+      "commentPlaceholder": "Bình luận vào dòng này…",
+      "commentHint": "Rê chuột vào một dòng rồi bấm nút bình luận để góp ý dòng đó"
+    },
+    "side": {
+      "reviewers": "Reviewer",
+      "noReviewers": "Chưa có reviewer.",
+      "approvalsLeft": "Còn thiếu {{count}} lượt duyệt",
+      "approvalsLeft_one": "Còn thiếu {{count}} lượt duyệt",
+      "approvalsUnavailable": "Máy chủ GitLab này không hỗ trợ API duyệt (approvals).",
+      "assignees": "Người phụ trách",
+      "status": "Trạng thái",
+      "mergedBy": "Đã được merge bởi {{user}}.",
+      "closedState": "Đã đóng mà không merge.",
+      "reopen": "Mở lại",
+      "merge": "Merge",
+      "method": "Cách merge",
+      "deleteBranch": "Xóa nhánh nguồn {{branch}} sau khi merge",
+      "mergeButton": "Merge",
+      "close": "Đóng {{term}}",
+      "conflictHint": "Cách sửa: bấm Checkout để lấy nhánh về máy, merge nhánh đích vào, giải quyết xung đột rồi Push lại.",
+      "confirmMerge": "Merge {{number}}?",
+      "confirmMergeBody": "Gộp {{source}} vào {{target}} ({{method}}). Thao tác này chạy trên máy chủ và không hoàn tác được từ app.",
+      "confirmClose": "Đóng {{number}}?",
+      "confirmCloseBody": "Có thể mở lại sau. Nhánh nguồn không bị xóa."
+    },
+    "mergeState": {
+      "clean": "Có thể merge.",
+      "conflicts": "Có xung đột với {{target}} — chưa merge được.",
+      "blocked": "Đang bị chặn (thiếu lượt duyệt, check bắt buộc chưa qua hoặc luật bảo vệ nhánh).",
+      "behind": "Nhánh nguồn đang cũ hơn {{target}} — cần cập nhật (merge/rebase) trước.",
+      "unstable": "Merge được, nhưng có check đang thất bại.",
+      "draft": "Đang là bản nháp — đánh dấu sẵn sàng trên trình duyệt để merge.",
+      "checking": "Máy chủ đang kiểm tra khả năng merge… bấm Tải lại sau giây lát.",
+      "unknown": "Chưa rõ trạng thái merge."
+    },
+    "method": {
+      "merge": "Tạo merge commit",
+      "squash": "Squash thành 1 commit",
+      "rebase": "Rebase rồi merge"
+    },
+    "merge": {
+      "done": "Đã merge {{number}}.",
+      "fetchHint": "Bấm Fetch để thấy kết quả trong graph.",
+      "deleteFailed": "Nhưng chưa xóa được nhánh nguồn: {{message}}"
+    },
+    "review": {
+      "button": "Review",
+      "placeholder": "Nhận xét chung (không bắt buộc khi duyệt)…",
+      "submit": "Gửi review",
+      "event": {
+        "comment": "Chỉ bình luận",
+        "approve": "Duyệt (approve)",
+        "requestChanges": "Yêu cầu sửa (request changes)",
+        "unapprove": "Rút lại duyệt"
+      },
+      "gitlabRequestChanges": "GitLab không có \"yêu cầu sửa\" qua API: nội dung sẽ được đăng thành bình luận.",
+      "done": {
+        "comment": "Đã gửi bình luận review.",
+        "approve": "Đã duyệt.",
+        "requestChanges": "Đã gửi yêu cầu sửa.",
+        "unapprove": "Đã rút lại duyệt."
+      }
+    },
+    "checkout": {
+      "button": "Checkout",
+      "tip": "Lấy nhánh của PR/MR về máy và chuyển sang nhánh đó",
+      "created": "Đã tạo và chuyển sang nhánh {{branch}}.",
+      "switched": "Đã chuyển sang nhánh {{branch}}."
+    },
+    "create": {
+      "open": "Tạo {{term}}",
+      "dialogTitle": "Tạo {{term}}",
+      "dialogDescription": "Từ nhánh {{branch}} ({{count}} commit mới).",
+      "dialogDescription_one": "Từ nhánh {{branch}} ({{count}} commit mới).",
+      "targetRemote": "Gửi tới",
+      "targetBranch": "Nhánh đích",
+      "title": "Tiêu đề",
+      "body": "Mô tả",
+      "reviewers": "Reviewer",
+      "reviewersPlaceholder": "tên đăng nhập, cách nhau dấu phẩy",
+      "labels": "Nhãn",
+      "labelsPlaceholder": "bug, ui",
+      "draft": "Tạo dưới dạng bản nháp",
+      "removeSource": "Xóa nhánh nguồn khi merge",
+      "submit": "Tạo {{term}}",
+      "notPushed": "Nhánh {{branch}} chưa có trên remote {{remote}}. Cần Push trước khi tạo.",
+      "ahead": "Còn {{count}} commit chưa push — Push trước để PR/MR có đủ thay đổi.",
+      "ahead_one": "Còn {{count}} commit chưa push — Push trước để PR/MR có đủ thay đổi.",
+      "pushFirst": "Push trước",
+      "checkoutToPush": "Checkout nhánh {{branch}} rồi Push để tiếp tục.",
+      "crossRepoGitlab": "Chưa hỗ trợ tạo MR từ fork sang project gốc trên GitLab — hãy tạo trên trình duyệt.",
+      "noAccount": "Remote đích chưa gắn tài khoản đã đăng nhập — gắn tài khoản trước.",
+      "done": "Đã tạo {{term}} {{number}}.",
+      "warnings": "Một vài bước phụ chưa xong: {{warnings}}",
+      "afterPush": "Đã push nhánh mới {{branch}}. Tạo {{term}} từ nhánh này?"
+    },
+    "cmd": {
+      "create": "Tạo pull request / merge request từ nhánh hiện tại…",
+      "closeView": "Đóng chi tiết PR/MR"
+    },
+    "menu": {
+      "create": "Tạo PR/MR từ nhánh này…"
+    },
+    "error": {
+      "thisAccount": "tài khoản này",
+      "reauth": "Đăng nhập lại {{account}}",
+      "manage": "Quản lý tài khoản",
+      "unauthorized": "Máy chủ từ chối token của {{account}} (hết hạn hoặc đã bị thu hồi).",
+      "unauthorizedHint": "Đăng nhập lại tài khoản này rồi thử lại.",
+      "missingScopes": "Token của {{account}} thiếu quyền (scope) cần thiết: {{scopes}}.",
+      "missingScopesHint": "Đăng nhập lại để cấp thêm quyền, hoặc tạo token mới có các scope trên.",
+      "saml": "Tổ chức yêu cầu xác thực SAML SSO cho token của {{account}}.",
+      "samlHint": "Mở trang xác thực SSO, cho phép token rồi thử lại.",
+      "samlOpen": "Mở trang SSO",
+      "oauthRestricted": "Tổ chức {{org}} chặn ứng dụng OAuth nên {{account}} không truy cập được.",
+      "oauthRestrictedHint": "Nhờ chủ tổ chức duyệt ứng dụng, hoặc dùng fine-grained token cho tài khoản này.",
+      "tokenPermission": "Token của {{account}} không có quyền với pull request của repo này.",
+      "tokenPermissionHint": "Với fine-grained token: cấp quyền \"Pull requests: Read and write\" (và \"Contents\") cho repo này.",
+      "forbidden": "{{account}} không được phép làm việc này.",
+      "notFound": "{{account}} không thấy repo hoặc PR/MR này.",
+      "notFoundHint": "Repo có thể là private: đổi sang tài khoản có quyền (chọn \"với tư cách\") hoặc gắn tài khoản khác cho remote.",
+      "rateLimited": "Đã chạm giới hạn số lần gọi API. Thử lại sau ít phút.",
+      "rateLimitedAt": "Đã chạm giới hạn số lần gọi API. Thử lại sau {{time}}.",
+      "rejected": "Máy chủ từ chối: {{message}}",
+      "refused": "Máy chủ không thực hiện được: {{message}}",
+      "network": "Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.",
+      "server": "Máy chủ đang lỗi. Thử lại sau.",
+      "unsupported": "Máy chủ không hỗ trợ: {{message}}"
     }
   }
 }

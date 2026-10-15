@@ -19,6 +19,11 @@ import { useSelection } from "@/stores/graph";
 import { useActiveRepo, useWorkspace } from "@/stores/workspace";
 import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
 import { LfsManagerHost } from "@/features/lfs/LfsManagerDialog";
+import { IssueView } from "@/features/issues/IssueView";
+import { useShownIssue } from "@/features/issues/useShownIssue";
+import { PullDetailView } from "@/features/pulls/PullDetailView";
+import { useShownPull } from "@/features/pulls/useShownPull";
+import { useHostingNav } from "@/stores/hosting";
 import { NoticeBar, ToolBanner } from "./Banners";
 import { useLayoutShortcuts } from "./layoutShortcuts";
 import { PanelRow, SidePanel } from "./PanelLayout";
@@ -37,6 +42,10 @@ export function AppShell() {
   const selection = useSelection(repo?.id);
   const diff = useOpenDiff(repo?.id);
   const fileView = useFileView(repo?.id);
+  // Phase 4.2: an issue opened from this tab, or from "My work" (no tab).
+  const issue = useShownIssue(repo?.id);
+  // Phase 4.1: a pull / merge request opened from this tab, or from "My work" (no tab).
+  const pull = useShownPull(repo?.id);
   useAccountShortcuts();
   useLayoutShortcuts();
 
@@ -63,10 +72,34 @@ export function AppShell() {
             ) : (
               <>
                 {/* The graph stays mounted under an open diff so its scroll position survives. */}
-                <div className={diff || fileView ? "hidden" : "flex min-w-0 flex-1"}>
+                <div
+                  className={diff || fileView || issue || pull ? "hidden" : "flex min-w-0 flex-1"}
+                >
                   <GraphView key={`graphView-${repo.id}`} repoId={repo.id} name={repo.name} />
                 </div>
-                {fileView ? (
+                {pull ? (
+                  <ViewErrorBoundary
+                    key={`pullView-${repo.id}`}
+                    onClose={() => useHostingNav.getState().closePullRequest()}
+                    resetKey={JSON.stringify(pull)}
+                  >
+                    <PullDetailView
+                      key={`pull-${pull.accountId}-${pull.fullName}-${pull.number}`}
+                      pullRef={pull}
+                    />
+                  </ViewErrorBoundary>
+                ) : issue ? (
+                  <ViewErrorBoundary
+                    key={`issueView-${repo.id}`}
+                    onClose={() => useHostingNav.getState().closeIssue()}
+                    resetKey={JSON.stringify(issue)}
+                  >
+                    <IssueView
+                      key={`issue-${issue.accountId}-${issue.fullName}-${issue.number}`}
+                      issueRef={issue}
+                    />
+                  </ViewErrorBoundary>
+                ) : fileView ? (
                   <ViewErrorBoundary
                     key={`fileViewHost-${repo.id}`}
                     onClose={() => closeFileView(repo.id)}

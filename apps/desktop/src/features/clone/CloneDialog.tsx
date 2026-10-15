@@ -52,6 +52,15 @@ import {
   useDebounced,
 } from "./queries";
 import { RepoList } from "./RepoList";
+// Phase 4.3: "Fork to ● account, then clone".
+import { forkThenClone } from "@/features/forks/actions";
+import { CloneForkOption, ForkPhaseLine, type ForkChoice } from "@/features/forks/CloneForkOption";
+import {
+  canOfferFork,
+  describeForkFailure,
+  forkSourceOf,
+  type ForkPhase,
+} from "@/features/forks/model";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -131,7 +140,7 @@ export function CloneDialog({
   presetUrl: string | null;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const accounts = useAccounts();
   const providers = useProviders();
   const settings = useQuery({
@@ -161,6 +170,8 @@ export function CloneDialog({
   const [running, setRunning] = useState<Running | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [forkChoice, setForkChoice] = useState<ForkChoice | null>(null);
+  const [forkPhase, setForkPhase] = useState<ForkPhase | null>(null);
 
   const accountList = useMemo(() => accounts.data ?? [], [accounts.data]);
   const byId = useMemo(() => new Map(accountList.map((a) => [a.id, a])), [accountList]);
@@ -208,6 +219,9 @@ export function CloneDialog({
     { url: effectiveUrl, dest: destPath, lfs, lfsInclude },
     { urlValid, destUsable },
   );
+  const forkSource = forkSourceOf(selected, guessData);
+  const forkAccount = accountId ? byId.get(accountId) : undefined;
+  const forking = !!forkChoice?.enabled && canOfferFork(forkSource, forkAccount);
 
   const selectRepo = (repo: CloneRepo) => {
     setSelected(repo);
@@ -255,22 +269,53 @@ export function CloneDialog({
   const submit = async () => {
     if (errors.length > 0 || running) return;
     setError(null);
-    const run = await runClone(
-      {
-        url: effectiveUrl,
-        accountId,
-        identityId: null,
-        dest: destPath.trim(),
-        branch: null,
-        depth: shallow ? 1 : null,
-        recurseSubmodules: submodules,
-        lfs: lfsMode({ lfs, lfsInclude }),
-        writeIdentity,
-      },
-      (opId) => setRunning({ opId, progress: null, cancelling: false }),
-      (progress) => setRunning((r) => (r ? { ...r, progress } : r)),
-    );
+    const request = {
+      accountId,
+      identityId: null,
+      branch: null,
+      depth: shallow ? 1 : null,
+      recurseSubmodules: submodules,
+      lfs: lfsMode({ lfs, lfsInclude }),
+      writeIdentity,
+    };
+    const onStart = (opId: string) =>
+      setRunning((r) => ({ opId, progress: null, cancelling: r?.cancelling ?? false }));
+    const onProgress = (progress: CloneProgress) => setRunning((r) => (r ? { ...r, progress } : r));
+    const run =
+      forking && forkSource && accountId
+        ? await forkThenClone(
+            {
+              accountId,
+              source: forkSource,
+              options: { namespace: forkChoice?.namespace ?? null },
+              protocol,
+              request,
+              // The suggestion follows the fork's owner; a folder typed by the user is kept.
+              dest: destOverride !== null || templateEdit !== null ? destPath.trim() : null,
+            },
+            (phase) => {
+              setForkPhase(phase === "cloning" ? null : phase);
+              if (phase === "forking") setRunning({ opId: "", progress: null, cancelling: false });
+            },
+            onStart,
+            onProgress,
+          )
+        : await runClone(
+            { ...request, url: effectiveUrl, dest: destPath.trim() },
+            onStart,
+            onProgress,
+          );
     setRunning(null);
+    setForkPhase(null);
+    if (run.status === "forkFailed") {
+      const label = forkAccount ? accountTitle(forkAccount, providers.data) : "";
+      setError(describeForkFailure(t, run.failure, accountId ?? "", label, i18n.language).text);
+      return;
+    }
+    if (run.status === "notReady") {
+      setError(t("forks.error.notReady", { name: run.fork.fullName }));
+      return;
+    }
     if (run.status === "done") {
       onClose();
       return;
@@ -557,6 +602,14 @@ export function CloneDialog({
               </label>
             </div>
 
+            <CloneForkOption
+              source={forkSource}
+              account={forkAccount}
+              value={forkChoice}
+              onChange={setForkChoice}
+              disabled={running !== null}
+            />
+
             <span className="font-semibold">{t("clone.lfs")}</span>
             <fieldset
               className="flex flex-wrap items-center gap-x-4 gap-y-1"
@@ -587,6 +640,7 @@ export function CloneDialog({
             </fieldset>
           </div>
 
+          <ForkPhaseLine phase={forkPhase} />
           {running && <ProgressView running={running} onCancel={cancel} />}
           {error && (
             <div
@@ -608,7 +662,7 @@ export function CloneDialog({
             title={errors.map((e) => t(`clone.error.${e}`)).join("\n") || undefined}
             onClick={() => void submit()}
           >
-            {t("clone.submit")}
+            {forking ? t("forks.submitClone") : t("clone.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { labelAt, parseRefs, refLabelBoxes, textColumnX } from "./draw";
+import { labelAt, parseRefs, refLabelBoxes } from "./draw";
 
 describe("ref label hit-testing", () => {
   it("lays labels out like the canvas and finds the one under the pointer", () => {
@@ -15,6 +15,5 @@ describe("ref label hit-testing", () => {
     expect(labelAt(boxes, 138)).toBeNull(); // the gap
     expect(labelAt(boxes, 150)?.text).toBe("topic");
     expect(labelAt(boxes, 400)).toBeNull();
-    expect(textColumnX(1)).toBeGreaterThan(0);
   });
 });

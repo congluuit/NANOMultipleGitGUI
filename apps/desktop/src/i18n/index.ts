@@ -3,11 +3,11 @@ import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import vi from "./locales/vi.json";
 
-export type Language = "vi" | "en";
+export type Language = "en" | "vi";
 
 export const LANGUAGES: readonly { code: Language; label: string }[] = [
-  { code: "vi", label: "Tiếng Việt" },
   { code: "en", label: "English" },
+  { code: "vi", label: "Tiếng Việt" },
 ];
 
 export const resources = {

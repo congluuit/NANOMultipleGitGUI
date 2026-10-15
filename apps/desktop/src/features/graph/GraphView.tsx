@@ -18,7 +18,7 @@ import {
 import { useGraphStore, useSelection } from "@/stores/graph";
 import { useUi } from "@/stores/ui";
 import { runScrollBenchmark } from "./benchmark";
-import { graphWidth, sideColumns } from "./draw";
+import { GraphHeader } from "./GraphHeader";
 import { GraphCanvas, type GraphCanvasHandle } from "./GraphCanvas";
 import { cycleMatch } from "./navigation";
 
@@ -52,8 +52,10 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
   const [view, setView] = useState<ViewState | null>(null);
   const [firstPaintMs, setFirstPaintMs] = useState<number | null>(null);
   const [bench, setBench] = useState<GraphBenchmark | null>(null);
-  // Column header follows the canvas: author / date give way in a narrow window.
+  // Column header follows the canvas: author / date give way in a narrow window. The canvas
+  // reports its own width (the header spans the scrollbar too).
   const [headerWidth, setHeaderWidth] = useState(0);
+  const [canvasWidth, setCanvasWidth] = useState(0);
   const headerRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
     const ro = new ResizeObserver(() => setHeaderWidth(el.clientWidth));
@@ -225,7 +227,6 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
   }, [benchOnLoad, firstPaintMs, bench, running, runBenchmark]);
 
   const s = view?.summary;
-  const cols = sideColumns(headerWidth, s?.maxLanes ?? 1);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-background">
@@ -331,28 +332,8 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
           {running ? <LoaderCircle className="animate-spin" /> : <Gauge />}
         </Button>
       </div>
-      <div
-        ref={headerRef}
-        className="flex h-7 shrink-0 items-center overflow-hidden border-b text-[11px] font-semibold whitespace-nowrap text-muted-foreground uppercase"
-        style={{ paddingLeft: 10 }}
-      >
-        <span
-          className="shrink-0 truncate whitespace-nowrap"
-          style={{ width: graphWidth(s?.maxLanes ?? 1) - 2 }}
-        >
-          {t("graph.colGraph")}
-        </span>
-        <span className="min-w-0 flex-1 truncate">{t("graph.colMessage")}</span>
-        {cols.author > 0 && (
-          <span className="shrink-0 truncate" style={{ width: cols.author }}>
-            {t("graph.colAuthor")}
-          </span>
-        )}
-        {cols.date > 0 && (
-          <span className="shrink-0" style={{ width: cols.date }}>
-            {t("graph.colDate")}
-          </span>
-        )}
+      <div ref={headerRef}>
+        <GraphHeader width={canvasWidth || headerWidth} maxLanes={s?.maxLanes ?? 1} />
       </div>
       <WipRow repoId={repoId} />
       {!view && summary.isPending && (
@@ -387,6 +368,7 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
                 highlight={highlight}
                 onSelect={onSelect}
                 onTopRowChange={onTopRowChange}
+                onWidthChange={setCanvasWidth}
                 onFirstPaint={onFirstPaint}
                 onRowContextMenu={onRowContextMenu}
               />

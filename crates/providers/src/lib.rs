@@ -25,11 +25,16 @@
 //! ```
 
 pub mod api;
+pub mod ci;
 pub mod endpoint;
 pub mod error;
+pub mod forks;
 pub mod github;
 pub mod gitlab;
+pub mod issues;
 pub mod model;
+pub mod mywork;
+pub mod pulls;
 pub mod remote;
 pub mod secret;
 pub mod timefmt;

@@ -14,6 +14,7 @@ import {
 import { runPushGuard } from "@/features/guards";
 import { conflictText } from "@/features/commits/outcome";
 import { lfsKeys } from "@/features/lfs/queries";
+import { offerCreatePull } from "@/features/pulls/actions";
 import { pushPlan } from "@/features/remote/plan";
 import { startTransfer } from "@/features/remote/transfers";
 import { notifyEstimateFailure, repoAccount, runLfsPush } from "@/features/transfers/actions";
@@ -84,8 +85,8 @@ export function pull(repoId: number, mode: PullMode) {
   );
 }
 
-function gitPush(repoId: number, p: PushRequest, shot: OneShot | null) {
-  return startTransfer(
+async function gitPush(repoId: number, p: PushRequest, shot: OneShot | null) {
+  const s = await startTransfer(
     repoId,
     "push",
     (op) => commands.remotePush(repoId, op, p, asAccountOf(shot)),
@@ -96,6 +97,9 @@ function gitPush(repoId: number, p: PushRequest, shot: OneShot | null) {
     `${p.remote}/${p.remoteBranch ?? p.branch}`,
     shot,
   );
+  // Phase 4.1: a new branch on GitHub/GitLab → offer "Create PR/MR".
+  if (s && !s.upToDate && p.setUpstream) void offerCreatePull(repoId, p.remote, p.branch);
+  return s;
 }
 
 async function usesLfs(repoId: number): Promise<boolean> {

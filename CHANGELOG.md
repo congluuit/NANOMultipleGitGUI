@@ -62,6 +62,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Settings → Storage: size and location of the log, cache and app data folders, open / move (with progress) / back to default, clear cache and delete old logs; app data moves on the next start. Warning when the drive holding app data has less than 1 GB free.
 - Check for updates from published GitHub releases (on start at most once a day and from Settings or the command palette) with release notes, "Update & restart", "Later" and "Skip this version", plus a beta channel. Builds without a signing key or repository say that updates are not enabled.
 - Resizable sidebar and right panel (drag, keyboard, double-click to reset, remembered), collapsible to an icon rail (`Ctrl/Cmd+B`, `Ctrl/Cmd+Alt+B`), and a "⋯" menu for toolbar buttons that do not fit.
+- Pull requests (GitHub) and merge requests (GitLab) per account: list with filters in the sidebar, details with description, timeline, commits and changed files, comments (also on lines), reviews, merge (merge / squash / rebase, delete the source branch), close / reopen, create from a branch (offers to push first), and check out a PR/MR branch — also from forks.
+- Issues per repository: list, view, comment, create, close / reopen, labels and assignees, create a branch from an issue; `#` suggestions in the commit message and clickable `#123` / `!12` in commit details.
+- "My work" panel gathering, across all signed-in accounts, the PRs/MRs waiting for your review, your own PRs/MRs and the issues assigned to you.
+- CI status (GitHub Actions checks and statuses, GitLab pipelines) on the commit graph, in commit details with each job and a link to its log, in the status bar for HEAD and on pull requests.
+- Fork & clone (fork to your account or an organization, clone the fork, add `upstream`) and "Fork this repository" for an open repository.
+- Every provider action shows the account it runs as and can use another account for that action only.
+- Graph columns can be resized (double-click a handle to restore), the message column is the widest by default, and hovering a cut-off message, author or date shows the full text.
+- `.env.example` documenting the optional build-time settings in English and Vietnamese.
 
 ### Changed
 
@@ -69,6 +77,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The file watcher ignores changes to files matched by `.gitignore` (build output, `node_modules`...).
 - Dialogs scroll inside the window instead of overflowing it; the graph hides the Author and then the Date column on narrow windows.
 - The database schema moves to version 4 (new `imported_cli` sign-in method); existing data is kept.
+- File rows show "Stage" / "Unstage" / "Undo" as words instead of icons, and "Stage all" / "Unstage all" stand out more.
+- The graph is centered in the "Branch / Graph" column.
+- English is listed before Vietnamese in the language choices.
 
 ### Fixed
 
@@ -79,3 +90,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The toolbar no longer duplicates the Fetch / Pull / Push / Branch buttons after switching repository tabs.
 - Backup refs made before history rewrites are no longer drawn in the commit graph.
 - Buttons no longer disappear when the window is made smaller, and the file list of the Changes panel keeps its space on short windows.
+- GitHub accounts signed in through the browser no longer ask to sign in again right after signing in (and every 8 hours): their expiring tokens are now refreshed automatically, like GitLab's.

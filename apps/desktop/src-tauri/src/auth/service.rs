@@ -7,8 +7,8 @@ use nanomgg_accounts::{
 };
 use nanomgg_auth::{
     AuthError, DeviceFlowConfig, Feature, LoopbackLogin, PkceConfig, TokenInfo, TokenSet,
-    default_scopes, needs_refresh, poll_device_token, refresh_gitlab_token, request_device_code,
-    token_health, validate_token,
+    default_scopes, needs_refresh, poll_device_token, refresh_github_token, refresh_gitlab_token,
+    request_device_code, token_health, validate_token,
 };
 use nanomgg_providers::Provider as _;
 use nanomgg_providers::{
@@ -621,11 +621,10 @@ async fn ensure_default_identity(
 
 // ----- health & refresh ----------------------------------------------------------------------
 
-/// The app refreshes this account's token itself.
-pub fn auto_refresh(account: &Account, provider: &Provider) -> bool {
-    account.auth_method == AuthMethod::Oauth
-        && family(provider) == ProviderFamily::Gitlab
-        && account.has_secret(AccountSecret::RefreshToken)
+/// The app refreshes this account's token itself: GitLab OAuth tokens (~2 h) and GitHub's
+/// expiring user tokens (8 h; GitHub only hands out a refresh token for those).
+pub fn auto_refresh(account: &Account) -> bool {
+    account.auth_method == AuthMethod::Oauth && account.has_secret(AccountSecret::RefreshToken)
 }
 
 /// Pure health computation (`now` in Unix seconds).
@@ -637,7 +636,7 @@ pub fn compute_health(
 ) -> AccountHealth {
     let fam = family(provider);
     let has_token = account.has_secret(AccountSecret::Token);
-    let auto = auto_refresh(account, provider);
+    let auto = auto_refresh(account);
     let scopes_known = has_token && status.scopes_known.unwrap_or(!account.scopes.is_empty());
     let scopes = scopes_known.then_some(account.scopes.as_slice());
     let expires = if auto || !has_token {
@@ -706,14 +705,17 @@ async fn refresh_oauth(
             message: "no refresh token stored".into(),
         })
     })?;
-    let tokens =
-        refresh_gitlab_token(&rt.http, &endpoint, &id, &SecretToken::from(refresh)).await?;
+    let refresh = SecretToken::from(refresh);
+    let tokens = match family(p) {
+        ProviderFamily::Github => refresh_github_token(&rt.http, &endpoint, &id, &refresh).await?,
+        ProviderFamily::Gitlab => refresh_gitlab_token(&rt.http, &endpoint, &id, &refresh).await?,
+    };
     let scopes = if tokens.scopes.is_empty() {
         acc.scopes.clone()
     } else {
         tokens.scopes.clone()
     };
-    // GitLab rotates refresh tokens: always persist the returned one (the crate falls back to
+    // GitLab and GitHub rotate refresh tokens: always persist the returned one (the crate falls back to
     // the old token for servers that do not rotate).
     account_store_tokens(
         st,
@@ -788,7 +790,7 @@ pub async fn refresh_account(
     let acc = account(st, account_id)?;
     let p = provider(st, &acc.provider_id)?;
     if acc.auth_method != AuthMethod::SshOnly || acc.has_secret(AccountSecret::Token) {
-        let result = if auto_refresh(&acc, &p) {
+        let result = if auto_refresh(&acc) {
             refresh_oauth(st, rt, &acc, &p).await
         } else {
             revalidate(st, rt, &acc, &p).await
@@ -819,7 +821,7 @@ pub async fn refresh_due(st: &AppState, rt: &AuthRuntime, now: i64) -> usize {
         let Some(p) = providers.iter().find(|p| p.id == acc.provider_id) else {
             continue;
         };
-        if !auto_refresh(&acc, p) || !due(&acc) || read_status(st, &acc.id).needs_sign_in {
+        if !auto_refresh(&acc) || !due(&acc) || read_status(st, &acc.id).needs_sign_in {
             continue;
         }
         let _guard = rt.refresh_lock.lock().await;

@@ -3,6 +3,7 @@ import {
   Archive,
   ChevronDown,
   ChevronRight,
+  CircleDot,
   Cloud,
   FolderTree,
   GitBranch,
@@ -37,6 +38,10 @@ import { useLinkedWorktrees } from "@/features/linked-worktrees/queries";
 import { WorktreeList } from "@/features/linked-worktrees/WorktreeList";
 import { useSubmodules } from "@/features/submodules/queries";
 import { SubmoduleList } from "@/features/submodules/SubmoduleList";
+import { RemoteMenuItems } from "@/features/forks/RemoteMenuItems";
+import { IssueSidebarList } from "@/features/issues/IssueSidebarList";
+import { PullSidebarList } from "@/features/pulls/PullSidebarList";
+import { usePullSidebarCount } from "@/features/pulls/sidebarData";
 
 function Section({
   icon: Icon,
@@ -255,6 +260,8 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
   const head = data ? headState(data.head) : null;
   const current = head?.kind === "branch" ? head.branch : null;
   const remoteBranchCount = (data?.remotes ?? []).reduce((n, r) => n + r.branches.length, 0);
+  // Phase 4.1: pull / merge requests of the repo's hosted project.
+  const pullCount = usePullSidebarCount(repo && !repo.missing ? repo.id : null);
 
   const sections: SectionDef[] = !data
     ? []
@@ -328,13 +335,21 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
               {data.remotes.length === 0 && <Empty>{t("sidebar.noRemotes")}</Empty>}
               {data.remotes.map((r) => (
                 <li key={r.name}>
-                  <div
-                    className="flex h-6 items-center gap-2 truncate pr-2 pl-6 text-xs font-medium"
-                    title={r.url ?? undefined}
-                  >
-                    <Server className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{r.name}</span>
-                  </div>
+                  {/* Phase 4.3: remote menu ("Fork repo này…"). */}
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className="flex h-6 items-center gap-2 truncate pr-2 pl-6 text-xs font-medium"
+                        title={r.url ?? undefined}
+                      >
+                        <Server className="size-3.5 shrink-0 text-muted-foreground" />
+                        <span className="truncate">{r.name}</span>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-64">
+                      {repo && <RemoteMenuItems repoId={repo.id} remote={r.name} url={r.url} />}
+                    </ContextMenuContent>
+                  </ContextMenu>
                   <ul>
                     {r.branches
                       .filter((b) => matchesFilter(`${r.name}/${b.name}`, filter))
@@ -402,7 +417,14 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
           id: "prs",
           icon: GitPullRequest,
           title: t("sidebar.prs"),
-          content: <Empty>{t("sidebar.comingSoon")}</Empty>,
+          count: pullCount,
+          content: repo && <PullSidebarList repoId={repo.id} filter={filter} />,
+        },
+        {
+          id: "issues",
+          icon: CircleDot,
+          title: t("issues.sidebar"),
+          content: repo && <IssueSidebarList repoId={repo.id} filter={filter} />,
         },
         {
           id: "lfs",

@@ -38,7 +38,8 @@ pub use scopes::{
     required_scopes, scope_satisfied, token_health,
 };
 pub use token::{
-    TokenSet, TokenSummary, needs_refresh, refresh_access_token, refresh_gitlab_token,
+    TokenSet, TokenSummary, needs_refresh, refresh_access_token, refresh_github_token,
+    refresh_gitlab_token,
 };
 pub use validate::{TokenInfo, TokenKind, validate_token};
 

@@ -65,6 +65,13 @@ export function FileSection({
         ? t("wip.markResolved")
         : t("wip.stage");
   const PrimaryIcon = kind === "staged" ? Minus : Plus;
+  // Row buttons are short words (the full action stays in the tooltip).
+  const primaryShort =
+    kind === "staged"
+      ? t("wip.unstage")
+      : kind === "conflicted"
+        ? t("wip.resolvedShort")
+        : t("wip.stage");
 
   const targetFor = (entry: StatusEntry) =>
     selected.has(entry.path)
@@ -89,8 +96,14 @@ export function FileSection({
           <button
             type="button"
             onClick={onPrimaryAll}
-            className="rounded px-1.5 py-0.5 text-[11px] font-medium normal-case hover:bg-background hover:text-foreground"
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-[11px] font-medium text-foreground normal-case",
+              kind === "staged"
+                ? "hover:bg-surface-2"
+                : "border-primary/40 text-primary hover:bg-primary/10",
+            )}
           >
+            <PrimaryIcon className="size-3" />
             {kind === "staged" ? t("wip.unstageAll") : t("wip.stageAll")}
           </button>
         )}
@@ -128,7 +141,7 @@ export function FileSection({
                   active={e.path === activePath}
                   selected={selected.has(e.path)}
                   primaryLabel={primaryLabel}
-                  PrimaryIcon={PrimaryIcon}
+                  primaryShort={primaryShort}
                   discardLabel={onDiscard ? t("wip.discard") : null}
                   onClick={(ev) => {
                     const mods = { ctrl: ev.ctrlKey || ev.metaKey, shift: ev.shiftKey };
@@ -195,7 +208,7 @@ interface RowProps {
   active: boolean;
   selected: boolean;
   primaryLabel: string;
-  PrimaryIcon: typeof Plus;
+  primaryShort: string;
   discardLabel: string | null;
   onClick: (e: React.MouseEvent) => void;
   onPrimary: () => void;
@@ -207,7 +220,7 @@ function FileRow({
   active,
   selected,
   primaryLabel,
-  PrimaryIcon,
+  primaryShort,
   discardLabel,
   onClick,
   onPrimary,
@@ -258,9 +271,9 @@ function FileRow({
               e.stopPropagation();
               onDiscard();
             }}
-            className="rounded p-0.5 text-muted-foreground hover:bg-background hover:text-danger"
+            className="rounded px-1.5 py-px text-[11px] font-medium text-muted-foreground hover:bg-background hover:text-danger"
           >
-            <Undo2 className="size-3.5" />
+            {t("wip.undoShort")}
           </button>
         )}
         <button
@@ -271,9 +284,9 @@ function FileRow({
             e.stopPropagation();
             onPrimary();
           }}
-          className="rounded p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+          className="rounded border bg-background px-1.5 py-px text-[11px] font-medium text-foreground hover:border-primary/50 hover:text-primary"
         >
-          <PrimaryIcon className="size-3.5" />
+          {primaryShort}
         </button>
       </span>
     </li>

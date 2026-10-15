@@ -4,6 +4,7 @@ import { useRepoRefs } from "@/features/repos/queries";
 import { headState, primaryRemote, transportOf } from "@/features/repos/refsView";
 import { useActiveAccount } from "@/features/accounts/switcher";
 import { TransferQueueWidget } from "@/features/transfers/TransferQueueWidget";
+import { HeadCiIndicator } from "@/features/ci/CommitCi";
 import { useActiveRepo } from "@/stores/workspace";
 
 export function StatusBar() {
@@ -61,6 +62,7 @@ export function StatusBar() {
                   {current?.upstream && ` ↑${current.ahead} ↓${current.behind}`}
                 </span>
               )}
+              <HeadCiIndicator />
             </>
           )}
         </>

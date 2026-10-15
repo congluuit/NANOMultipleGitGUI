@@ -1,6 +1,7 @@
 import { Copy, GitBranchPlus, GitMerge, LogIn, PencilLine, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { PullBranchMenuItem } from "@/features/pulls/MenuItems";
 import { RebaseBranchItems } from "@/features/rebase/MenuItems";
 import { commands } from "@/ipc";
 import { runOutcome } from "./outcome";
@@ -45,6 +46,7 @@ export function LocalBranchItems({
         {t("menu.mergeInto", { branch: current ?? "HEAD" })}
       </ContextMenuItem>
       <RebaseBranchItems repoId={repoId} name={name} current={current} />
+      <PullBranchMenuItem repoId={repoId} branch={name} />
       {oid && (
         <ContextMenuItem
           onSelect={() => open({ kind: "createBranch", repoId, start: oid, label: name })}

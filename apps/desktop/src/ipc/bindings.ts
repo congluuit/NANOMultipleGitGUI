@@ -509,6 +509,107 @@ export const commands = {
 	 *  commits, see `CommitDetails.signature`).
 	 */
 	commitSignature: (repoId: number, oid: string) => __TAURI_INVOKE<CommitSignature>("commit_signature", { repoId, oid }),
+	/**  Hosted remotes of an open repository with the account each one uses. */
+	hostedRemoteList: (repoId: number) => __TAURI_INVOKE<HostedRemote[]>("hosted_remote_list", { repoId }),
+	/**
+	 *  A page of issues of the project behind `remote` (default: `origin`, else the first hosted
+	 *  remote) of an open repository.
+	 */
+	issueList: (repoId: number, remote: string | null, query: IssueListQuery) => __TAURI_INVOKE<IssueListResult>("issue_list", { repoId, remote, query }),
+	issueGet: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<IssueDetail>("issue_get", { accountId, fullName, number }),
+	issueComments: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<IssueCommentList>("issue_comments", { accountId, fullName, number }),
+	/**  Posts a comment as `account_id` (the account the user confirmed). */
+	issueCommentCreate: (accountId: string, fullName: string, number: number, body: string) => __TAURI_INVOKE<IssueComment>("issue_comment_create", { accountId, fullName, number, body }),
+	/**
+	 *  Creates an issue on the project behind `remote` of an open repository, as the resolved
+	 *  account or `as_account` ("only for this action").
+	 */
+	issueCreate: (repoId: number, remote: string | null, asAccount: string | null, input: IssueCreate) => __TAURI_INVOKE<IssueCreated>("issue_create", { repoId, remote, asAccount, input }),
+	/**  Close / reopen, replace labels or assignees, as `account_id`. */
+	issueUpdate: (accountId: string, fullName: string, number: number, change: IssueUpdate) => __TAURI_INVOKE<IssueDetail>("issue_update", { accountId, fullName, number, change }),
+	issueLabels: (accountId: string, fullName: string) => __TAURI_INVOKE<IssueLabel[]>("issue_labels", { accountId, fullName }),
+	issueAssignableUsers: (accountId: string, fullName: string) => __TAURI_INVOKE<IssueUser[]>("issue_assignable_users", { accountId, fullName }),
+	/**  Suggested branch name for an issue (the UI lets the user edit it). */
+	issueBranchName: (number: number, title: string) => __TAURI_INVOKE<string>("issue_branch_name", { number, title }),
+	/**
+	 *  Creates local branch `name` (default: [`issue_branch_name`]) at `start` (default: `HEAD`),
+	 *  optionally switching to it. Names are checked with `git check-ref-format --branch`;
+	 *  recorded for Undo like any branch creation. Returns the branch name.
+	 */
+	issueBranchCreate: (repoId: number, number: number, title: string, name: string | null, start: string | null, checkout: boolean) => __TAURI_INVOKE<Outcome<string>>("issue_branch_create", { repoId, number, title, name, start, checkout }),
+	/**
+	 *  The "My work" lists of every account with a token. Answers younger than a minute come from
+	 *  the cache unless `refresh`. A new call cancels the one still running.
+	 */
+	myworkList: (refresh: boolean) => __TAURI_INVOKE<WorkOverview>("mywork_list", { refresh }),
+	/**  Stops the running [`mywork_list`] (it then answers with `cancelled: true`). */
+	myworkCancel: () => __TAURI_INVOKE<boolean>("mywork_cancel"),
+	/**
+	 *  CI of `shas` (full or abbreviated commit ids) of open repository `repo_id`. `remote` is the
+	 *  preferred remote (the current branch's upstream remote); GitLab jobs are only read with
+	 *  `with_jobs` (badges do not need them).
+	 */
+	ciStatuses: (repoId: number, shas: string[], remote: string | null, withJobs: boolean) => __TAURI_INVOKE<CiBatch>("ci_statuses", { repoId, shas, remote, withJobs }),
+	/**
+	 *  CI of one commit of `full_name` read with `account_id` (PR/MR pages, which know the account
+	 *  and project but may have no open repository). Always includes the jobs.
+	 */
+	ciStatusFor: (accountId: string, fullName: string, sha: string) => __TAURI_INVOKE<CiBatch>("ci_status_for", { accountId, fullName, sha }),
+	/**  Where `account_id` may fork to: itself first, then organizations / groups. */
+	forkNamespaces: (accountId: string) => __TAURI_INVOKE<ForkOutcome<ForkNamespace[]>>("fork_namespaces", { accountId }),
+	/**  The account's existing fork of `source` in `namespace` (`None` = the account itself). */
+	forkFind: (accountId: string, source: string, namespace: string | null) => __TAURI_INVOKE<ForkOutcome<ForkRepo | null>>("fork_find", { accountId, source, namespace }),
+	/**
+	 *  Forks `source` with `account_id` (or returns the account's existing fork in that namespace).
+	 *  The data may still be copying: call [`fork_wait`] before cloning / fetching.
+	 */
+	forkCreate: (accountId: string, source: string, options: ForkOptions) => __TAURI_INVOKE<ForkOutcome<ForkRepo>>("fork_create", { accountId, source, options }),
+	/**
+	 *  Waits (≤ 2 minutes) until the fork `full_name` can be cloned. `false` = still copying.
+	 *  Cancel with `transfer_cancel(opId)`.
+	 */
+	forkWait: (opId: string, accountId: string, fullName: string) => __TAURI_INVOKE<ForkOutcome<boolean>>("fork_wait", { opId, accountId, fullName }),
+	/**
+	 *  After cloning a fork: `upstream` = the source (same transport as `origin`), then a
+	 *  best-effort fetch of it is left to the frontend (`remote_fetch`).
+	 */
+	forkAddUpstream: (repoId: number, upstreamHttps: string, upstreamSsh: string) => __TAURI_INVOKE<ForkRemoteChange>("fork_add_upstream", { repoId, upstreamHttps, upstreamSsh }),
+	/**
+	 *  Adds the fork of the open repository as a remote (see [`ForkAttachMode`]) and binds that
+	 *  remote to `account_id`. Fetch it afterwards with `remote_fetch`.
+	 */
+	forkAttach: (repoId: number, accountId: string, sourceRemote: string, forkHttps: string, forkSsh: string, mode: ForkAttachMode) => __TAURI_INVOKE<ForkRemoteChange>("fork_attach", { repoId, accountId, sourceRemote, forkHttps, forkSsh, mode }),
+	pullList: (accountId: string, fullName: string, query: PullListQuery) => __TAURI_INVOKE<PullPage>("pull_list", { accountId, fullName, query }),
+	pullDetail: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullDetail>("pull_detail", { accountId, fullName, number }),
+	pullReviews: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullReviews>("pull_reviews", { accountId, fullName, number }),
+	pullCommits: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullCommit[]>("pull_commits", { accountId, fullName, number }),
+	pullFiles: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullFiles>("pull_files", { accountId, fullName, number }),
+	pullComments: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullComment[]>("pull_comments", { accountId, fullName, number }),
+	pullCommentCreate: (accountId: string, fullName: string, number: number, target: PullCommentTarget, body: string) => __TAURI_INVOKE<PullComment>("pull_comment_create", { accountId, fullName, number, target, body }),
+	pullReviewSubmit: (accountId: string, fullName: string, number: number, event: PullReviewEvent, body: string) => __TAURI_INVOKE<null>("pull_review_submit", { accountId, fullName, number, event, body }),
+	pullCreate: (accountId: string, fullName: string, create: PullCreate) => __TAURI_INVOKE<PullCreated>("pull_create", { accountId, fullName, create }),
+	pullMerge: (accountId: string, fullName: string, number: number, request: PullMergeRequest) => __TAURI_INVOKE<PullMerged>("pull_merge", { accountId, fullName, number, request }),
+	/**  Closes (`open = false`) or reopens a pull request. */
+	pullSetOpen: (accountId: string, fullName: string, number: number, open: boolean) => __TAURI_INVOKE<null>("pull_set_open", { accountId, fullName, number, open }),
+	/**
+	 *  Context for creating a pull request from `branch` (current branch when `None`) into the
+	 *  project of `target_remote`, branch `target_branch` (default branch when `None`).
+	 */
+	pullCreateContext: (repoId: number, branch: string | null, targetRemote: string | null, targetBranch: string | null) => __TAURI_INVOKE<PullCreateContext>("pull_create_context", { repoId, branch, targetRemote, targetBranch }),
+	/**
+	 *  Checks out the pull request's source branch: a tracking branch for same-project pull
+	 *  requests, a local branch at `refs/pull/N/head` / `refs/merge-requests/N/head` for forks.
+	 */
+	pullCheckout: (repoId: number, request: PullCheckoutRequest, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<PullCheckout>>("pull_checkout", { repoId, request, asAccount }),
+	/**
+	 *  Diff of one file of a pull request computed with local git (fetching the pull request ref
+	 *  first when its commits are not here yet).
+	 */
+	pullLocalDiff: (repoId: number, request: PullLocalDiffRequest) => __TAURI_INVOKE<Outcome<PullLocalDiff>>("pull_local_diff", { repoId, request }),
 	updaterStatus: () => __TAURI_INVOKE<UpdaterStatus>("updater_status"),
 	/**
 	 *  Looks for a newer published release. `startup: true` honours the once-a-day limit; the
@@ -949,6 +1050,93 @@ export type ChangedFile = {
 	/**  `None` for binary files. */
 	additions: number | null,
 	deletions: number | null,
+};
+
+/**  Result of [`ci_statuses`] / [`ci_status_for`]. */
+export type CiBatch = {
+	/**  One entry per commit that could be read, in request order. */
+	entries: CiEntry[],
+	/**  Set when nothing (or not everything) could be read. */
+	problem: CiProblem | null,
+};
+
+/**  CI of one commit and where it was found. */
+export type CiEntry = {
+	remote: string | null,
+	fullName: string,
+	accountId: string,
+	status: CiStatus,
+};
+
+/**  One job of the commit's CI. */
+export type CiJob = {
+	name: string,
+	kind: CiJobKind,
+	state: CiJobState,
+	/**  GitLab stage, GitHub app name (`GitHub Actions`). */
+	group: string | null,
+	/**  Status text of the provider (status description, raw conclusion), when useful. */
+	description: string | null,
+	/**  Unix seconds. */
+	startedAt: number | null,
+	finishedAt: number | null,
+	/**  Page with the log / details (https). */
+	url: string | null,
+	/**  GitLab `allow_failure`: a failure does not fail the pipeline. */
+	allowFailure: boolean,
+};
+
+/**  Where a job comes from. */
+export type CiJobKind = 
+/**  GitHub check run (GitHub Actions and other apps). */
+"check" | 
+/**  GitHub commit status (external CI posting statuses). */
+"status" | 
+/**  GitLab pipeline job. */
+"job";
+
+/**  State of one job / check / status. */
+export type CiJobState = "queued" | "running" | "success" | "failure" | "cancelled" | "skipped" | "neutral" | 
+/**  GitLab manual job / GitHub `action_required`: waits for someone to act. */
+"manual";
+
+/**  Why no CI can be shown for a repository (rendered as a quiet hint, not an error). */
+export type CiProblem = 
+/**  No remote points at GitHub / GitLab. */
+{ kind: "noHostedRemote" } | 
+/**  The remote is not bound to an account. */
+{ kind: "unbound"; remote: string } | 
+/**  The account has no token (sign in again). */
+{ kind: "noToken"; accountId: string } | 
+/**  The provider refused / failed (missing scope, 404 for a private repo, rate limit…). */
+{ kind: "provider"; accountId: string; error: ProviderError };
+
+/**  Overall CI result of a commit. */
+export type CiState = "success" | 
+/**  At least one required job failed, errored, timed out or was cancelled. */
+"failure" | 
+/**  Something is queued or running. */
+"pending" | 
+/**  Finished without a verdict (skipped / neutral / manual-only). */
+"neutral" | 
+/**  No CI ran for this commit (or the provider does not know the commit). */
+"none";
+
+/**  CI of one commit. */
+export type CiStatus = {
+	sha: string,
+	state: CiState,
+	/**  Empty when jobs were not requested (GitLab) or none ran. */
+	jobs: CiJob[],
+	/**  GitLab pipeline page; GitHub has no single page for all checks. */
+	pipelineUrl: string | null,
+	/**  More check runs than were read. */
+	truncated: boolean,
+	/**
+	 *  GitHub: the check runs could not be read (typically a fine-grained token without
+	 *  `checks:read`); the state then only reflects commit statuses.
+	 */
+	checksError: ProviderError | null,
 };
 
 /**  Outcome of a cleanup. */
@@ -1571,6 +1759,84 @@ export type FixAuthorMode =
 /**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
 "rewriteUnpushed";
 
+/**  What [`fork_attach`] does with the remotes of the open repository. */
+export type ForkAttachMode = 
+/**  Add the fork as a new remote (`fork` by default); `origin` stays as it is. */
+{ kind: "addRemote"; name: string } | 
+/**
+ *  Rename `origin` → `upstream`, then add the fork as `origin` (branches keep tracking the
+ *  source through `upstream`).
+ */
+{ kind: "swapOrigin" };
+
+/**  A place the account may fork into. */
+export type ForkNamespace = {
+	kind: ForkNamespaceKind,
+	/**  Login / org login / group full path — what [`ForkOptions::namespace`] takes. */
+	path: string,
+	/**  Display name when the provider has one. */
+	name: string | null,
+	avatarUrl: string | null,
+};
+
+/**  Kind of a fork destination. */
+export type ForkNamespaceKind = 
+/**  The account's own namespace. */
+"user" | 
+/**  GitHub organization. */
+"organization" | 
+/**  GitLab group / subgroup. */
+"group";
+
+/**  Options of [`ProviderClient::create_fork`]. */
+export type ForkOptions = {
+	/**  Organization (GitHub) / namespace path (GitLab); `None` = the account itself. */
+	namespace?: string | null,
+	/**  New repository name; `None` = same as the source. */
+	name?: string | null,
+	/**  GitHub only: copy just the default branch. */
+	defaultBranchOnly?: boolean,
+};
+
+/**  Result of a fork command. */
+export type ForkOutcome<T> = { status: "done"; value: T } | 
+/**  The account has no token stored: sign in again. */
+{ status: "noToken"; accountId: string } | 
+/**  The provider refused or failed. */
+{ status: "failed"; error: ProviderError; problem: ForkProblem | null };
+
+/**  Why a fork request failed, when the provider's message says it (for a helpful UI text). */
+export type ForkProblem = 
+/**  The organization / project does not allow forking (often: private repositories). */
+"forkingDisabled" | 
+/**  A repository with that name already exists in the destination. */
+"nameTaken" | 
+/**  Forking your own repository into the same namespace. */
+"ownRepository";
+
+/**  Remote changes made by [`fork_add_upstream`] / [`fork_attach`]. */
+export type ForkRemoteChange = {
+	/**  The remote that was added (`upstream` after a clone, the fork remote otherwise). */
+	remote: string,
+	url: string,
+	/**  `false` when the remote already existed with this URL. */
+	added: boolean,
+	/**  `origin` was renamed to this (swap mode). */
+	renamedTo: string | null,
+};
+
+/**  A fork (new or existing) of the account. */
+export type ForkRepo = {
+	fullName: string,
+	cloneHttps: string,
+	cloneSsh: string,
+	webUrl: string,
+	defaultBranch: string | null,
+	private: boolean,
+	/**  The account already had this fork: nothing was created. */
+	existed: boolean,
+};
+
 export type FsckProblem = {
 	kind: FsckProblemKind,
 	path: string | null,
@@ -1764,6 +2030,21 @@ export type Head = {
 	unborn: boolean,
 };
 
+/**  A remote of an open repository that points at a hosting provider. */
+export type HostedRemote = {
+	remote: string,
+	/**  Lower-cased host name, e.g. `github.com`. */
+	host: string,
+	/**  `owner/repo` (GitHub) or `group/sub/project` (GitLab). */
+	fullName: string,
+	/**  Account the resolver uses for this remote; `None` when unbound. */
+	accountId: string | null,
+	/**  Provider family of that account (`None` when unbound). */
+	family: ProviderFamily | null,
+	/**  Whether that account has a token stored (API calls need one). */
+	hasToken: boolean,
+};
+
 export type Hunk = {
 	/**  The `@@ -a,b +c,d @@ context` line. */
 	header: string,
@@ -1910,6 +2191,133 @@ export type InteractiveRebaseRequest = {
 	steps: TodoStep[],
 	autostash?: boolean,
 	allowPushed?: boolean,
+};
+
+/**
+ *  Error of the issue / "My work" commands: a typed provider error (the UI explains missing
+ *  scopes, 404 on private repositories, rate limits…) or an app error (no hosted remote, no
+ *  token, storage).
+ */
+export type IssueCommandError = { kind: "provider"; message: string; error: ProviderError } | { kind: "app"; message: string; error: AppError };
+
+export type IssueComment = {
+	id: string,
+	author: IssueUser | null,
+	body: string,
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string | null,
+	/**  GitLab system note ("changed the description", "added ~bug label"…). */
+	system: boolean,
+};
+
+export type IssueCommentList = {
+	comments: IssueComment[],
+	/**  More comments exist than were read. */
+	truncated: boolean,
+};
+
+export type IssueCreate = {
+	title: string,
+	body?: string,
+	labels?: string[],
+	/**  Usernames. */
+	assignees?: string[],
+};
+
+export type IssueCreated = {
+	issue: IssueDetail,
+	accountId: string,
+	fullName: string,
+};
+
+export type IssueDetail = {
+	issue: IssueSummary,
+	/**  Markdown source as written (untrusted). */
+	body: string,
+	closedAt: number | null,
+	closedBy: IssueUser | null,
+	/**  Comments are limited to collaborators. */
+	locked: boolean,
+};
+
+export type IssueLabel = {
+	name: string,
+	/**  `#rrggbb` when the provider sent a valid color. */
+	color: string | null,
+	description: string | null,
+};
+
+/**
+ *  Filters of an issue listing. `assignee` / `author` are usernames; `assignee = "@none"`
+ *  lists unassigned issues.
+ */
+export type IssueListQuery = {
+	state?: IssueStateFilter,
+	labels?: string[],
+	assignee?: string | null,
+	author?: string | null,
+	/**  Free text (title / description). */
+	search?: string | null,
+	/**  1-based. */
+	page?: number,
+	/**  1..=100 (0 = 30). */
+	perPage?: number,
+};
+
+/**  Which project and account a repository-scoped answer used. */
+export type IssueListResult = {
+	page: IssuePage,
+	accountId: string,
+	fullName: string,
+	remote: string,
+};
+
+export type IssuePage = {
+	items: IssueSummary[],
+	nextPage: number | null,
+	/**  Total matches when the provider reports it. */
+	total: number | null,
+};
+
+export type IssueState = "open" | "closed";
+
+/**  Which issues a listing returns. */
+export type IssueStateFilter = "open" | "closed" | "all";
+
+/**  One row of an issue listing. */
+export type IssueSummary = {
+	/**  GitHub issue number / GitLab `iid`. */
+	number: number,
+	title: string,
+	state: IssueState,
+	author: IssueUser | null,
+	labels: IssueLabel[],
+	assignees: IssueUser[],
+	comments: number,
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string,
+	/**
+	 *  GitHub numbers are shared by issues and pull requests; `true` when this number is a PR
+	 *  (only possible from [`ProviderClient::issue`]; listings drop pull requests).
+	 */
+	isPullRequest: boolean,
+};
+
+/**  Fields to change; `None` keeps the current value, an empty list clears it. */
+export type IssueUpdate = {
+	state?: IssueState | null,
+	labels?: string[] | null,
+	/**  Usernames. */
+	assignees?: string[] | null,
+};
+
+/**  A user as shown on an issue (author, assignee, commenter). */
+export type IssueUser = {
+	username: string,
+	displayName: string | null,
+	avatarUrl: string | null,
 };
 
 export type KeyChoice = {
@@ -2371,6 +2779,9 @@ export type ProviderError =
 /**  Feature not available on this server/version. */
 { kind: "unsupported"; message: string } | { kind: "cancelled" };
 
+/**  GitHub-flavoured or GitLab-flavoured API, regardless of hosting. */
+export type ProviderFamily = "github" | "gitlab";
+
 /**  Create (no `id`) or update a provider. Omitted API URL / thresholds use the kind's defaults. */
 export type ProviderInput = {
 	id?: string | null,
@@ -2409,6 +2820,305 @@ export type PruneReport = {
 	approximate: boolean,
 };
 
+/**  Result of a checkout. */
+export type PullCheckout = {
+	branch: string,
+	/**  A new local branch was created (else an existing one was switched to). */
+	created: boolean,
+	/**  Upstream set for the branch (same-project pull requests only). */
+	upstream: string | null,
+};
+
+/**  What to check out. */
+export type PullCheckoutRequest = {
+	/**  Project of the pull request (its target). */
+	fullName: string,
+	number: number,
+	sourceBranch: string,
+	fromFork: boolean,
+	/**  Provider family (which ref namespace holds the pull request head). */
+	family: ProviderFamily,
+	/**  Local branch name; `None` = the source branch name, with a suffix when taken. */
+	localName?: string | null,
+};
+
+/**
+ *  Error of the pull request commands: a provider answer (with the account that made the call,
+ *  so the UI can offer "sign in again" / "use another account") or an app error.
+ */
+export type PullCommandError = { kind: "provider"; message: string; accountId: string; 
+/**  Boxed: keeps `Result<_, PullCommandError>` small. */
+error: ProviderError } | { kind: "app"; message: string; error: AppError };
+
+/**  A comment, review or event of a pull request. */
+export type PullComment = {
+	id: string,
+	kind: PullCommentKind,
+	author: PullUser | null,
+	/**  Markdown (untrusted). */
+	body: string,
+	createdAt: number | null,
+	updatedAt: number | null,
+	/**
+	 *  Comments of one line thread share this id (GitHub: root comment id; GitLab: discussion
+	 *  id). Pass it to [`PullCommentTarget::Reply`].
+	 */
+	threadId: string | null,
+	anchor: PullLineAnchor | null,
+	/**  Review verdict for [`PullCommentKind::Review`]. */
+	reviewState: PullReviewerState | null,
+	/**  GitLab resolvable discussions. */
+	resolved: boolean | null,
+	webUrl: string | null,
+};
+
+/**  What a timeline entry is. */
+export type PullCommentKind = 
+/**  Conversation comment. */
+"general" | 
+/**  Comment on a line of the diff. */
+"line" | 
+/**  A submitted review (its summary body and verdict). */
+"review" | 
+/**  Provider event ("added 2 commits", "approved this merge request"…; GitLab system notes). */
+"system";
+
+/**  Where [`ProviderClient::pull_comment`] posts. */
+export type PullCommentTarget = 
+/**  Conversation comment. */
+{ kind: "general" } | 
+/**  Answer in an existing line thread (`thread_id` of a comment). */
+{ kind: "reply"; threadId: string } | 
+/**  New comment on a line of the current diff. */
+{ kind: "line"; path: string; 
+/**  Previous path (renamed files; GitLab needs both). */
+oldPath?: string | null; line: number; side: PullSide; 
+/**
+ *  Line number on the other side when the line is unchanged context (GitLab needs
+ *  both for context lines; GitHub ignores it).
+ */
+pairedLine?: number | null };
+
+/**  A commit of a pull request. */
+export type PullCommit = {
+	sha: string,
+	/**  First line of the message. */
+	title: string,
+	message: string,
+	authorName: string,
+	/**  Provider login of the author when linked. */
+	authorLogin: string | null,
+	authoredAt: number | null,
+};
+
+/**  New pull request. */
+export type PullCreate = {
+	sourceBranch: string,
+	targetBranch: string,
+	title: string,
+	body?: string,
+	draft?: boolean,
+	/**  Logins. */
+	reviewers?: string[],
+	labels?: string[],
+	/**  GitLab: delete the source branch when merged. */
+	removeSourceBranch?: boolean,
+};
+
+/**  Everything the "Create pull request" dialog needs about a local branch. */
+export type PullCreateContext = {
+	branch: string,
+	/**  Hosted remotes (targets), `origin` first. */
+	remotes: HostedRemote[],
+	/**  The chosen target remote (the requested one, else `upstream` when present, else the first). */
+	target: HostedRemote,
+	/**  Default branch of the target project (API, else the remote's `HEAD`, else `main`). */
+	targetBranch: string,
+	push: PullPushState,
+	/**  `source_branch` to send to the API (`owner:branch` for a GitHub fork). */
+	sourceRef: string,
+	/**  The branch is pushed to another project than the target (a fork). */
+	crossRepo: boolean,
+	/**  Cross-project merge requests are not supported for GitLab yet. */
+	crossRepoUnsupported: boolean,
+	suggestedTitle: string,
+	suggestedBody: string,
+	/**  Commits of the branch not in the target branch (as far as local refs know). */
+	commitCount: number,
+};
+
+/**
+ *  Result of [`ProviderClient::pull_create`]: the pull request plus follow-up steps that failed
+ *  (reviewers / labels that could not be set), as short English messages.
+ */
+export type PullCreated = {
+	number: number,
+	webUrl: string,
+	warnings: string[],
+};
+
+/**  Full view of one pull request. */
+export type PullDetail = {
+	number: number,
+	title: string,
+	/**  Markdown as written by the author (untrusted; the UI renders it as plain text). */
+	body: string,
+	state: PullState,
+	draft: boolean,
+	author: PullUser | null,
+	sourceBranch: string,
+	targetBranch: string,
+	/**  Project the source branch lives in (`None`: the fork was deleted). */
+	sourceRepo: string | null,
+	targetRepo: string,
+	/**  The source branch lives in another project (a fork). */
+	fromFork: boolean,
+	headSha: string,
+	baseSha: string | null,
+	/**  GitLab `diff_refs.start_sha` (needed for new line comments). */
+	startSha: string | null,
+	mergeState: PullMergeState,
+	/**  Provider's own wording (`mergeable_state` / `detailed_merge_status`) for details. */
+	mergeStateRaw: string | null,
+	/**  Methods the project allows (all three when the provider does not tell). */
+	mergeMethods: PullMergeMethod[],
+	/**  The project deletes the source branch on merge by default. */
+	deleteSourceDefault: boolean,
+	labels: string[],
+	assignees: PullUser[],
+	/**  General comments (GitHub issue comments / GitLab user notes). */
+	comments: number,
+	/**  Line comments (GitHub only; GitLab counts them in `comments`). */
+	reviewComments: number,
+	commits: number | null,
+	additions: number | null,
+	deletions: number | null,
+	changedFiles: number | null,
+	createdAt: number | null,
+	updatedAt: number | null,
+	mergedAt: number | null,
+	closedAt: number | null,
+	mergedBy: PullUser | null,
+	webUrl: string,
+};
+
+/**  A file changed by a pull request. */
+export type PullFile = {
+	path: string,
+	/**  Previous path of a renamed / copied file. */
+	oldPath: string | null,
+	status: PullFileStatus,
+	additions: number,
+	deletions: number,
+	/**
+	 *  Unified diff hunks (from the first `@@`). `None` when the provider left it out (large or
+	 *  binary file): the app then diffs locally after fetching the pull request ref.
+	 */
+	patch: string | null,
+};
+
+export type PullFileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "changed";
+
+/**  Files of a pull request. */
+export type PullFiles = {
+	files: PullFile[],
+	/**  More files than the provider lists (GitHub stops at 3000) or than we read. */
+	truncated: boolean,
+};
+
+/**  Where a line comment is anchored. */
+export type PullLineAnchor = {
+	path: string,
+	/**  `None` when the line no longer exists in the current diff (outdated). */
+	line: number | null,
+	side: PullSide,
+	/**  The line in the diff the comment was written on (may differ when outdated). */
+	originalLine: number | null,
+	/**  GitHub `diff_hunk` (context around the line). */
+	diffHunk: string | null,
+};
+
+/**  Filters and page of [`ProviderClient::pull_list`]. User names are provider logins. */
+export type PullListQuery = {
+	state?: PullStateFilter,
+	author?: string | null,
+	/**  Review requested from (GitHub) / reviewer (GitLab). */
+	reviewer?: string | null,
+	assignee?: string | null,
+	label?: string | null,
+	/**  1-based. */
+	page?: number,
+	/**  1..=100 (0 = 30). */
+	perPage?: number,
+};
+
+/**  Unified diff of one file computed locally (for files whose patch the provider left out). */
+export type PullLocalDiff = {
+	/**  Hunks from the first `@@`; `None` for binary files or when too large. */
+	patch: string | null,
+	binary: boolean,
+	tooLarge: boolean,
+};
+
+/**  What [`pull_local_diff`] compares. */
+export type PullLocalDiffRequest = {
+	fullName: string,
+	number: number,
+	family: ProviderFamily,
+	baseSha: string,
+	headSha: string,
+	targetBranch: string,
+	path: string,
+	oldPath?: string | null,
+};
+
+/**  A merge method of [`ProviderClient::pull_merge`]. */
+export type PullMergeMethod = "merge" | "squash" | 
+/**  GitHub "Rebase and merge". GitLab rebases through the project setting instead. */
+"rebase";
+
+/**  Merge options. */
+export type PullMergeRequest = {
+	method: PullMergeMethod,
+	deleteSourceBranch?: boolean,
+	/**  Only merge if the head is still this commit (refuses when someone pushed meanwhile). */
+	expectedHeadSha?: string | null,
+};
+
+/**  Can the pull request be merged as it stands? */
+export type PullMergeState = 
+/**  No conflict and nothing blocking. */
+"clean" | 
+/**  Conflicts with the target branch. */
+"conflicts" | 
+/**
+ *  Blocked by branch protection / required approvals / failing required checks /
+ *  unresolved discussions.
+ */
+"blocked" | 
+/**
+ *  The source branch is behind the target and the project requires it up to date (or a
+ *  rebase, GitLab fast-forward projects).
+ */
+"behind" | 
+/**  Mergeable, but some (non-required) checks are failing. */
+"unstable" | 
+/**  Draft pull requests cannot be merged. */
+"draft" | 
+/**  The provider is still computing it — ask again in a moment. */
+"checking" | 
+/**  Already merged / closed, or not reported. */
+"unknown";
+
+/**  Result of a merge. */
+export type PullMerged = {
+	sha: string | null,
+	/**  The source branch was deleted (requested and allowed). */
+	branchDeleted: boolean,
+	/**  Why the requested branch deletion did not happen. */
+	deleteError: string | null,
+};
+
 export type PullMode = 
 /**  Fetch then merge (`--no-rebase`; fast-forwards when possible). */
 "merge" | 
@@ -2416,6 +3126,107 @@ export type PullMode =
 "rebase" | 
 /**  Fetch then fast-forward only (`--ff-only`). */
 "fastForwardOnly";
+
+/**  One page of [`PullSummary`]. */
+export type PullPage = {
+	items: PullSummary[],
+	nextPage: number | null,
+	/**  Total match count when the provider reports it. */
+	total: number | null,
+};
+
+/**  Whether the branch is on a remote, and how far the local branch is ahead. */
+export type PullPushState = {
+	/**  Remote the branch is (or would be) pushed to. */
+	remote: string | null,
+	/**  Name of the branch on that remote. */
+	remoteBranch: string,
+	/**  The remote-tracking branch exists. */
+	pushed: boolean,
+	/**  Local commits not on the remote yet. */
+	ahead: number,
+};
+
+/**
+ *  Overall review outcome (computed from the latest review of each reviewer; branch protection
+ *  rules may still require more).
+ */
+export type PullReviewDecision = "approved" | "changesRequested" | 
+/**  Reviews were requested and are pending (GitLab: approvals still missing). */
+"reviewRequired" | 
+/**  No reviewer, no review. */
+"none";
+
+/**
+ *  Review verdicts. GitLab has no "request changes" API: it is posted as a comment (the UI says
+ *  so); `Unapprove` is GitLab only.
+ */
+export type PullReviewEvent = "approve" | "requestChanges" | "comment" | "unapprove";
+
+/**  One reviewer (requested or having reviewed). */
+export type PullReviewer = {
+	user: PullUser,
+	state: PullReviewerState,
+};
+
+/**  Review state of one reviewer. */
+export type PullReviewerState = 
+/**  Asked to review, nothing submitted yet. */
+"requested" | "approved" | "changesRequested" | "commented" | "dismissed";
+
+/**  Reviewers of a pull request and the overall decision. */
+export type PullReviews = {
+	decision: PullReviewDecision,
+	reviewers: PullReviewer[],
+	/**  Requested teams (GitHub), shown as names. */
+	teams: string[],
+	/**  GitLab: approvals still needed (`None` when unknown / GitHub). */
+	approvalsLeft: number | null,
+	/**  GitLab: the token's user already approved. */
+	approvedByMe: boolean | null,
+	/**  GitLab: the approvals API is missing on this server (old GitLab Free). */
+	approvalsUnavailable: boolean,
+};
+
+/**  Side of a diff a line comment is on. */
+export type PullSide = 
+/**  The old file (deleted / context line numbers of the target). */
+"old" | 
+/**  The new file. */
+"new";
+
+/**  State of a pull request. */
+export type PullState = "open" | "closed" | "merged";
+
+/**  Which pull requests a listing returns. */
+export type PullStateFilter = "open" | "closed" | "merged" | "all";
+
+/**  One row of a pull request listing. */
+export type PullSummary = {
+	number: number,
+	title: string,
+	state: PullState,
+	draft: boolean,
+	author: PullUser | null,
+	/**  `None` when the listing came from GitHub search (which has no branch data). */
+	sourceBranch: string | null,
+	targetBranch: string | null,
+	labels: string[],
+	/**  Comment count when the listing carries it. */
+	comments: number | null,
+	/**  Unix seconds. */
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string,
+};
+
+/**  A user as shown next to a pull request, comment or review. */
+export type PullUser = {
+	username: string,
+	displayName: string | null,
+	avatarUrl: string | null,
+	webUrl: string | null,
+};
 
 /**  What `git lfs push` would upload. */
 export type PushEstimate = {
@@ -3592,6 +4403,65 @@ export type WarningKind =
 "includeLoop" | 
 /**  A construct the importer does not translate (`includeIf "onbranch:…"`, ssh `Match`). */
 "unsupported";
+
+/**  One account's part of the panel. */
+export type WorkAccount = {
+	accountId: string,
+	/**  `None` when the fetch failed (see `error`). */
+	lists: WorkLists | null,
+	error: IssueCommandError | null,
+	/**  When `lists` was fetched (ms since the epoch). */
+	fetchedAt: number | null,
+};
+
+/**  One row of the "My work" panel. */
+export type WorkItem = {
+	kind: WorkItemKind,
+	/**  `owner/repo` or `group/sub/project`. */
+	fullName: string,
+	/**  GitHub number / GitLab `iid`. */
+	number: number,
+	title: string,
+	author: string | null,
+	authorAvatar: string | null,
+	updatedAt: number | null,
+	/**  Draft pull / merge request. */
+	draft: boolean,
+	labels: string[],
+	comments: number | null,
+	webUrl: string,
+};
+
+export type WorkItemKind = 
+/**  GitHub pull request / GitLab merge request. */
+"pullRequest" | "issue";
+
+export type WorkList = {
+	items: WorkItem[],
+	/**  All matches (may exceed `items`) when the provider reports it. */
+	total: number | null,
+};
+
+export type WorkLists = {
+	/**  Open PRs/MRs where the account is a requested reviewer. */
+	reviewRequested: WorkList,
+	/**  Open PRs/MRs the account opened. */
+	authored: WorkList,
+	/**  Open issues assigned to the account. */
+	assigned: WorkList,
+};
+
+export type WorkOverview = {
+	/**  Accounts with a token, in switcher order. */
+	accounts: WorkAccount[],
+	/**  Accounts left out because no token is stored (the UI offers to sign in). */
+	withoutToken: string[],
+	/**
+	 *  Stopped by [`mywork_cancel`] or a newer call; accounts that were still loading carry a
+	 *  `cancelled` provider error.
+	 */
+	cancelled: boolean,
+};
 
 export type WorkingTreeStatus = {
 	/**  Current branch; `None` when HEAD is detached. */
