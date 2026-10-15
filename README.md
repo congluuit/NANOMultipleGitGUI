@@ -148,5 +148,3 @@ Quick start for contributors: install Node.js ≥ 20.19, pnpm 9, Rust stable ≥
 ## License
 
 [Apache License 2.0](LICENSE). Xem thêm [NOTICE](NOTICE).
-
-NANOMultipleGitGUI là dự án độc lập, không liên kết với GitKraken hay Axosoft.
