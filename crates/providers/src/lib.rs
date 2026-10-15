@@ -34,6 +34,7 @@ pub mod gitlab;
 pub mod issues;
 pub mod model;
 pub mod mywork;
+pub mod publish;
 pub mod pulls;
 pub mod remote;
 pub mod secret;

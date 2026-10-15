@@ -579,6 +579,13 @@ export const commands = {
 	 *  remote to `account_id`. Fetch it afterwards with `remote_fetch`.
 	 */
 	forkAttach: (repoId: number, accountId: string, sourceRemote: string, forkHttps: string, forkSsh: string, mode: ForkAttachMode) => __TAURI_INVOKE<ForkRemoteChange>("fork_attach", { repoId, accountId, sourceRemote, forkHttps, forkSsh, mode }),
+	/**  Creates an empty repository with `account_id` (see [`NewRepoOptions`]). */
+	publishCreateRepo: (accountId: string, options: NewRepoOptions) => __TAURI_INVOKE<ForkOutcome<ForkRepo>>("publish_create_repo", { accountId, options }),
+	/**
+	 *  Adds remote `name` → `url` to the open repository and, when `account_id` is given, binds
+	 *  that remote to the account so fetch / push use its credentials.
+	 */
+	publishAddRemote: (repoId: number, name: string, url: string, accountId: string | null) => __TAURI_INVOKE<ForkRemoteChange>("publish_add_remote", { repoId, name, url, accountId }),
 	pullList: (accountId: string, fullName: string, query: PullListQuery) => __TAURI_INVOKE<PullPage>("pull_list", { accountId, fullName, query }),
 	pullDetail: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullDetail>("pull_detail", { accountId, fullName, number }),
 	pullReviews: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullReviews>("pull_reviews", { accountId, fullName, number }),
@@ -3085,6 +3092,16 @@ export type MissingScope = {
 
 /**  Stage of a move, for progress events. */
 export type MovePhase = "copying" | "verifying" | "cleaning";
+
+/**  Options of [`ProviderClient::create_repository`]. */
+export type NewRepoOptions = {
+	/**  Repository name (GitHub) / project path (GitLab). */
+	name: string,
+	/**  Organization (GitHub) / group path (GitLab); `None` = the account itself. */
+	namespace?: string | null,
+	description?: string | null,
+	private?: boolean,
+};
 
 export type Note = {
 	id: string,

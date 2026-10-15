@@ -105,6 +105,9 @@ export const guideVi: GuideTopic[] = [
             items: [
               "Bấm **+** → **Tạo repo mới…**, chọn (hoặc tạo) một thư mục trống.",
               "Giữ tên nhánh đầu tiên (thường là main) rồi bấm tạo.",
+              "Dải **Project mới** dưới thanh công cụ dẫn bạn đi tiếp: chọn file ở khung Thay đổi, nhập mô tả rồi bấm **Commit**.",
+              "Bấm **Publish** (nút Push đổi thành Publish khi repo chưa có remote): chọn tài khoản, nơi tạo (tài khoản hoặc tổ chức / nhóm), tên repo, Riêng tư / Công khai rồi bấm **Tạo repo và push**. App tự tạo repo trống trên GitHub / GitLab, thêm remote origin gắn với tài khoản đó và push nhánh của bạn.",
+              "Đã tạo repo trên web rồi? Chọn thẻ **Dùng repo có sẵn (URL)** và dán URL. Nhánh mới chưa có trên máy chủ hiện nút **Publish nhánh**.",
             ],
           },
         ],

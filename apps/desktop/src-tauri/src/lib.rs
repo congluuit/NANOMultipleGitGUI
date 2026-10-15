@@ -34,6 +34,7 @@ mod mywork;
 // Phase 3B.2: first-run setup (tool check / install, progress).
 mod onboarding;
 // Phase 4.1: pull requests (GitHub) / merge requests (GitLab).
+mod publish;
 mod pulls;
 mod rebase;
 mod repos;
@@ -288,6 +289,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             forks::fork_wait,
             forks::fork_add_upstream,
             forks::fork_attach,
+            publish::publish_create_repo,
+            publish::publish_add_remote,
             // Phase 4.1: pull requests (GitHub) / merge requests (GitLab).
             pulls::pull_list,
             pulls::pull_detail,
@@ -603,6 +606,9 @@ mod tests {
             "onboardingStatus",
             "ImportReport",
             "ImportSelection",
+            "publishCreateRepo",
+            "publishAddRemote",
+            "NewRepoOptions",
         ] {
             assert!(ts.contains(name), "bindings missing {name}");
         }

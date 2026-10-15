@@ -40,6 +40,7 @@ import { WorktreeList } from "@/features/linked-worktrees/WorktreeList";
 import { useSubmodules } from "@/features/submodules/queries";
 import { SubmoduleList } from "@/features/submodules/SubmoduleList";
 import { RemoteMenuItems } from "@/features/forks/RemoteMenuItems";
+import { openPublishDialog } from "@/features/publish/store";
 import { IssueSidebarList } from "@/features/issues/IssueSidebarList";
 import { PullSidebarList } from "@/features/pulls/PullSidebarList";
 import { usePullSidebarCount } from "@/features/pulls/sidebarData";
@@ -360,7 +361,29 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
           defaultOpen: true,
           content: (
             <>
-              {data.remotes.length === 0 && <Empty>{t("sidebar.noRemotes")}</Empty>}
+              {data.remotes.length === 0 && (
+                <li className="space-y-1 py-1 pr-2 pl-8 text-[11px] text-muted-foreground">
+                  <p className="italic">{t("sidebar.noRemotes")}</p>
+                  {repo && (
+                    <div className="flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        className="rounded border border-primary/40 px-1.5 py-0.5 font-medium text-primary hover:bg-primary/10"
+                        onClick={() => openPublishDialog(repo.id)}
+                      >
+                        {t("sidebar.publishRepo")}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded border px-1.5 py-0.5 hover:bg-accent"
+                        onClick={() => openPublishDialog(repo.id, "url")}
+                      >
+                        {t("sidebar.addRemote")}
+                      </button>
+                    </div>
+                  )}
+                </li>
+              )}
               {data.remotes.map((r) => (
                 <li key={r.name}>
                   {/* Phase 4.3: remote menu ("Fork repo này…"). */}

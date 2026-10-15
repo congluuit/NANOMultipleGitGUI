@@ -4,6 +4,7 @@ import { RefDialogs } from "@/features/commits/RefDialogs";
 import { DiffView } from "@/features/diff/DiffView";
 import { FileViewHost } from "@/features/file-history/FileViewHost";
 import { GraphView } from "@/features/graph/GraphView";
+import { FirstStepsBanner } from "@/features/publish/FirstStepsBanner";
 import { MissingRepo } from "@/features/repos/MissingRepo";
 import { WelcomeScreen } from "@/features/repos/WelcomeScreen";
 import { TerminalHost } from "@/features/terminal/TerminalHost";
@@ -63,6 +64,7 @@ export function AppShell() {
         <>
           <Toolbar />
           {!repo.missing && <OperationBanner key={`operationBanner-${repo.id}`} repoId={repo.id} />}
+          {!repo.missing && <FirstStepsBanner key={`firstSteps-${repo.id}`} repoId={repo.id} />}
           <PanelRow hasRight={!repo.missing}>
             <SidePanel id="sidebar" rail={<Sidebar rail />}>
               <Sidebar />

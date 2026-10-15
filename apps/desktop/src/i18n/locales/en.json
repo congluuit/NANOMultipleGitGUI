@@ -27,7 +27,9 @@
     "redo": "Redo",
     "terminal": "Terminal",
     "settings": "Settings",
-    "search": "Search / commands"
+    "search": "Search / commands",
+    "publish": "Publish",
+    "publishBranch": "Publish branch"
   },
   "sidebar": {
     "local": "Local",
@@ -44,12 +46,14 @@
     "detached": "Detached HEAD @ {{oid}}",
     "upstreamGone": "Upstream branch was deleted on the remote",
     "tracking": "Tracking {{upstream}}",
-    "noRemotes": "No remotes",
+    "noRemotes": "No remote yet — this project only lives on this computer.",
     "noTags": "No tags",
     "noStashes": "No stashes",
     "comingSoon": "Coming in a later step",
     "loading": "Loading…",
-    "jumpTo": "Click to go to the commit"
+    "jumpTo": "Click to go to the commit",
+    "publishRepo": "Publish to GitHub / GitLab…",
+    "addRemote": "Add remote by URL…"
   },
   "graph": {
     "openRepo": "Open repository…",
@@ -170,7 +174,8 @@
     "initNewTitle": "New repository",
     "initNewBody": "Initialize a git repository in {{path}} (the folder is created if needed).",
     "initialBranch": "Initial branch name",
-    "create": "Create repository"
+    "create": "Create repository",
+    "initNextSteps": "Next, the app guides you step by step: first commit → Publish to GitHub / GitLab (creates the repository with your account) → Push."
   },
   "tools": {
     "gitMissing": "Git was not found. Install Git {{min}} or later (https://git-scm.com/downloads), then click Check again.",
@@ -632,7 +637,12 @@
     "behindTitle_one": "Pull first: {{branch}} is missing 1 commit",
     "behindBody": "Someone pushed {{count}} commits to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull them first (merge), then push — the app can do both for you.",
     "behindBody_one": "Someone pushed 1 commit to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull it first (merge), then push — the app can do both for you.",
-    "pullThenPush": "Pull, then push"
+    "pullThenPush": "Pull, then push",
+    "publishTip": "This project is not on a server yet: create a repository on GitHub / GitLab with your account and push it for the first time",
+    "publishNew": "Create a new repository on GitHub / GitLab…",
+    "addRemoteUrl": "Add remote by URL…",
+    "pushNoCommit": "No commits to push yet — commit first",
+    "publishBranchItem": "Publish {{branch}} to {{remote}}"
   },
   "terminal": {
     "title": "Terminal",
@@ -2598,6 +2608,79 @@
       "own": "You cannot fork your own repository into the same account. Choose an organization / group.",
       "notReady": "The fork {{name}} was created but the server is still copying the data. Wait a few minutes and try again (the existing fork will be reused)."
     }
+  },
+  "firstSteps": {
+    "title": "New project",
+    "dismiss": "Hide this guide for this repository",
+    "step": {
+      "commit": "First commit",
+      "publish": "Publish to GitHub / GitLab",
+      "push": "Push {{branch}}"
+    },
+    "hint": {
+      "commit": "Pick files in the Changes panel, write a message, then click Commit.",
+      "publish": "Create the repository on the server with your account.",
+      "push": "Upload branch {{branch}} to the server."
+    },
+    "action": {
+      "commit": "Write commit",
+      "publish": "Publish repository…",
+      "push": "Push {{branch}}"
+    }
+  },
+  "publish": {
+    "title": "Publish repository",
+    "description": "Put {{name}} on GitHub / GitLab: the app creates an empty repository with your account, adds it as a remote and pushes for the first time.",
+    "paletteTitle": "Publish repository to GitHub / GitLab…",
+    "paletteAddRemote": "Add remote by URL…",
+    "stepsLabel": "Steps",
+    "step": {
+      "commit": "First commit",
+      "publish": "Create repo & add remote",
+      "push": "Push {{branch}}"
+    },
+    "noCommitYet": "No commits yet. You can still create the repository now; after committing, click Push in the toolbar to upload your code.",
+    "modeLabel": "How to publish",
+    "mode": {
+      "new": "Create new repository",
+      "url": "Use existing repository (URL)"
+    },
+    "account": "Account",
+    "accountAuto": "Pick from the account rules",
+    "noAccount": "No GitHub / GitLab account is signed in. Add one so the app can create the repository for you.",
+    "addAccount": "Add account",
+    "namespace": "Create in",
+    "name": "Repository name",
+    "nameInvalid": "Use letters, digits, . _ - only (up to 100 characters).",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional",
+    "visibility": "Visibility",
+    "private": "Private",
+    "public": "Public",
+    "protocol": "Connect via",
+    "url": "Remote URL",
+    "urlHelp": "Paste the URL of an empty repository created on the web (HTTPS or SSH).",
+    "remoteName": "Remote name",
+    "pushAfter": "Push {{branch}} right after linking",
+    "phase": {
+      "creating": "Creating the repository on the server…",
+      "linking": "Adding remote {{remote}}…",
+      "pushing": "Pushing {{branch}} to {{remote}}…"
+    },
+    "error": {
+      "nameTaken": "{{name}} already exists. Choose another name, or use that repository."
+    },
+    "useExisting": "Use the existing repository",
+    "done": "Done! Published {{name}}: remote {{remote}}, branch {{branch}} is pushed.",
+    "doneNoPush": "Linked {{name}} as remote {{remote}}. Commit, then click Push to upload your code.",
+    "donePushFailed": "Remote {{remote}} is linked but the push did not succeed — see the message above, fix it, then click Push in the toolbar to retry.",
+    "pushed": "Pushed {{branch}} to {{remote}} — the project is now on the server.",
+    "openOnWeb": "Open on the web",
+    "close": "Close",
+    "submitNew": "Create repository",
+    "submitNewPush": "Create and push",
+    "submitUrl": "Add remote",
+    "submitUrlPush": "Add remote and push"
   },
   "issues": {
     "sidebar": "Issues",

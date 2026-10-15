@@ -27,7 +27,9 @@
     "redo": "Làm lại",
     "terminal": "Terminal",
     "settings": "Cài đặt",
-    "search": "Tìm kiếm / lệnh"
+    "search": "Tìm kiếm / lệnh",
+    "publish": "Publish",
+    "publishBranch": "Publish nhánh"
   },
   "sidebar": {
     "local": "Local",
@@ -44,12 +46,14 @@
     "detached": "HEAD tách rời @ {{oid}}",
     "upstreamGone": "Nhánh upstream đã bị xóa trên remote",
     "tracking": "Theo dõi {{upstream}}",
-    "noRemotes": "Chưa có remote",
+    "noRemotes": "Chưa có remote — project chỉ nằm trên máy này.",
     "noTags": "Chưa có tag",
     "noStashes": "Chưa có stash",
     "comingSoon": "Sắp có ở bước sau",
     "loading": "Đang đọc…",
-    "jumpTo": "Bấm để tới commit"
+    "jumpTo": "Bấm để tới commit",
+    "publishRepo": "Publish lên GitHub / GitLab…",
+    "addRemote": "Thêm remote bằng URL…"
   },
   "graph": {
     "openRepo": "Mở repo…",
@@ -170,7 +174,8 @@
     "initNewTitle": "Tạo repo mới",
     "initNewBody": "Khởi tạo repo git trong {{path}} (thư mục sẽ được tạo nếu chưa có).",
     "initialBranch": "Tên nhánh khởi tạo",
-    "create": "Tạo repo"
+    "create": "Tạo repo",
+    "initNextSteps": "Tiếp theo app sẽ hướng dẫn từng bước: commit đầu tiên → Publish lên GitHub / GitLab (tự tạo repo bằng tài khoản của bạn) → Push."
   },
   "tools": {
     "gitMissing": "Không tìm thấy Git. Hãy cài Git {{min}} trở lên (https://git-scm.com/downloads) rồi bấm Kiểm tra lại.",
@@ -632,7 +637,12 @@
     "behindTitle_one": "Cần pull trước: {{branch}} đang thiếu 1 commit",
     "behindBody": "Có người đã push {{count}} commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
     "behindBody_one": "Có người đã push 1 commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
-    "pullThenPush": "Pull rồi push"
+    "pullThenPush": "Pull rồi push",
+    "publishTip": "Project chưa có trên máy chủ: tạo repo trên GitHub / GitLab bằng tài khoản của bạn rồi push lần đầu",
+    "publishNew": "Tạo repo mới trên GitHub / GitLab…",
+    "addRemoteUrl": "Thêm remote bằng URL…",
+    "pushNoCommit": "Chưa có commit nào để push — hãy commit trước",
+    "publishBranchItem": "Publish {{branch}} lên {{remote}}"
   },
   "terminal": {
     "title": "Terminal",
@@ -2598,6 +2608,79 @@
       "own": "Không thể fork repo của chính bạn vào cùng tài khoản. Chọn một tổ chức / nhóm khác.",
       "notReady": "Fork {{name}} đã được tạo nhưng máy chủ vẫn đang sao chép dữ liệu. Đợi vài phút rồi bấm lại (app sẽ dùng fork có sẵn)."
     }
+  },
+  "firstSteps": {
+    "title": "Project mới",
+    "dismiss": "Ẩn hướng dẫn cho repo này",
+    "step": {
+      "commit": "Commit đầu tiên",
+      "publish": "Publish lên GitHub / GitLab",
+      "push": "Push {{branch}}"
+    },
+    "hint": {
+      "commit": "Chọn file ở khung Thay đổi, nhập mô tả rồi bấm Commit.",
+      "publish": "Tạo repo trên máy chủ bằng tài khoản của bạn.",
+      "push": "Đưa nhánh {{branch}} lên máy chủ."
+    },
+    "action": {
+      "commit": "Viết commit",
+      "publish": "Publish repo…",
+      "push": "Push {{branch}}"
+    }
+  },
+  "publish": {
+    "title": "Publish repo lên máy chủ",
+    "description": "Đưa project {{name}} lên GitHub / GitLab: app tạo repo trống bằng tài khoản của bạn, nối remote rồi push lần đầu.",
+    "paletteTitle": "Publish repo lên GitHub / GitLab…",
+    "paletteAddRemote": "Thêm remote bằng URL…",
+    "stepsLabel": "Các bước",
+    "step": {
+      "commit": "Commit đầu tiên",
+      "publish": "Tạo repo & nối remote",
+      "push": "Push nhánh {{branch}}"
+    },
+    "noCommitYet": "Chưa có commit nào. Bạn vẫn có thể tạo repo ngay bây giờ; sau khi commit, bấm Push trên thanh công cụ để đưa code lên.",
+    "modeLabel": "Cách publish",
+    "mode": {
+      "new": "Tạo repo mới",
+      "url": "Dùng repo có sẵn (URL)"
+    },
+    "account": "Tài khoản",
+    "accountAuto": "Tự chọn theo quy tắc tài khoản",
+    "noAccount": "Chưa có tài khoản GitHub / GitLab nào đăng nhập. Thêm tài khoản để app tạo repo giúp bạn.",
+    "addAccount": "Thêm tài khoản",
+    "namespace": "Tạo trong",
+    "name": "Tên repo",
+    "nameInvalid": "Chỉ dùng chữ không dấu, số, dấu . _ - (tối đa 100 ký tự).",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Không bắt buộc",
+    "visibility": "Quyền xem",
+    "private": "Riêng tư",
+    "public": "Công khai",
+    "protocol": "Kết nối",
+    "url": "URL remote",
+    "urlHelp": "Dán URL của repo trống đã tạo trên web (HTTPS hoặc SSH).",
+    "remoteName": "Tên remote",
+    "pushAfter": "Push nhánh {{branch}} ngay sau khi nối",
+    "phase": {
+      "creating": "Đang tạo repo trên máy chủ…",
+      "linking": "Đang thêm remote {{remote}}…",
+      "pushing": "Đang push {{branch}} lên {{remote}}…"
+    },
+    "error": {
+      "nameTaken": "Đã có repo {{name}}. Đổi tên khác, hoặc dùng luôn repo đó."
+    },
+    "useExisting": "Dùng repo có sẵn",
+    "done": "Xong! Đã publish {{name}}: remote {{remote}}, nhánh {{branch}} đã được push.",
+    "doneNoPush": "Đã nối {{name}} thành remote {{remote}}. Commit rồi bấm Push để đưa code lên.",
+    "donePushFailed": "Đã nối remote {{remote}} nhưng push chưa thành công — xem thông báo phía trên, sửa rồi bấm Push trên thanh công cụ để thử lại.",
+    "pushed": "Đã push {{branch}} lên {{remote}} — project đã có trên máy chủ.",
+    "openOnWeb": "Mở trên web",
+    "close": "Đóng",
+    "submitNew": "Tạo repo",
+    "submitNewPush": "Tạo repo và push",
+    "submitUrl": "Nối remote",
+    "submitUrlPush": "Nối remote và push"
   },
   "issues": {
     "sidebar": "Issues",

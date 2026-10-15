@@ -10,6 +10,7 @@ import { CloneDialogHost } from "@/features/clone/CloneDialog";
 import { CommandPalette } from "@/features/command-palette";
 import { ThemeManagerHost } from "@/features/custom-theme/ThemeManager";
 import { ForkDialogHost } from "@/features/forks/ForkDialog";
+import { PublishDialogHost } from "@/features/publish/PublishDialog";
 import { GuardDialogsHost } from "@/features/guards";
 import { ImportWizardHost } from "@/features/onboarding/ImportWizard";
 import { IssueCreateHost } from "@/features/issues/IssueCreateDialog";
@@ -56,6 +57,7 @@ export default function App() {
       <SetupHost />
       <CloneDialogHost />
       <ForkDialogHost />
+      <PublishDialogHost />
       <GuardDialogsHost />
       <UpdaterHost />
       <CliSyncNoticeHost />

@@ -15,6 +15,7 @@ import "@/features/accounts/commands";
 import "@/features/ssh/commands";
 import "@/features/clone/commands";
 import "@/features/forks/commands";
+import "@/features/publish/palette";
 import "@/features/file-history/commands";
 import "@/features/rebase/commands";
 import "@/features/undo/commands";

@@ -19,7 +19,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use nanomgg_accounts::{AccountDirectory, BindingSource, RepoBinding, Transport};
+use nanomgg_accounts::{Account, AccountDirectory, BindingSource, RepoBinding, Transport};
 use nanomgg_git_engine::{AccountContext, GitRunner};
 use nanomgg_providers::forks::{ForkNamespace, ForkOptions, ForkProblem, fork_problem};
 use nanomgg_providers::{CancellationToken, Provider, ProviderClient, ProviderError, Repository};
@@ -60,7 +60,7 @@ pub enum ForkOutcome<T> {
 }
 
 impl<T> ForkOutcome<T> {
-    fn failed(error: ProviderError) -> Self {
+    pub(crate) fn failed(error: ProviderError) -> Self {
         Self::Failed {
             problem: fork_problem(&error),
             error,
@@ -83,7 +83,7 @@ pub struct ForkRepo {
 }
 
 impl ForkRepo {
-    fn new(r: Repository, existed: bool) -> Self {
+    pub(crate) fn new(r: Repository, existed: bool) -> Self {
         Self {
             full_name: r.full_name,
             clone_https: r.clone_https,
@@ -120,7 +120,7 @@ pub enum ForkAttachMode {
     SwapOrigin,
 }
 
-async fn client(app: &AppHandle, account_id: &str) -> AppResult<Option<ProviderClient>> {
+pub(crate) async fn client(app: &AppHandle, account_id: &str) -> AppResult<Option<ProviderClient>> {
     let app = app.clone();
     let id = account_id.to_owned();
     match tauri::async_runtime::spawn_blocking(move || account_client(&app, &id))
@@ -262,7 +262,7 @@ pub async fn fork_wait(
 
 // ----- remotes -------------------------------------------------------------------------------
 
-fn remote_names(git: &GitRunner, root: &Path) -> AppResult<Vec<String>> {
+pub(crate) fn remote_names(git: &GitRunner, root: &Path) -> AppResult<Vec<String>> {
     Ok(git
         .run_text(root, &AccountContext::default(), ["remote"])?
         .lines()
@@ -272,7 +272,7 @@ fn remote_names(git: &GitRunner, root: &Path) -> AppResult<Vec<String>> {
         .collect())
 }
 
-fn remote_url(git: &GitRunner, root: &Path, name: &str) -> AppResult<String> {
+pub(crate) fn remote_url(git: &GitRunner, root: &Path, name: &str) -> AppResult<String> {
     Ok(git.run_text(
         root,
         &AccountContext::default(),
@@ -290,7 +290,7 @@ fn same_transport<'a>(like: Option<&str>, https: &'a str, ssh: &'a str) -> &'a s
 }
 
 /// A usable remote name: `[A-Za-z0-9._-]`, not starting with `-` or `.`.
-fn check_remote_name(name: &str) -> AppResult<()> {
+pub(crate) fn check_remote_name(name: &str) -> AppResult<()> {
     let ok = !name.is_empty()
         && name.len() <= 64
         && !name.starts_with(['-', '.'])
@@ -307,7 +307,7 @@ fn check_remote_name(name: &str) -> AppResult<()> {
     }
 }
 
-fn check_url(url: &str) -> AppResult<()> {
+pub(crate) fn check_url(url: &str) -> AppResult<()> {
     if url.is_empty() || url.starts_with('-') || url.chars().any(char::is_control) {
         return Err(AppError::InvalidInput("invalid remote URL".into()));
     }
@@ -425,6 +425,44 @@ pub(crate) fn attach_fork(
     }
 }
 
+/// Binds `remote` of `repo_id` to `account` (locked, with the account's default identity) and
+/// syncs the identity into the repository config.
+pub(crate) fn bind_remote(
+    st: &AppState,
+    repo_id: i64,
+    account: &Account,
+    remote: &str,
+    url: &str,
+) -> AppResult<()> {
+    let identities = st
+        .storage
+        .identities(Some(&account.id))
+        .map_err(storage_err)?;
+    let dir = AccountDirectory {
+        accounts: std::slice::from_ref(account),
+        providers: &[],
+        identities: &identities,
+    };
+    let identity = dir.identity_for(&account.id, None).map(|i| i.id.clone());
+    st.storage
+        .set_repo_binding(&RepoBinding {
+            repo_id,
+            remote_name: Some(remote.to_owned()),
+            account_id: account.id.clone(),
+            identity_id: identity,
+            transport: url_transport(url),
+            source: BindingSource::Manual,
+            // A repo-wide locked binding would otherwise win (PLAN §4.3 step 1).
+            locked: true,
+            updated_at: 0,
+        })
+        .map_err(storage_err)?;
+    if let Err(e) = crate::accounts::sync_repo_config(st, repo_id) {
+        tracing::warn!(repo = repo_id, error = %e, "could not sync identity after binding a remote");
+    }
+    Ok(())
+}
+
 /// After cloning a fork: `upstream` = the source (same transport as `origin`), then a
 /// best-effort fetch of it is left to the frontend (`remote_fetch`).
 #[tauri::command]
@@ -487,32 +525,7 @@ pub async fn fork_attach(
                 })
                 .map_err(storage_err)?;
         }
-        let identities = st
-            .storage
-            .identities(Some(&account.id))
-            .map_err(storage_err)?;
-        let dir = AccountDirectory {
-            accounts: std::slice::from_ref(&account),
-            providers: &[],
-            identities: &identities,
-        };
-        let identity = dir.identity_for(&account.id, None).map(|i| i.id.clone());
-        st.storage
-            .set_repo_binding(&RepoBinding {
-                repo_id,
-                remote_name: Some(change.remote.clone()),
-                account_id: account.id.clone(),
-                identity_id: identity,
-                transport: url_transport(&change.url),
-                source: BindingSource::Manual,
-                // A repo-wide locked binding would otherwise win (PLAN §4.3 step 1).
-                locked: true,
-                updated_at: 0,
-            })
-            .map_err(storage_err)?;
-        if let Err(e) = crate::accounts::sync_repo_config(&st, repo_id) {
-            tracing::warn!(repo = repo_id, error = %e, "could not sync identity after fork");
-        }
+        bind_remote(&st, repo_id, &account, &change.remote, &change.url)?;
         Ok(change)
     })
     .await

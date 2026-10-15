@@ -1,6 +1,12 @@
 import { useState } from "react";
 import i18n from "i18next";
-import { ArrowDownToLine, ArrowUpFromLine, GitBranchPlus, RefreshCw } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  CloudUpload,
+  GitBranchPlus,
+  RefreshCw,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -28,6 +34,7 @@ import { errorMessage, commands, type PullMode, type PushEstimate, type PushRequ
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runPushGuard } from "@/features/guards";
 import { offerCreatePull } from "@/features/pulls/actions";
+import { openPublishDialog } from "@/features/publish/store";
 import { useAutoFetch, useLastFetch } from "./autoFetch";
 import { pushPlan } from "./plan";
 import { useSettings } from "@/stores/settings";
@@ -242,39 +249,71 @@ ${checkedAt}`
           </>
         }
       />
-      <ToolButton
-        id="push"
-        icon={ArrowUpFromLine}
-        label={t("toolbar.push")}
-        tooltip={
-          plan
-            ? plan.setUpstream
-              ? t("remote.pushNewTip", { branch: plan.branch, remote: plan.remote })
-              : t("remote.pushTip", { branch: plan.branch, remote: plan.remote })
-            : t("remote.pushUnavailable")
-        }
-        badge={ahead > 0 ? { text: `↑${ahead}`, tone: behind > 0 ? "warning" : "success" } : null}
-        busy={pushing}
-        disabled={!plan || busy}
-        onClick={() => void push(false)}
-        menuLabel={t("remote.pushOptions")}
-        menu={
-          <>
-            <DropdownMenuLabel>{t("remote.pushOptions")}</DropdownMenuLabel>
-            <DropdownMenuItem disabled={!plan || busy} onSelect={() => void push(false)}>
-              {t("remote.pushNormal")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              disabled={!plan || busy}
-              onSelect={() => setConfirmForce(true)}
-            >
-              {t("remote.forcePush")}
-            </DropdownMenuItem>
-          </>
-        }
-      />
+      {refs && !hasRemote ? (
+        // A project that is not on a server yet: create the repository and push in one dialog.
+        <ToolButton
+          id="push"
+          icon={CloudUpload}
+          label={t("toolbar.publish")}
+          tooltip={t("remote.publishTip")}
+          busy={pushing}
+          disabled={busy || !!head?.detached}
+          onClick={() => openPublishDialog(repoId)}
+          menuLabel={t("remote.pushOptions")}
+          menu={
+            <>
+              <DropdownMenuLabel>{t("remote.pushOptions")}</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => openPublishDialog(repoId)}>
+                {t("remote.publishNew")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => openPublishDialog(repoId, "url")}>
+                {t("remote.addRemoteUrl")}
+              </DropdownMenuItem>
+            </>
+          }
+        />
+      ) : (
+        <ToolButton
+          id="push"
+          icon={ArrowUpFromLine}
+          label={plan?.setUpstream ? t("toolbar.publishBranch") : t("toolbar.push")}
+          tooltip={
+            plan
+              ? plan.setUpstream
+                ? t("remote.pushNewTip", { branch: plan.branch, remote: plan.remote })
+                : t("remote.pushTip", { branch: plan.branch, remote: plan.remote })
+              : head?.unborn
+                ? t("remote.pushNoCommit")
+                : t("remote.pushUnavailable")
+          }
+          badge={ahead > 0 ? { text: `↑${ahead}`, tone: behind > 0 ? "warning" : "success" } : null}
+          busy={pushing}
+          disabled={!plan || busy}
+          onClick={() => void push(false)}
+          menuLabel={t("remote.pushOptions")}
+          menu={
+            <>
+              <DropdownMenuLabel>{t("remote.pushOptions")}</DropdownMenuLabel>
+              <DropdownMenuItem disabled={!plan || busy} onSelect={() => void push(false)}>
+                {plan?.setUpstream
+                  ? t("remote.publishBranchItem", { branch: plan.branch, remote: plan.remote })
+                  : t("remote.pushNormal")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => openPublishDialog(repoId, "url")}>
+                {t("remote.addRemoteUrl")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={!plan || busy}
+                onSelect={() => setConfirmForce(true)}
+              >
+                {t("remote.forcePush")}
+              </DropdownMenuItem>
+            </>
+          }
+        />
+      )}
       <ToolButton
         id="branch"
         icon={GitBranchPlus}

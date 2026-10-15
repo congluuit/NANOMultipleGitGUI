@@ -61,6 +61,7 @@ export function InitRepoDialog() {
             aria-invalid={!valid}
             className="h-8 w-full rounded-md border bg-background px-2 font-mono text-xs focus:border-primary focus:outline-none aria-invalid:border-danger"
           />
+          <p className="pt-1 text-[11px] text-muted-foreground">{t("repos.initNextSteps")}</p>
         </form>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => requestInit(null)}>

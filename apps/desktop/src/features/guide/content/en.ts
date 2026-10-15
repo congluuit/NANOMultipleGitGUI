@@ -106,6 +106,9 @@ export const guideEn: GuideTopic[] = [
             items: [
               "Click **+** → **New repository…** and choose (or create) an empty folder.",
               "Keep the initial branch name (usually main) and click **Create repository**.",
+              "The **New project** strip under the toolbar walks you through the rest: pick files in the Changes panel, write a message and click **Commit**.",
+              "Click **Publish** (the Push button becomes Publish while the repository has no remote): choose the account, where to create it (your account or an organization / group), the name, Private / Public, then **Create and push**. The app creates an empty repository on GitHub / GitLab, adds it as remote origin bound to that account and pushes your branch.",
+              "Already created the repository on the web? Use the **Use existing repository (URL)** tab and paste its URL. A new branch that is not on the server yet shows a **Publish branch** button.",
             ],
           },
         ],
