@@ -133,7 +133,7 @@
     "confirmBranchSwitch": "Ask before switching branches by double-click",
     "confirmBranchSwitchHint": "Double-click or Enter on a branch in the sidebar shows a confirmation first, so a misclick never switches.",
     "donate": "If you like this idea, please support me via",
-    "donateThanks": "Thank you! Scan with your banking app (BIDV)."
+    "donateThanks": "Scan with your banking app. Thank you! "
   },
   "palette": {
     "title": "Palette & design tokens",
