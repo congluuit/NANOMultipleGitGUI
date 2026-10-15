@@ -3019,6 +3019,7 @@ name = "nanomgg-git-engine"
 version = "1.0.0"
 dependencies = [
  "nanomgg-test-git-server",
+ "nix 0.29.0",
  "notify-debouncer-mini",
  "serde",
  "serde_json",

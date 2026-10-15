@@ -29,10 +29,12 @@
 //! something git deliberately left running in the background (`git maintenance --auto`, a
 //! detached `gc`) must not be killed just because the command returned.
 //!
-//! # Other platforms
-//! Behaviour is unchanged: `Child::kill` on the direct child.
+//! # macOS / Linux: process group
+//! [`ProcessTree::prepare`] starts git as the leader of a new process group, which its
+//! descendants (`git-lfs`, `ssh`, hooks) inherit; cancelling sends `SIGKILL` to the whole group.
+//! Killing only git left `git-lfs` uploading in the background after a cancel.
 
-use std::process::Child;
+use std::process::{Child, Command};
 
 /// Owns the process tree of one spawned command.
 #[derive(Debug)]
@@ -42,6 +44,16 @@ pub(crate) struct ProcessTree {
 }
 
 impl ProcessTree {
+    /// Call on the command before spawning it (Unix: the child leads a new process group).
+    pub(crate) fn prepare(cmd: &mut Command) -> &mut Command {
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+        cmd
+    }
+
     /// Puts `child` (and everything it will start) under our control. Call right after spawn.
     pub(crate) fn attach(child: &Child) -> Self {
         #[cfg(windows)]
@@ -67,7 +79,7 @@ impl ProcessTree {
         }
         #[cfg(not(windows))]
         {
-            false
+            true
         }
     }
 
@@ -77,6 +89,14 @@ impl ProcessTree {
         {
             // Closing the only handle of a kill-on-close job terminates all its processes.
             drop(self.job);
+        }
+        #[cfg(unix)]
+        if let Ok(pid) = i32::try_from(child.id()) {
+            // The group id is the child's pid (`prepare`); fails harmlessly if there is none.
+            let _ = nix::sys::signal::killpg(
+                nix::unistd::Pid::from_raw(pid),
+                nix::sys::signal::Signal::SIGKILL,
+            );
         }
         let _ = child.kill();
         let _ = child.wait();

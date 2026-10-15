@@ -24,6 +24,10 @@ thiserror = { workspace = true }
 [target.'cfg(windows)'.dependencies]
 win32job = "2"
 
+# Process group kill on macOS / Linux (safe wrapper, see src/job.rs).
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", default-features = false, features = ["signal"] }
+
 [dev-dependencies]
 nanomgg-test-git-server = { workspace = true }
 tempfile = { workspace = true }

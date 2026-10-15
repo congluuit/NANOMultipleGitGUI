@@ -228,8 +228,8 @@ pub fn run_streaming_with<F: FnMut(Progress), T: FnMut()>(
     if cancel.is_cancelled() {
         return Err(OpError::Cancelled);
     }
-    let mut child = git
-        .command(cwd, ctx, args)
+    let mut cmd = git.command(cwd, ctx, args);
+    let mut child = ProcessTree::prepare(&mut cmd)
         .envs(env.iter().map(|(k, v)| (k, v)))
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -659,14 +659,68 @@ mod tests {
     }
 
     #[test]
-    fn process_tree_tracks_descendants_on_windows() {
-        let mut child = std::process::Command::new("git")
+    fn process_tree_tracks_descendants() {
+        let mut cmd = std::process::Command::new("git");
+        let mut child = ProcessTree::prepare(&mut cmd)
             .arg("--version")
             .stdout(Stdio::null())
             .spawn()
             .unwrap();
         let tree = ProcessTree::attach(&child);
-        assert_eq!(tree.tracks_descendants(), cfg!(windows));
+        assert!(tree.tracks_descendants());
         tree.kill(&mut child);
+    }
+
+    /// Cancelling also kills what git started (on Unix through its process group).
+    #[cfg(unix)]
+    #[test]
+    fn cancel_kills_hook_children() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let repo = test_support::TestRepo::new();
+        let marker = format!("900.{}3", std::process::id());
+        repo.write(
+            ".git/hooks/pre-commit",
+            &format!("#!/bin/sh\nsleep {marker}\n"),
+        );
+        let hook = repo.path.join(".git/hooks/pre-commit");
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let sleepers = move || {
+            let out = std::process::Command::new("sh")
+                .args(["-c", &format!("pgrep -f '[s]leep {marker}' | wc -l")])
+                .output()
+                .unwrap();
+            String::from_utf8_lossy(&out.stdout)
+                .trim()
+                .parse::<u32>()
+                .unwrap_or(0)
+        };
+        let token = CancelToken::new();
+        let watcher = {
+            let token = token.clone();
+            let sleepers = sleepers.clone();
+            std::thread::spawn(move || {
+                let started = Instant::now();
+                while sleepers() == 0 && started.elapsed() < Duration::from_secs(20) {
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                token.cancel();
+            })
+        };
+        let args: Vec<String> = ["commit", "--allow-empty", "-m", "hooked"]
+            .map(String::from)
+            .to_vec();
+        let err =
+            run_streaming(&repo.git, &repo.path, &repo.ctx, &args, &token, |_| {}).unwrap_err();
+        watcher.join().unwrap();
+        assert!(matches!(err, OpError::Cancelled), "{err}");
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while sleepers() > 0 {
+            assert!(
+                Instant::now() < deadline,
+                "the hook's sleep survived the cancel"
+            );
+            std::thread::sleep(Duration::from_millis(50));
+        }
     }
 }
