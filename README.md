@@ -2,7 +2,7 @@
   <img src="apps/desktop/public/logo.png" width="96" height="96" alt="NANOMultipleGitGUI logo" />
 </p>
 
-<h1 align="center">NANOMultipleGitGUI</h1>
+<h1 align="center">NANO Multiple Git GUI</h1>
 
 <p align="center">
   A free, open-source Git app for Windows, macOS and Linux that handles <b>many GitHub and GitLab accounts at the same time</b> — without mixing them up.
@@ -180,6 +180,14 @@ docs/                  install guides, release guide, architecture decisions (do
 
 Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Design notes and roadmap: [PLAN.md](PLAN.md) (Vietnamese) and [docs/adr](docs/adr/).
 
+## Support the project
+
+If you like this idea, please support me via (Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng):
+
+<p align="center">
+  <img src="./QR_BIDV_Donate.jpg" width="260" alt="Donate via BIDV QR" />
+</p>
+
 ## License
 
 [Apache License 2.0](LICENSE) — free to use, modify and share, including commercially. See also [NOTICE](NOTICE).
@@ -325,6 +333,14 @@ pnpm check        # format, lint, typecheck, test, clippy và test Rust
 Các tùy chọn khi build (OAuth client ID, khóa ký bản cập nhật) mô tả trong [.env.example](.env.example). Phát hành phiên bản mới: [docs/RELEASING.md](docs/RELEASING.md).
 
 Cấu trúc thư mục và tech stack: xem phần [For developers](#for-developers) ở trên. Mọi đóng góp đều được hoan nghênh — xem [CONTRIBUTING.md](CONTRIBUTING.md). Thiết kế và lộ trình: [PLAN.md](PLAN.md).
+
+## Ủng hộ
+
+Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng:
+
+<p align="center">
+  <img src="./QR_BIDV_Donate.jpg" width="260" alt="Ủng hộ qua mã QR BIDV" />
+</p>
 
 ## Giấy phép
 

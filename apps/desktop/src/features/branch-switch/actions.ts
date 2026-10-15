@@ -22,6 +22,7 @@ import {
   type SwitchTarget,
 } from "@/ipc";
 import { openFileView } from "@/stores/fileView";
+import { useSettings } from "@/stores/settings";
 import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
 import { folderOf, planSwitch, targetLabel } from "./model";
 import { getPrefs } from "./prefs";
@@ -83,6 +84,18 @@ export async function switchBranch(
       await runSwitch(repoId, target, plan.mode);
       return;
   }
+}
+
+/**
+ * Double-click / Enter on a sidebar branch: asks "Switch to …?" first (unless turned off in
+ * Settings) so a misclick never moves the working tree.
+ */
+export function requestSwitch(repoId: number, target: SwitchTarget): void {
+  if (!useSettings.getState().confirmBranchSwitch) {
+    void switchBranch(repoId, target);
+    return;
+  }
+  useBranchSwitchUi.getState().askConfirm({ repoId, target });
 }
 
 /** Runs the switch with an answer to "what about the uncommitted changes". */

@@ -29,9 +29,11 @@ import i18n from "@/i18n";
 import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
 import { useThemeSync } from "@/theme/useThemeSync";
+import { useUiScale } from "@/features/settings/useUiScale";
 
 export default function App() {
   useThemeSync();
+  useUiScale();
   useRepoChangeEvents();
   useTransferEvents();
   const language = useSettings((s) => s.language);

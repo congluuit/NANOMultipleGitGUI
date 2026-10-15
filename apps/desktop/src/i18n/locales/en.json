@@ -119,7 +119,21 @@
     "ciEnabledHint": "Build/test results that run on the server after a push. Off: every CI badge, job list and notice is hidden and CI is never queried. It doesn't affect push, pull or conflicts.",
     "authorAvatars": "Author avatars on the commit graph",
     "authorAvatarsHint": "Loaded from GitHub (noreply emails, your accounts) or Gravatar. Off: initials only, no avatar requests leave the app.",
-    "about": "Version"
+    "about": "Version",
+    "general": "General",
+    "advanced": "Features & data",
+    "textSize": "Text size",
+    "textSizeHint": "Makes text and controls bigger across the whole app.",
+    "scale": {
+      "100": "Default (100%)",
+      "110": "Large (110%)",
+      "120": "Larger (120%)",
+      "125": "Largest (125%)"
+    },
+    "confirmBranchSwitch": "Ask before switching branches by double-click",
+    "confirmBranchSwitchHint": "Double-click or Enter on a branch in the sidebar shows a confirmation first, so a misclick never switches.",
+    "donate": "If you like this idea, please support me via",
+    "donateThanks": "Thank you! Scan with your banking app (BIDV)."
   },
   "palette": {
     "title": "Palette & design tokens",
@@ -1490,7 +1504,10 @@
     "signingFailed": "The identity of {{account}} signs commits, but the key did not work. Open Accounts → the identity → Test signing: check the key exists (GPG: gpg --list-secret-keys; SSH: the .pub file), or turn signing off for that identity."
   },
   "notice": {
-    "technical": "Technical details (git output)"
+    "technical": "Technical details (git output)",
+    "autoHide": "Hides in {{count}} seconds",
+    "autoHide_one": "Hides in {{count}} second",
+    "paused": "Paused while you are reading"
   },
   "branchMenu": {
     "pull": "Pull (fast-forward if possible)",
@@ -3407,6 +3424,13 @@
       },
       "autoRestore": "Restore stashed changes when coming back",
       "autoRestoreHint": "Changes stashed when leaving a branch are put back automatically when you switch to it again."
+    },
+    "confirm": {
+      "title": "Switch to {{branch}}?",
+      "description": "Your working folder will change to the files of branch {{branch}}.",
+      "descriptionRemote": "A local branch will be created from {{branch}} (if needed) and checked out.",
+      "switch": "Switch branch",
+      "dontAsk": "Don’t ask again (turn it back on in Settings)"
     }
   },
   "guide": {

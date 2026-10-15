@@ -7,6 +7,8 @@ const base: SettingsValues = {
   language: "vi",
   ciEnabled: false,
   authorAvatars: true,
+  uiScale: 1,
+  confirmBranchSwitch: true,
 };
 
 describe("diffSettings", () => {

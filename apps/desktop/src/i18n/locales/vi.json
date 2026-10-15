@@ -119,7 +119,21 @@
     "ciEnabledHint": "Kết quả build/test chạy trên server sau khi push. Tắt: ẩn mọi badge, danh sách job và thông báo về CI, không hỏi CI nữa. Không ảnh hưởng tới push, pull hay xung đột.",
     "authorAvatars": "Avatar tác giả trên graph",
     "authorAvatarsHint": "Tải từ GitHub (email noreply, tài khoản của bạn) hoặc Gravatar. Tắt: chỉ hiện chữ viết tắt, không gửi yêu cầu avatar ra ngoài.",
-    "about": "Phiên bản"
+    "about": "Phiên bản",
+    "general": "Chung",
+    "advanced": "Tính năng & dữ liệu",
+    "textSize": "Cỡ chữ",
+    "textSizeHint": "Phóng to chữ và các nút trên toàn bộ ứng dụng.",
+    "scale": {
+      "100": "Mặc định (100%)",
+      "110": "Lớn (110%)",
+      "120": "Lớn hơn (120%)",
+      "125": "Rất lớn (125%)"
+    },
+    "confirmBranchSwitch": "Hỏi lại trước khi chuyển nhánh bằng nhấp đúp",
+    "confirmBranchSwitchHint": "Nhấp đúp hoặc Enter trên một nhánh ở panel trái sẽ hiện hộp xác nhận trước, tránh lỡ tay chuyển nhánh.",
+    "donate": "Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng",
+    "donateThanks": "Cảm ơn bạn! Quét mã bằng app ngân hàng (BIDV)."
   },
   "palette": {
     "title": "Bảng màu & design tokens",
@@ -1490,7 +1504,10 @@
     "signingFailed": "Identity của {{account}} được cấu hình ký commit nhưng khóa ký không chạy được. Mở Quản lý tài khoản → identity → Thử ký: kiểm tra khóa còn tồn tại (GPG: gpg --list-secret-keys; SSH: file .pub), hoặc tắt ký cho identity đó."
   },
   "notice": {
-    "technical": "Chi tiết kỹ thuật (log của git)"
+    "technical": "Chi tiết kỹ thuật (log của git)",
+    "autoHide": "Tự ẩn sau {{count}} giây",
+    "autoHide_one": "Tự ẩn sau {{count}} giây",
+    "paused": "Đã tạm dừng trong lúc bạn đọc"
   },
   "branchMenu": {
     "pull": "Pull (fast-forward nếu được)",
@@ -3407,6 +3424,13 @@
       },
       "autoRestore": "Tự khôi phục thay đổi đã cất tạm khi quay lại",
       "autoRestoreHint": "Thay đổi được cất tạm khi rời một nhánh sẽ tự được trả lại khi bạn chuyển về nhánh đó."
+    },
+    "confirm": {
+      "title": "Chuyển sang nhánh {{branch}}?",
+      "description": "Thư mục làm việc sẽ đổi sang các file của nhánh {{branch}}.",
+      "descriptionRemote": "App sẽ tạo nhánh local từ {{branch}} (nếu chưa có) rồi chuyển sang.",
+      "switch": "Chuyển nhánh",
+      "dontAsk": "Không hỏi lại (bật lại trong Cài đặt)"
     }
   },
   "guide": {

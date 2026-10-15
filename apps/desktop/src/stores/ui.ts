@@ -9,7 +9,7 @@ export interface NoticeAction {
 }
 
 export interface Notice {
-  /** "success" notices hide themselves after a few seconds. */
+  /** Every notice hides itself after a few seconds (with a countdown, paused on hover). */
   kind: "error" | "info" | "success";
   message: string;
   /** What to do about it, in plain words (for users new to git). */

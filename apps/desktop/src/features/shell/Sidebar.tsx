@@ -22,7 +22,7 @@ import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commits/RefMenuItems";
-import { switchBranch } from "@/features/branch-switch/actions";
+import { requestSwitch, switchBranch } from "@/features/branch-switch/actions";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -310,7 +310,10 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                   onClick={jumpTo(b.oid)}
                   onActivate={
                     repo
-                      ? () => void switchBranch(repo.id, { kind: "local", name: b.name })
+                      ? () =>
+                          b.isHead
+                            ? void switchBranch(repo.id, { kind: "local", name: b.name })
+                            : requestSwitch(repo.id, { kind: "local", name: b.name })
                       : undefined
                   }
                   drag={repo ? { repoId: repo.id, branch: b.name } : undefined}
@@ -386,7 +389,7 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                           onActivate={
                             repo && b.name !== "HEAD"
                               ? () =>
-                                  void switchBranch(repo.id, {
+                                  requestSwitch(repo.id, {
                                     kind: "remote",
                                     remote: r.name,
                                     branch: b.name,

@@ -4,18 +4,25 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToolStatus } from "@/features/repos/queries";
-import { useUi } from "@/stores/ui";
+import { useUi, type Notice } from "@/stores/ui";
 import { toolProblems } from "./toolProblems";
 
 function Bar({
   tone,
   children,
   onDismiss,
+  aside,
+  footer,
+  ...rest
 }: {
   tone: "danger" | "warning" | "info" | "success";
   children: React.ReactNode;
   onDismiss?: () => void;
-}) {
+  /** Shown just before the dismiss button (the countdown of a notice). */
+  aside?: React.ReactNode;
+  /** Pinned to the bottom edge (the countdown bar of a notice). */
+  footer?: React.ReactNode;
+} & Omit<React.HTMLAttributes<HTMLDivElement>, "children">) {
   const { t } = useTranslation();
   const Icon =
     tone === "danger"
@@ -28,8 +35,9 @@ function Bar({
   return (
     <div
       role={tone === "info" || tone === "success" ? "status" : "alert"}
+      {...rest}
       className={cn(
-        "flex items-center gap-2 border-b px-3 py-1.5 text-xs",
+        "relative flex items-center gap-2 border-b px-3 py-1.5 text-xs",
         tone === "danger" && "bg-danger/10 text-danger",
         tone === "warning" && "bg-warning/10 text-warning",
         tone === "info" && "bg-info/10 text-info",
@@ -38,6 +46,7 @@ function Bar({
     >
       <Icon className="size-4 shrink-0" />
       <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
+      {aside}
       {onDismiss && (
         <button
           type="button"
@@ -48,6 +57,7 @@ function Bar({
           <X className="size-3.5" />
         </button>
       )}
+      {footer}
     </div>
   );
 }
@@ -90,26 +100,74 @@ export function ToolBanner() {
   return null;
 }
 
-/** How long a success notice (e.g. "Pushed …") stays before hiding itself. */
-const SUCCESS_NOTICE_MS = 10_000;
+/** How long a notice stays before hiding itself (paused while the pointer or focus is on it). */
+export const NOTICE_MS = 5_000;
+const TICK_MS = 100;
+
+/** A fresh countdown for every notice shown, even one with the same text. */
+const noticeIds = new WeakMap<object, number>();
+let nextNoticeId = 0;
+function noticeId(notice: object): number {
+  let id = noticeIds.get(notice);
+  if (id === undefined) {
+    id = ++nextNoticeId;
+    noticeIds.set(notice, id);
+  }
+  return id;
+}
 
 export function NoticeBar() {
-  const { t } = useTranslation();
   const notice = useUi((s) => s.notice);
-  const showNotice = useUi((s) => s.showNotice);
-  useEffect(() => {
-    if (notice?.kind !== "success") return;
-    const timer = window.setTimeout(() => {
-      if (useUi.getState().notice === notice) showNotice(null);
-    }, SUCCESS_NOTICE_MS);
-    return () => window.clearTimeout(timer);
-  }, [notice, showNotice]);
   if (!notice) return null;
+  return <NoticeView key={noticeId(notice)} notice={notice} />;
+}
+
+function NoticeView({ notice }: { notice: Notice }) {
+  const { t } = useTranslation();
+  const showNotice = useUi((s) => s.showNotice);
+  const [left, setLeft] = useState(NOTICE_MS);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = hovered || focused;
+
+  useEffect(() => {
+    if (paused) return;
+    const timer = window.setInterval(() => setLeft((l) => Math.max(0, l - TICK_MS)), TICK_MS);
+    return () => window.clearInterval(timer);
+  }, [paused]);
+
+  useEffect(() => {
+    if (left === 0 && useUi.getState().notice === notice) showNotice(null);
+  }, [left, notice, showNotice]);
+
   const rich = Boolean(notice.hint || notice.detail || notice.actions?.length);
+  const seconds = Math.ceil(left / 1000);
   return (
     <Bar
       tone={notice.kind === "error" ? "danger" : notice.kind === "success" ? "success" : "info"}
       onDismiss={() => showNotice(null)}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
+      aside={
+        <span
+          className="shrink-0 self-start pt-0.5 font-mono text-[11px] tabular-nums opacity-80"
+          title={paused ? t("notice.paused") : t("notice.autoHide", { count: seconds })}
+          aria-label={t("notice.autoHide", { count: seconds })}
+        >
+          {paused ? "❚❚" : `${seconds}s`}
+        </span>
+      }
+      footer={
+        <span
+          aria-hidden
+          className="absolute bottom-0 left-0 h-0.5 bg-current opacity-40 transition-[width] duration-100 ease-linear"
+          style={{ width: `${(left / NOTICE_MS) * 100}%` }}
+        />
+      }
     >
       {rich ? (
         <div className="grid min-w-0 flex-1 gap-1 py-0.5">

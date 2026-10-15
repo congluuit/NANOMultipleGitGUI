@@ -12,14 +12,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { SwitchDirtyMode } from "@/ipc";
+import { useSettings } from "@/stores/settings";
 import { createBranchHere, runSwitch, switchBranch } from "./actions";
+import { targetLabel } from "./model";
 import { savePrefs } from "./prefs";
-import { useBranchSwitchUi, type PendingSwitch } from "./store";
+import { useBranchSwitchUi, type ConfirmSwitch, type PendingSwitch } from "./store";
 
 /** Mounted once (App). */
 export function BranchSwitchDialogHost() {
   const pending = useBranchSwitchUi((s) => s.pending);
   const close = useBranchSwitchUi((s) => s.close);
+  const confirm = useBranchSwitchUi((s) => s.confirm);
+  const closeConfirm = useBranchSwitchUi((s) => s.closeConfirm);
+  if (confirm) {
+    return (
+      <ConfirmSwitchDialog
+        key={`confirm-${confirm.repoId}-${targetLabel(confirm.target)}`}
+        confirm={confirm}
+        onClose={closeConfirm}
+      />
+    );
+  }
   if (!pending) return null;
   return pending.kind === "dirty" ? (
     <DirtyDialog
@@ -33,6 +46,65 @@ export function BranchSwitchDialogHost() {
       pending={pending}
       onClose={close}
     />
+  );
+}
+
+function ConfirmSwitchDialog({
+  confirm,
+  onClose,
+}: {
+  confirm: ConfirmSwitch;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [dontAsk, setDontAsk] = useState(false);
+  const { repoId, target } = confirm;
+  const branch = targetLabel(target);
+
+  const go = () => {
+    onClose();
+    if (dontAsk) useSettings.getState().setConfirmBranchSwitch(false);
+    void switchBranch(repoId, target);
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ArrowRightLeft className="size-4 text-primary" />
+            {t("branchSwitch.confirm.title", { branch })}
+          </DialogTitle>
+          <DialogDescription className="break-words">
+            {t(
+              target.kind === "local"
+                ? "branchSwitch.confirm.description"
+                : "branchSwitch.confirm.descriptionRemote",
+              { branch },
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={dontAsk}
+            onChange={(e) => setDontAsk(e.target.checked)}
+            className="accent-primary"
+          />
+          {t("branchSwitch.confirm.dontAsk")}
+        </label>
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            {t("common.cancel")}
+          </Button>
+          <Button size="sm" autoFocus onClick={go}>
+            {t("branchSwitch.confirm.switch")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
