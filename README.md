@@ -11,11 +11,12 @@
 
 <p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-E8590C" />
-  <img alt="Status" src="https://img.shields.io/badge/status-pre--alpha-B7791F" />
+  <a href="https://github.com/congluuit/NANOMultipleGitGUI/releases/latest"><img alt="Version" src="https://img.shields.io/badge/version-v1.0.0-237A35" /></a>
+  <img alt="Status" src="https://img.shields.io/badge/status-stable-237A35" />
   <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2-FF8A3D" />
 </p>
 
-> ⚠️ Dự án đang ở giai đoạn **pre-alpha** (đang dựng nền móng). Chưa dùng được cho công việc thật.
+> **v1.0.0** — bản phát hành chính thức đầu tiên. Tải bộ cài tại [GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases/latest); app tự kiểm tra và cài bản cập nhật.
 
 ---
 
@@ -25,7 +26,7 @@
 
 Mã ngắn dùng trong code, binary và biến môi trường: `nanomgg`.
 
-## Tính năng chính (mục tiêu v1.0)
+## Tính năng chính
 
 - **Đa tài khoản không giới hạn** cho GitHub (github.com, Enterprise Server) và GitLab (gitlab.com, self-hosted), dùng song song.
 - **Gắn tài khoản theo repo**: tự nhận diện qua rule (host/owner, thư mục, regex URL) hoặc gán thủ công; chuyển tài khoản nhanh bằng account pill, command palette, phím tắt.
@@ -130,13 +131,15 @@ Hướng dẫn đóng góp chi tiết: [CONTRIBUTING.md](CONTRIBUTING.md). Các 
 
 ## Cài đặt (người dùng)
 
-Bộ cài `.exe` (Windows) và `.dmg` (macOS) sẽ được phát hành trên trang GitHub Releases khi có bản alpha đầu tiên. Hướng dẫn từng bước: [macOS](docs/INSTALL-macOS.md) · [Windows](docs/INSTALL-Windows.md).
+Tải bộ cài mới nhất tại [GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases/latest): `.exe` / `.msi` (Windows 10/11), `.dmg` (macOS 11+, Apple Silicon & Intel), `.AppImage` / `.deb` / `.rpm` (Linux). Cài xong là dùng được: đăng nhập GitHub bằng trình duyệt, app tự cập nhật. Hướng dẫn từng bước: [macOS](docs/INSTALL-macOS.md) · [Windows](docs/INSTALL-Windows.md).
 
 Bảo mật: [SECURITY.md](SECURITY.md) · Quyền riêng tư: [PRIVACY.md](PRIVACY.md).
 
 ---
 
 ## English
+
+**NANOMultipleGitGUI v1.0.0** — download it from [GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases/latest) (Windows `.exe`/`.msi`, macOS `.dmg`, Linux). Install and use it right away: GitHub sign-in in the browser, automatic updates.
 
 **NANOMultipleGitGUI** is an open-source Git GUI (Tauri 2 + Rust + React) for Windows and macOS whose main strength is handling **many GitHub/GitLab accounts at the same time**. Every repository knows which account it belongs to, so commits use the right identity and clone/push/LFS traffic uses the right credentials or SSH key — no profile switching, no `~/.ssh/config` host aliases, no credential clashes on the same host.
 

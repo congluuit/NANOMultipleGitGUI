@@ -13,6 +13,11 @@ describe("contrastRatio", () => {
     expect(contrastRatio("#ffffff", "#ffffff")).toBeCloseTo(1, 5);
     expect(contrastRatio("#767676", "#ffffff")).toBeCloseTo(4.54, 2);
   });
+
+  it("accepts the short #rgb form that release builds' minified CSS produces", () => {
+    expect(contrastRatio("#000", "#fff")).toBeCloseTo(21, 5);
+    expect(contrastRatio(" #FFF ", "#ffffff")).toBeCloseTo(1, 5);
+  });
 });
 
 describe.each(Object.entries(themes))("%s theme", (_name, tokens) => {

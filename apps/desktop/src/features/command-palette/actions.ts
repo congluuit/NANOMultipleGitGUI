@@ -15,7 +15,7 @@ import { runPushGuard } from "@/features/guards";
 import { conflictText } from "@/features/commits/outcome";
 import { lfsKeys } from "@/features/lfs/queries";
 import { offerCreatePull } from "@/features/pulls/actions";
-import { pushPlan } from "@/features/remote/plan";
+import { branchPushPlan, pushPlan } from "@/features/remote/plan";
 import { startTransfer } from "@/features/remote/transfers";
 import { notifyEstimateFailure, repoAccount, runLfsPush } from "@/features/transfers/actions";
 import { failureTexts } from "@/features/transfers/format";
@@ -119,7 +119,16 @@ async function usesLfs(repoId: number): Promise<boolean> {
  */
 export async function push(repoId: number, refs: RepoRefs, force: boolean) {
   const p = pushPlan(refs, force);
-  if (!p) return;
+  if (p) await pushWith(repoId, p);
+}
+
+/** "Push" of a branch context menu: any local branch, checked out or not. */
+export async function pushBranch(repoId: number, refs: RepoRefs, branch: string) {
+  const p = branchPushPlan(refs, branch);
+  if (p) await pushWith(repoId, p);
+}
+
+async function pushWith(repoId: number, p: PushRequest) {
   if (
     !peekOneShot(repoId, "push") &&
     (await runPushGuard(repoId, p.remote, p.branch)) === "cancel"

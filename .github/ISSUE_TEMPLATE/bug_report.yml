@@ -81,6 +81,6 @@ body:
     attributes:
       label: Logs / Nhật ký
       description: |
-        Relevant lines from the log directory (Windows: %LOCALAPPDATA%\io.github.nanomgg.nanomultiplegitgui\logs,
-        macOS: ~/Library/Logs/io.github.nanomgg.nanomultiplegitgui). Tokens are redacted automatically, but please double-check.
+        Relevant lines from the log directory (Windows: %LOCALAPPDATA%\io.github.congluuit.nanomultiplegitgui\logs,
+        macOS: ~/Library/Logs/io.github.congluuit.nanomultiplegitgui). Tokens are redacted automatically, but please double-check.
       render: text

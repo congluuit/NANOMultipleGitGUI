@@ -27,6 +27,7 @@ export function ToolButton({
   menu,
   menuLabel,
   priority,
+  badge,
 }: {
   id?: string;
   icon: LucideIcon;
@@ -39,6 +40,8 @@ export function ToolButton({
   menuLabel?: string;
   /** Overflow order: lower moves into the "⋯" menu first; "pin" never does. */
   priority?: number | "pin";
+  /** Small count on the icon, e.g. "↑2" commits to push. */
+  badge?: { text: string; tone: "success" | "info" | "warning" } | null;
 }) {
   const tip = tooltip ?? label;
   const hidden = useToolbarOverflow((s) => !!id && s.hidden.includes(id));
@@ -83,11 +86,26 @@ export function ToolButton({
               aria-description={tip !== label ? tip : undefined}
               className="flex h-10 min-w-12 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] whitespace-nowrap text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
             >
-              {busy ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Icon className="size-4" />
-              )}
+              <span className="relative">
+                {busy ? (
+                  <LoaderCircle className="size-4 animate-spin" />
+                ) : (
+                  <Icon className="size-4" />
+                )}
+                {badge && (
+                  <span
+                    data-testid={id ? `toolbar-badge-${id}` : undefined}
+                    className={cn(
+                      "absolute -top-1.5 left-2.5 rounded-full px-1 text-[9px] leading-[14px] font-bold whitespace-nowrap tabular-nums",
+                      badge.tone === "success" && "bg-success text-white dark:text-background",
+                      badge.tone === "info" && "bg-info text-white dark:text-background",
+                      badge.tone === "warning" && "bg-warning text-white dark:text-background",
+                    )}
+                  >
+                    {badge.text}
+                  </span>
+                )}
+              </span>
               <span>{label}</span>
             </button>
           </span>

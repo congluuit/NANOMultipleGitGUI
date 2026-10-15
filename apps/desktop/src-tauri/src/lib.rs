@@ -356,8 +356,21 @@ pub fn run() {
 
             // Phase 3B.3: folders from `locations.json`; logging first, then a data move
             // scheduled last session, then the database.
+            // 1.0 changed the bundle identifier: bring over data of earlier builds first.
+            let legacy = app_paths::migrate_legacy_identifier(app.handle());
             let paths = app_paths::AppPaths::resolve(app.handle())?;
             paths.init_logging()?;
+            let legacy = match legacy {
+                Ok(Some(moved)) => {
+                    tracing::info!(from = %moved.from.display(), "copied the data of an earlier bundle identifier");
+                    Some(moved)
+                }
+                Ok(None) => None,
+                Err(e) => {
+                    tracing::warn!(error = %e, "could not copy the data of an earlier bundle identifier");
+                    None
+                }
+            };
             let moved = paths.apply_pending_data();
             let log_dir = paths.get(nanomgg_app_paths::StorageKind::Log);
             let data_dir = paths.data_dir();
@@ -366,7 +379,7 @@ pub fn run() {
             let storage = std::sync::Arc::new(nanomgg_storage::Storage::open(
                 &data_dir.join("nanomgg.db"),
             )?);
-            if let Some(moved) = &moved {
+            for moved in [&legacy, &moved].into_iter().flatten() {
                 app_paths::after_data_move(&storage, moved);
             }
             tracing::info!(

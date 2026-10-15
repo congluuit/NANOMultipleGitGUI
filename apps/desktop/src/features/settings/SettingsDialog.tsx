@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { useAppInfo } from "@/features/app/useAppInfo";
@@ -35,6 +36,10 @@ export function SettingsDialog() {
   const setTheme = useSettings((s) => s.setTheme);
   const language = useSettings((s) => s.language);
   const setLanguage = useSettings((s) => s.setLanguage);
+  const ciEnabled = useSettings((s) => s.ciEnabled);
+  const setCiEnabled = useSettings((s) => s.setCiEnabled);
+  const authorAvatars = useSettings((s) => s.authorAvatars);
+  const setAuthorAvatars = useSettings((s) => s.setAuthorAvatars);
   const appInfo = useAppInfo();
 
   const themes: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
@@ -91,6 +96,23 @@ export function SettingsDialog() {
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <SettingSwitch
+              id="settings-ci"
+              label={t("settings.ciEnabled")}
+              hint={t("settings.ciEnabledHint")}
+              checked={ciEnabled}
+              onChange={setCiEnabled}
+            />
+            <SettingSwitch
+              id="settings-avatars"
+              label={t("settings.authorAvatars")}
+              hint={t("settings.authorAvatarsHint")}
+              checked={authorAvatars}
+              onChange={setAuthorAvatars}
+            />
+          </div>
+
           <Button
             variant="outline"
             size="sm"
@@ -130,5 +152,29 @@ export function SettingsDialog() {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SettingSwitch({
+  id,
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-md border p-3 text-xs">
+      <label htmlFor={id} className="grid flex-1 cursor-pointer gap-0.5">
+        <span className="font-medium">{label}</span>
+        <span className="text-[11px] text-muted-foreground">{hint}</span>
+      </label>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} className="mt-0.5" />
+    </div>
   );
 }

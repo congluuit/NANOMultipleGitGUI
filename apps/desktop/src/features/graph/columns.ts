@@ -4,16 +4,16 @@ import type { ColumnWidths } from "./draw";
 /** Same reasons as the panel widths (`stores/layout.ts`): read before the first paint. */
 const KEY = "nanomgg.graph.columns";
 
-export type GraphColumn = "graph" | "author" | "date";
+export type GraphColumn = "refs" | "graph" | "author" | "date";
 
 type Widths = Required<{ [K in GraphColumn]: number | null }>;
 
 function load(): Widths {
-  const out: Widths = { graph: null, author: null, date: null };
+  const out: Widths = { refs: null, graph: null, author: null, date: null };
   try {
     const raw: unknown = JSON.parse(globalThis.localStorage?.getItem(KEY) ?? "null");
     if (raw && typeof raw === "object") {
-      for (const k of ["graph", "author", "date"] as const) {
+      for (const k of ["refs", "graph", "author", "date"] as const) {
         const v = (raw as Record<string, unknown>)[k];
         if (typeof v === "number" && Number.isFinite(v) && v > 0) out[k] = Math.round(v);
       }

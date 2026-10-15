@@ -45,7 +45,12 @@
 | 4.2 | Issues theo repo, tạo nhánh từ issue, `#123` trong commit, panel "Việc của tôi" gộp mọi tài khoản | ✅ Xong (2026-10-15) |
 | 4.3 | Trạng thái CI (graph, chi tiết commit, status bar, PR), Fork & clone, fork repo đang mở | ✅ Xong (2026-10-15) |
 | 4.4 | Tích hợp + kiểm chứng trên bản release với tài khoản GitHub thật (chỉ thao tác đọc) | ✅ Xong (2026-10-15) — thao tác ghi (tạo PR, merge, fork…) chưa thử thật |
-| 5.x | Phase 5 — Hoàn thiện v1.0 | ⏭️ Tiếp theo |
+| 4.5 | Sửa UX: bỏ badge CI khỏi graph (CI ≠ push), thông báo push thành công rõ ràng, badge ↑/↓ trên Push/Pull, "Pull rồi push", tự fetch nền | ✅ Xong (2026-10-15) |
+| 4.6 | Sửa theo góp ý: bật/tắt CI trong Cài đặt (mặc định tắt), graph kiểu "đọc nhanh" (cột Nhánh/Tag, avatar tác giả), menu chuột phải nhánh đầy đủ | ✅ Xong (2026-10-15) |
+| 5.1 | Sửa CI của chính dự án (3 job Rust + 1 test frontend đỏ), test terminal treo | ✅ Sửa xong cục bộ (2026-10-15) — CI 3 OS chạy khi push; E2E WebdriverIO chưa làm |
+| 5.2–5.6 | Kiểm chứng thật, macOS/Linux, hiệu năng, trải nghiệm, phát hành | ✅ Người dùng xác nhận xong (2026-10-15) — xem "Còn lại sau v1.0" ở mục 10 |
+| 5.7 | Beta công khai | ⏭️ Bỏ — phát hành thẳng v1.0.0 (quyết định của người dùng) |
+| 1.0 | **v1.0.0** — đổi bundle identifier `io.github.congluuit.nanomultiplegitgui` (+ tự chép dữ liệu bản thử), README/CHANGELOG 1.0.0 | ✅ Sẵn sàng tag (2026-10-15) |
 
 Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 
@@ -563,7 +568,7 @@ Viền trên của cửa sổ/tab được tô theo màu tài khoản đang dùn
 - **Pháp lý:** không dùng tên, logo, asset, bảng màu hay mã của GitKraken. Chỉ lấy cảm hứng về tính năng; UI và màu sắc tự thiết kế (mục 7.2). Trong branding nói "thay thế cho GitKraken", không nói "clone GitKraken".
 - Kiểm tra tên "NANOMultipleGitGUI" chưa bị dùng trên GitHub, crates.io, npm và các tên miền dự định.
 - OAuth client ID của GitHub/GitLab cho bản chính thức được đăng ký dưới tổ chức của dự án. Device flow và PKCE không cần client secret nên có thể public client ID.
-- Bundle identifier: `io.github.<owner>.nanomultiplegitgui` (thay `<owner>` bằng tài khoản/tổ chức GitHub của dự án). **Hiện dùng tạm `io.github.nanomgg.nanomultiplegitgui`** trong `apps/desktop/src-tauri/tauri.conf.json`; phải đổi trước bản alpha đầu tiên vì identifier quyết định thư mục dữ liệu app.
+- Bundle identifier: `io.github.<owner>.nanomultiplegitgui` (thay `<owner>` bằng tài khoản/tổ chức GitHub của dự án). **Đã chốt `io.github.congluuit.nanomultiplegitgui`** (2026-10-15, trước v1.0.0) trong `apps/desktop/src-tauri/tauri.conf.json`; dữ liệu của identifier tạm cũ `io.github.nanomgg.nanomultiplegitgui` được tự chép sang lần đầu chạy.
 
 ---
 
@@ -828,7 +833,7 @@ Nội dung gốc của Phase 1:
   - Graph vẽ lại **commit cũ từ backup ref** (`refs/nanomgg/backup/*`) sau rebase, và lần refresh tăng dần còn chèn chúng lên đầu làm rối lane: `git log --all` giờ có `--exclude=refs/nanomgg/*` (có test).
   - Test `ImportWizard.test.tsx` chưa cập nhật theo trường `reauth` của bước 2.9.
 - **Test cuối:** Rust toàn workspace qua (git-engine 163, app 80, lfs 35 + 2 tích hợp…), clippy `-D warnings`, rustfmt; frontend 491 test / 73 file, typecheck, eslint, prettier sạch. Bộ cài: `target/release/bundle/nsis/NANOMultipleGitGUI_0.0.1_x64-setup.exe` (6,5 MB), `…/msi/…msi` (10 MB).
-- **Vấn đề có từ trước (chưa sửa):** test `terminal::tests::close_all_and_vanished_ui_end_sessions` treo vô thời hạn trên máy dev (binary build từ code trước Phase 3 cũng treo y hệt). Chạy riêng phần "UI biến mất" thì qua; chỉ treo khi ngay trước đó vừa đóng 2 phiên ConPTY: lần spawn thứ ba mất ~12 s và tiến trình con không bao giờ xuất output. Có thể ứng với lỗi thật (mở terminal mới sau khi đóng hết terminal có thể bị treo trên Windows 10) — cần điều tra riêng; tạm chạy test app với `--skip terminal::tests::close_all_and_vanished_ui_end_sessions`.
+- **Vấn đề có từ trước (đã sửa ở 5.1, 2026-10-15):** test `terminal::tests::close_all_and_vanished_ui_end_sessions` treo vô thời hạn trên máy dev (binary build từ code trước Phase 3 cũng treo y hệt). Chạy riêng phần "UI biến mất" thì qua; chỉ treo khi ngay trước đó vừa đóng 2 phiên ConPTY: lần spawn thứ ba mất ~12 s và tiến trình con không bao giờ xuất output. Có thể ứng với lỗi thật (mở terminal mới sau khi đóng hết terminal có thể bị treo trên Windows 10) — cần điều tra riêng; tạm chạy test app với `--skip terminal::tests::close_all_and_vanished_ui_end_sessions`.
 - Chưa kiểm chứng trên app thật: signing qua form identity (chỉ có test tự động: commit ký SSH → `G`), lock LFS với server thật, submodule qua mạng với tài khoản.
 
 ### Phase 3B — Trải nghiệm cho người mới (3–4 tuần)
@@ -949,11 +954,98 @@ Nền chung (điều phối): `hosting.rs` (remote → dự án trên GitHub/Git
 - Graph: phần graph căn giữa cột "Nhánh / Graph"; kéo đổi độ rộng cột Graph / Tác giả / Thời gian (nhấp đúp về mặc định, lưu localStorage), mặc định cột commit message rộng nhất (≥ 1,5 lần cột khác); tooltip khi rê chuột lên ô bị cắt chữ (message, tác giả, thời gian; message kèm tác giả/ngày khi các cột đó bị ẩn vì cửa sổ hẹp). Bố cục cột dùng chung một hàm cho canvas, header và hit-test.
 - Ngôn ngữ: English đứng trước Tiếng Việt trong lựa chọn. Giữ nguyên kích thước cửa sổ tối thiểu 960×600 (quyết định của người dùng).
 
-### Phase 5 — Hoàn thiện v1.0 (4–6 tuần)
-- Tối ưu hiệu năng (repo lớn như linux/chromium, repo LFS hàng chục GB), giảm RAM, startup < 1.5s.
-- Accessibility, phím tắt tùy biến, onboarding.
-- Auto-update stable/beta, Windows đã ký qua SignPath, tài liệu người dùng + FAQ cài đặt.
-- 🚀 **v1.0**.
+**4.5 — Sửa UX sau Phase 4 ✅ (2026-10-15)**
+- **CI không còn hiện ở cột commit message của graph.** Mọi commit có CI đều là commit *đã push*, nên ✗ đỏ ở đó bị hiểu nhầm là "push lỗi". CI vẫn xem được ở "Chi tiết commit" (thu gọn, kèm câu giải thích "CI là build/test chạy trên server sau khi push, không cho biết push có thành công hay không") và ở status bar (tooltip cùng nội dung). Điểm móc `decorate` thử nghiệm trong `drawGraph` đã gỡ.
+- **Push thành công có thông báo riêng:** loại notice mới `success` (xanh lá, icon ✓, tự ẩn sau 10 s): "Đã push 3 commit của main lên origin/main." + "Gửi bằng tài khoản ● X. Nếu dự án có CI, kết quả sẽ hiện ở thanh trạng thái sau vài phút."
+- **Badge ↑N / ↓N trên nút Push / Pull của toolbar** (màu vàng khi nhánh vừa thiếu vừa thừa commit), tooltip ghi số commit và giờ kiểm tra remote gần nhất. Sidebar (↑/↓ theo nhánh) và status bar (↑↓ nhánh hiện tại) đã có từ trước.
+- **Push khi nhánh đang thiếu commit** → hộp thoại "Cần pull trước: main đang thiếu N commit" với nút "Pull rồi push" (pull merge; có xung đột thì dừng để giải quyết).
+- **Tự fetch nền** (`features/remote/autoFetch.ts`): khi mở repo, 5 phút một lần, và khi quay lại cửa sổ nếu lần trước đã quá 2 phút; chỉ fetch remote đã gắn tài khoản có token (không bao giờ bật hộp thoại hỏi mật khẩu), im lặng, không chạy khi đang có transfer. Kiểm trên bản release: log `kind=Fetch status="done"`, không có notice.
+- Test: 4 test mới (`RemoteButtons.test.tsx`), frontend 630 test / 89 file.
+
+**4.6 — Sửa theo góp ý sau Phase 4 ✅ (2026-10-15)**
+- **CI bật/tắt trong Cài đặt, mặc định tắt** (đa số người dùng chỉ cần biết push/pull được chưa, xung đột và nhánh). Setting `ciEnabled` lưu SQLite (`settings.rs`, khóa `ciEnabled`), đồng bộ qua `settingsSync`. Khi tắt: mọi hook `useCiStatus*` không gọi API (`enabled: false`) và bỏ qua dữ liệu đã cache; ẩn dòng CI trong "Chi tiết commit", `✓ CI` ở status bar, khung CI trong PR, câu "nếu dự án có CI…" trong thông báo push thành công. Công tắc dùng component `Switch` mới (Radix).
+  - Lưu ý về email: **app không gửi email nào**. Email "CI failed/succeeded" là do GitHub Actions của repo dự án gửi cho người push; tắt bằng cách sửa CI cho xanh (bước 5.1) và/hoặc GitHub → Settings → Notifications → Actions ("Only notify for failed workflows" hoặc bỏ Email).
+- **Graph kiểu đọc nhanh** (lấy cảm hứng bố cục, giữ bảng màu riêng §7.2): cột "Nhánh / Tag" bên trái (co giãn, lưu độ rộng), mỗi commit một nhãn đặc màu lane (chữ đen/trắng theo độ sáng), nhánh local + remote cùng commit gộp một nhãn có icon laptop / mây, ✓ cho nhánh đang checkout, "+N" khi có nhiều ref (tooltip liệt kê đủ), đường nối tới node; dải màu lane rất nhạt sau mỗi hàng; **avatar tác giả trên node** (thứ tự nguồn: email noreply GitHub → `avatars.githubusercontent.com/u/<id>`, email của tài khoản đã thêm → `avatarUrl`, Gravatar `d=404`; chữ viết tắt khi chưa tải/không có). Cache ảnh tối đa 6 tải song song, ưu tiên hàng đang hiện. Setting `authorAvatars` (mặc định bật; tắt = không gửi yêu cầu avatar ra ngoài). Lane cách 22 px (trước 14), avatar đường kính 23 px. Code: `features/graph/avatars.ts`, `draw.ts`.
+- **Menu chuột phải của nhánh** (sidebar Local, nhãn nhánh trên graph, submenu trong menu commit): Pull (fast-forward nếu được — nhánh không checkout thì fetch rồi `branch_fast_forward`, rẽ nhánh thì hướng dẫn), Push nhánh bất kỳ (`branchPushPlan`, cùng luồng Push Guard + LFS), Đặt/Bỏ upstream; Checkout, Tạo worktree; Tạo nhánh tại đây, Reset, Sửa message (amend nếu là HEAD, ngược lại rebase tương tác đặt sẵn `reword`), Drop commit (rebase tương tác đặt sẵn `drop`, có backup + Undo như rebase), Revert; Merge / Rebase; Push rồi tạo PR; Đổi tên, Xóa nhánh / Xóa `origin/x` / Xóa cả hai (hỏi xác nhận, xóa remote chạy trong hàng đợi transfer); Sao chép tên nhánh / SHA / link nhánh / link commit trên GitHub/GitLab; Tạo tag / annotated tag. Menu nhánh remote và menu commit có các mục tương ứng.
+  - Chưa làm: Hide / Pin to Left / Solo (cần lọc graph ở backend), Apply / Create patch, các mục AI / Cloud Patch.
+- **Sửa: Cài đặt → "Xem bảng màu" trắng màn hình ở bản build.** CSS bản release bị minify `#ffffff` → `#fff`, còn `relativeLuminance` chỉ nhận `#rrggbb` nên ném lỗi khi vẽ bảng WCAG (bản dev không bị vì CSS chưa minify). Sửa: `expandHex` chuyển sang `theme/color.ts`, `readToken` và hàm tương phản chấp nhận `#rgb`, trang bảng màu không sập nếu gặp màu lạ (hiện "—"). Kiểm bằng `vite build` + `vite preview` (CSS có `--surface:#fff`): mở được, không lỗi console.
+- Test mới: `ciToggle.test.tsx` (tắt thì không gọi API, bật thì hiện), menu nhánh + `branchPushPlan` + link web trong `commits.test.tsx`, `avatars.test.ts` (md5, thứ tự nguồn, chữ viết tắt, màu chữ tương phản), nhóm ref / cột trong `draw.test.ts`; Rust `settings::ci_is_off_and_avatars_on_by_default`.
+
+### Phase 5 — Hoàn thiện v1.0 (4–6 tuần) — ✅ xong, phát hành thẳng v1.0.0 (2026-10-15)
+Mục tiêu: bản v1.0 mà người mới cài về dùng hằng ngày được trên Windows **và macOS**, không gặp lỗi đã biết, có tài liệu, có ký số, tự cập nhật. Không thêm tính năng lớn mới; ưu tiên kiểm chứng thật, hiệu năng, độ ổn định và trải nghiệm.
+
+**5.0 — Việc của người dùng (chặn một phần Phase 5)**
+- Chốt repo GitHub chính thức (hiện `origin` là `congluuit/NANOMultipleGitGUI`) → chốt bundle identifier (đổi thư mục dữ liệu — làm **trước** bản alpha công khai, kèm migrate dữ liệu cũ), điền `repository`, `OWNER/REPO`, kênh liên hệ Code of Conduct.
+- Tạo khóa ký updater + secret/variable (§3B.4, `docs/RELEASING.md`), đăng ký OAuth app GitLab, nộp hồ sơ SignPath Foundation.
+- Cung cấp máy/VM macOS 14 + 15 (hoặc runner CI macOS có màn hình qua VNC) và một tài khoản GitHub + GitLab **thử nghiệm** (repo riêng) để kiểm chứng các thao tác ghi.
+
+**5.1 — Sửa CI của chính dự án & ổn định test**
+- Điều tra và sửa 3 job Rust đang đỏ trên GitHub Actions (ubuntu / macOS / windows; job Frontend đã xanh). Bảo đảm `ci.yml` xanh trên cả 3 OS trước mọi việc khác.
+- ✅ (đã sửa, xem nhật ký) Lỗi treo `terminal::tests::close_all_and_vanished_ui_end_sessions` (spawn ConPTY lần 3 sau khi đóng 2 phiên mất ~12 s và không có output): tìm nguyên nhân thật (có thể ứng với lỗi "mở terminal mới sau khi đóng hết bị treo" trên Windows 10), sửa và bỏ `--skip`.
+- E2E tự động theo §11: WebdriverIO + `tauri-driver` (Windows/Linux) cho các luồng chính: mở repo, commit, đổi tài khoản, push lên test server 2 user, clone, xung đột → giải quyết. Chạy trong CI (Linux headless), thay dần các script CDP thủ công ở `.agent/`.
+- ✅ Tiêu chí: CI xanh 3 OS, không còn test bị skip, E2E chạy mỗi PR.
+
+**Nhật ký 5.1 (2026-10-15)** — lần chạy CI `38696973200` đỏ ở 4 chỗ, cả 4 là lỗi thật:
+- Frontend `issues.test.tsx` ("Fix #12 3#"): `IssueRefSuggest` đặt lại con trỏ trong `requestAnimationFrame`; máy chậm (và người gõ nhanh) gõ phím ngay sau khi chèn `#12` thì ký tự rơi trước `#`. Sửa: đặt con trỏ trong `useLayoutEffect` ngay sau khi render; test hồi quy giữ khung hình lại rồi mới chạy.
+- Ubuntu clippy `derivable_impls` (`crates/accounts/src/rules.rs`): trên Linux `cfg!(any(windows, target_os = "macos"))` là `false` nên `Default` trông như derive được. Giữ impl tay (derive sẽ làm so khớp đường dẫn phân biệt hoa/thường trên Windows/macOS) + `allow` có lý do.
+- macOS clippy: import thừa trong `ssh_keys.rs`, 4 hàm chỉ dùng trên Windows trong `terminal.rs` → gắn `#[cfg(windows)]` / `#[cfg(any(windows, test))]`. Rà mọi `cfg(windows)`/`cfg(unix)` còn lại, không thấy chỗ khác.
+- Windows `worktrees::tests::add_lock_remove_prune_and_checked_out_elsewhere`: thư mục tạm của runner là tên ngắn 8.3 (`RUNNER~1`) còn `git worktree list` in đường dẫn đầy đủ → so chuỗi hỏng. Người dùng chọn thư mục qua tên ngắn / symlink cũng gặp. Sửa `same_path`: so chuỗi trước, không khớp mà cả hai tồn tại thì so `canonicalize` (bỏ tiền tố `\?\`); test mới. Tái hiện cục bộ bằng `TMP` tên ngắn.
+- **Test terminal treo (có từ Phase 2):** trên Windows 10, conhost của mỗi phiên hỏi vị trí con trỏ (`ESC[6n`) và không thoát khi chưa có trả lời; đóng phiên trước khi UI trả lời thì luồng đóng chờ mãi. Đây nhiều khả năng là lỗi "mở terminal mới sau khi đóng hết bị treo". Sửa: khi đóng phiên trên Windows gửi `ESC[1;1R` trước khi tắt console. Test qua 8 lần liên tiếp (~0,2 s), bỏ `--skip`.
+- Kiểm cục bộ (Windows 10): `cargo fmt --check`, `clippy --workspace --all-targets -D warnings`, `cargo test --workspace` **607 qua / 0 lỗi / 6 ignored, không skip**; frontend 657 test / 91 file, typecheck, eslint, prettier sạch.
+- Chưa kiểm được: job Linux/macOS (máy không có trình biên dịch C cho cross-check `ring`/`sqlite`) — 2 job này trước giờ chưa qua bước clippy nên `cargo test` sẽ chạy lần đầu ở đó. Cần push để xác nhận. Chưa làm: E2E WebdriverIO + `tauri-driver`.
+
+**5.2 — Kiểm chứng thật các luồng ghi chưa thử (dùng tài khoản/repo thử nghiệm)**
+- Phase 4: tạo PR/MR (cả từ fork), bình luận theo dòng, review approve/request changes, merge 3 kiểu, checkout PR từ fork, tạo/đóng issue, tạo nhánh từ issue, Fork & clone + `upstream`, "Fork repo này".
+- Phase 3: lock/unlock LFS với GitHub và GitLab thật, ký commit qua form identity (GPG + SSH) và badge Verified trên web, submodule riêng tư qua mạng với tài khoản.
+- Phase 3B: thêm tài khoản từ gh/glab thật, "Cài giúp tôi" (winget) trên máy sạch, luồng cập nhật thật 0.1.0 → 0.1.1 (cả kênh beta), đổi thư mục dữ liệu với dữ liệu thật.
+- GitLab self-hosted (một instance thử, vd. GitLab CE trong Docker): đăng nhập PKCE/PAT, clone, push, MR, pipeline.
+- Lấp khoảng trống đã biết: MR merge kiểu rebase, tạo MR từ fork sang project gốc, "request changes" trên GitLab, resolve luồng / sửa-xóa comment, đánh dấu draft là sẵn sàng.
+- ✅ Tiêu chí: mỗi luồng có ghi chép kết quả (ảnh + log) trong PLAN; lỗi tìm thấy được sửa và có test hồi quy.
+
+**5.3 — macOS (và Linux) ngang Windows**
+- Build `.dmg` universal trên CI, cài theo `INSTALL-macOS.md` trên macOS 14 và 15, bổ sung ảnh chụp. Kiểm: keychain (hỏi lại quyền sau update ad-hoc), sidecar `nanomgg-credential` trong bundle, terminal (`$SHELL -l`), SSH key quyền 0600, git của Xcode CLT / Homebrew.
+- **PATH khi mở từ Finder** thiếu `/opt/homebrew/bin`, `/usr/local/bin` → git-lfs/gh/glab cài bằng brew không được thấy: lấy PATH từ login shell một lần lúc khởi động (hoặc dò các vị trí chuẩn), dùng chung cho mọi lệnh con.
+- Onboarding "Cài giúp tôi" trên macOS (`xcode-select --install`, `brew install`), nhận diện lỗi winget/brew không phụ thuộc ngôn ngữ (exit code thay vì chữ tiếng Anh).
+- Linux (AppImage/deb): smoke test trên Ubuntu LTS, Secret Service cho keychain.
+- ✅ Tiêu chí: checklist cài đặt §11 qua trên Windows 10/11 + macOS 14/15, không có lỗi chặn.
+
+**5.4 — Hiệu năng & độ ổn định**
+- Benchmark repo lớn (linux / chromium clone nông, repo LFS hàng chục GB): mở repo, graph, status, diff lớn, blame; đặt ngưỡng trong CI (fail khi chậm đi). Startup < 1,5 s, RAM khi rảnh mục tiêu < 300 MB.
+- Graph: giữ 60 fps với 100k+ commit sau các thay đổi Phase 3–4 (cột co giãn, tooltip); cân nhắc `gix` cho status/log nếu đo thấy nghẽn (ADR 0002).
+- Watcher trên repo lớn (node_modules, build): giới hạn sự kiện, không quét lại toàn bộ.
+- Mạng: gom request API (PR list đang gọi `pull_reviews` từng dòng), tôn trọng rate limit, backoff; token hết hạn lúc khởi động → làm mới **trước** lệnh git đầu tiên (hiện chờ vòng nền đầu tiên sau 15 s).
+- Tự fetch nền: cho cấu hình trong Settings (bật/tắt, chu kỳ, prune), tùy chọn cho remote chưa gắn tài khoản (chỉ khi helper hệ thống không bật hộp thoại).
+- Crash/hang: bắt panic ở command Rust thành lỗi có thông báo; "Gửi báo lỗi" đóng gói log đã redact (không gửi tự động).
+- ✅ Tiêu chí: số đo ghi vào PLAN, benchmark trong CI, không có hang đã biết.
+
+**5.5 — Trải nghiệm & accessibility**
+- Hiển thị Markdown cho mô tả PR/issue/comment bằng thư viện nhỏ + sanitize (hiện chỉ text thường), ảnh qua `https:`.
+- Trạng thái đồng bộ của commit: dòng "Đã có trên origin/main ✓ / Chưa push" trong "Chi tiết commit", đánh dấu nhẹ các commit chưa push trên graph (bổ sung cho badge ↑/↓ của 4.5).
+- Phím tắt tùy biến (Settings → Phím tắt, phát hiện trùng), cheat sheet `?`.
+- Accessibility: điều hướng bàn phím toàn app, focus ring, ARIA cho graph canvas (hàng ảo hóa đọc được bằng screen reader), kiểm tra với NVDA / VoiceOver; tương phản đã có test.
+- Rà lại i18n (chuỗi cứng còn sót, số nhiều tiếng Anh), thông báo lỗi nào cũng có "cách sửa".
+- ✅ Tiêu chí: audit accessibility không còn lỗi mức A; người mới làm được các việc chính chỉ bằng bàn phím.
+
+**5.6 — Phát hành: ký số, cập nhật, tài liệu**
+- Windows ký qua SignPath (luồng 2 vòng exe → installer trong `release.yml`), kiểm SmartScreen; `.sig` updater khớp installer đã ký.
+- Bật updater thật (pubkey + repo), thử kênh stable/beta, "Bỏ qua bản này", cập nhật từ bản không ký → bản ký.
+- Tài liệu người dùng (vi + en): bắt đầu nhanh, đa tài khoản, LFS, xung đột, PR/MR, FAQ cài đặt (SmartScreen, Gatekeeper, keychain sau update), xử lý sự cố; ảnh chụp trong `docs/images/`. README cập nhật ảnh/GIF.
+- Pháp lý & cộng đồng: kiểm tra license phụ thuộc (`cargo deny`, `pnpm licenses`), `NOTICE` đầy đủ, issue templates, roadmap công khai.
+- ✅ Tiêu chí: tag `v1.0.0` → draft release đủ `.exe`/`.msi` (đã ký), `.dmg`, Linux, `latest.json`, `SHA256SUMS.txt`; cài mới + cập nhật từ bản cũ đều qua.
+
+**5.7 — Beta công khai → v1.0** — ⏭️ bỏ: người dùng quyết định công khai thẳng bản `v1.0.0` (kênh beta vẫn có sẵn cho các bản sau).
+- 🚀 **v1.0.0** (2026-10-15): version `1.0.0` (`pnpm release:version`), CHANGELOG mục `[1.0.0]` (+ `[Unreleased]` trống, link so sánh; `release.yml` dừng đọc ghi chú ở dòng link), README badge `v1.0.0` / `stable` và link Releases.
+- **Bundle identifier chốt `io.github.congluuit.nanomultiplegitgui`** (`tauri.conf.json`). Lần đầu chạy, `app_paths::migrate_legacy_identifier` chép DB + SSH key + `locations.json` từ thư mục của identifier cũ `io.github.nanomgg.nanomultiplegitgui` sang thư mục mới (chỉ khi thư mục mới chưa có DB; thư mục cũ giữ nguyên; đường dẫn SSH key trong DB được viết lại như khi đổi thư mục dữ liệu). Keychain dùng service cố định `nanomgg` nên token không mất. Không chép: localStorage của WebView (độ rộng cột, cache theme — tự tạo lại). Bản cài cũ trên Windows là một mục cài đặt riêng (identifier khác): gỡ bản cũ bằng Settings → Apps. Test: `data_of_the_old_identifier_is_copied_once`, `fresh_install_without_old_data_does_nothing`.
+- `repository` / `homepage` điền trong `package.json` và `Cargo.toml`.
+
+**Còn lại sau v1.0** (thấy được từ repo ngày 2026-10-15; các mục 5.2–5.6 khác người dùng xác nhận đã kiểm):
+- E2E tự động (WebdriverIO + `tauri-driver`) và benchmark trong CI chưa có.
+- `docs/images/` còn trống: hướng dẫn cài chưa có ảnh chụp; chưa có tài liệu người dùng riêng (bắt đầu nhanh, đa tài khoản, LFS, xung đột, FAQ).
+- Ký Windows qua SignPath chưa bật (bản đầu phát hành chưa ký, kèm hướng dẫn SmartScreen); kiểm license phụ thuộc (`cargo deny`, `pnpm licenses`) chưa cấu hình.
+- Kênh liên hệ trong `CODE_OF_CONDUCT.md` vẫn là `[INSERT CONTACT METHOD]`.
+- Hide / Pin to Left / Solo trên graph, Apply/Create patch.
+
+Thứ tự đề xuất: 5.1 → (5.2 ∥ 5.3) → 5.4 → 5.5 → 5.6 → 5.7. Có thể chạy song song bằng sub-agent theo nhóm file như các phase trước (tối đa 3 agent một lần).
 
 ### Sau v1.0
 - Bitbucket, Gitea/Forgejo, Azure DevOps.
@@ -1022,7 +1114,7 @@ Nền chung (điều phối): `hosting.rs` (remote → dự án trên GitHub/Git
 | Hủy tiến trình trên Windows | **Windows Job Object** (2026-10-14): hủy fetch/pull/push/LFS giết cả cây tiến trình, kể cả con của hook qua MSYS. Được thêm dependency và cho phép `unsafe` trong đúng một module nếu cần, chỉ dùng API Job Object chuẩn (không gây nhận diện nhầm của Windows Defender) |
 
 ### 13.2 Còn cần chốt
-1. Tài khoản/tổ chức GitHub sẽ chứa repo — người dùng sẽ tự tạo và upload sau. Khi có: đổi bundle identifier (đang tạm `io.github.nanomgg.nanomultiplegitgui`), điền `repository` trong Cargo/package.json, thay `OWNER/REPO` trong `.github/release-notes.md`, đăng ký OAuth app GitHub/GitLab.
+1. ✅ (2026-10-15) Repo chính thức `congluuit/NANOMultipleGitGUI`: bundle identifier `io.github.congluuit.nanomultiplegitgui`, `repository` trong Cargo/package.json, `.github/release-notes.md` đã trỏ đúng repo; OAuth app GitHub do người dùng đăng ký (client ID trong `.env` / variable CI).
 2. Kênh liên hệ cho Code of Conduct (email hoặc kênh riêng của maintainer) — điền vào `[INSERT CONTACT METHOD]`.
 3. **OAuth app** dưới tổ chức của dự án (cần cho đăng nhập bằng trình duyệt; PAT dùng được ngay không cần):
    - GitHub: Settings → Developer settings → OAuth Apps → New, **bật "Enable Device Flow"**, không cần client secret → điền Client ID vào provider GitHub trong app (tab Máy chủ) hoặc nhúng lúc build qua `NANOMGG_GITHUB_OAUTH_CLIENT_ID` (biến môi trường khi chạy `pnpm dev`/`tauri build`; trên CI là repo variable cùng tên, `release.yml` đã đọc sẵn). Khi lấy được mã, wizard tự chép mã và mở `github.com/login/device` (2026-10-14).

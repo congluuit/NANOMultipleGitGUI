@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
+import { expandHex } from "@/theme/color";
 import { CONTRAST_RULES, contrastRatio } from "@/theme/contrast";
 import type { ResolvedTheme } from "@/theme/theme";
 import { COLOR_TOKENS, LANE_TOKENS, type TokenMap } from "@/theme/tokens";
@@ -16,7 +17,7 @@ function useTokenValues(ref: React.RefObject<HTMLElement | null>): TokenMap {
     const style = getComputedStyle(ref.current);
     const map: TokenMap = {};
     for (const token of [...COLOR_TOKENS, ...LANE_TOKENS]) {
-      map[token] = style.getPropertyValue(token).trim();
+      map[token] = expandHex(style.getPropertyValue(token).trim());
     }
     setValues(map);
   }, [ref]);
@@ -106,14 +107,22 @@ function ThemeColumn({ theme }: { theme: ResolvedTheme }) {
               const fg = values[rule.fg];
               const bg = values[rule.bg];
               if (!fg || !bg) return null;
-              const ratio = contrastRatio(fg, bg);
+              // An unexpected color format must not take the whole page down.
+              let ratio = Number.NaN;
+              try {
+                ratio = contrastRatio(fg, bg);
+              } catch {
+                /* shown as "—" */
+              }
               const pass = ratio >= rule.min;
               return (
                 <tr key={`${rule.fg}-${rule.bg}`} className="border-b last:border-0">
                   <td className="py-0.5 font-mono">
                     {rule.fg} / {rule.bg}
                   </td>
-                  <td className="text-right tabular-nums">{ratio.toFixed(2)}</td>
+                  <td className="text-right tabular-nums">
+                    {Number.isNaN(ratio) ? "—" : ratio.toFixed(2)}
+                  </td>
                   <td className="text-right text-muted-foreground">≥ {rule.min}</td>
                   <td className={cn("pl-2 text-right", pass ? "text-success" : "text-danger")}>
                     {pass ? <Check className="inline size-3" /> : <X className="inline size-3" />}{" "}

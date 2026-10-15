@@ -11,7 +11,14 @@ export type RebaseDialog =
       /** Branch to rebase; `null` = the current one. */
       branch: string | null;
     }
-  | { kind: "interactive"; repoId: number; base: string; baseLabel: string };
+  | {
+      kind: "interactive";
+      repoId: number;
+      base: string;
+      baseLabel: string;
+      /** Commit whose action starts as `drop` / `reword` ("Drop commit", "Edit message"). */
+      preset?: { oid: string; action: "drop" | "reword" };
+    };
 
 interface RebaseDialogStore {
   dialog: RebaseDialog | null;

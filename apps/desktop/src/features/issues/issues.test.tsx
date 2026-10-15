@@ -317,4 +317,37 @@ describe("# suggestions", () => {
     await user.keyboard("{Shift>}{Enter}{/Shift}");
     expect(input).toHaveValue("Fix #12 Closes #30 ");
   });
+
+  it("keeps keys typed right after an insertion in order (no frame in between)", async () => {
+    queryClient.setQueryData(issueKeys.remotes(1), [remote]);
+    queryClient.setQueryData(issueKeys.open(1), {
+      page: { items: [issue(12, "Login lỗi")], nextPage: null, total: null },
+      accountId: "acc1",
+      fullName: "acme/game",
+      remote: "origin",
+    } satisfies IssueListResult);
+    // Animation frames only run when the test says so (a slow CI machine ran one mid-typing).
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      frames.push(cb);
+      return frames.length;
+    });
+    try {
+      const user = userEvent.setup();
+      render(
+        <QueryClientProvider client={queryClient}>
+          <SuggestHarness />
+        </QueryClientProvider>,
+      );
+      const input = screen.getByLabelText("summary");
+      await user.type(input, "Fix #12");
+      await user.keyboard("{Enter}");
+      await user.keyboard("a");
+      for (const cb of frames.splice(0)) cb(0);
+      await user.keyboard("b");
+      expect(input).toHaveValue("Fix #12 ab");
+    } finally {
+      raf.mockRestore();
+    }
+  });
 });

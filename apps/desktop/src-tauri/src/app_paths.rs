@@ -164,6 +164,67 @@ impl AppPaths {
     }
 }
 
+/// Bundle identifiers of earlier builds: the OS derives the app folders from the identifier,
+/// so data written under one of these is copied over once (see [`migrate_legacy_identifier`]).
+const LEGACY_IDENTIFIERS: &[&str] = &["io.github.nanomgg.nanomultiplegitgui"];
+const DB_FILE: &str = "nanomgg.db";
+
+/// First start after the bundle identifier changed (pre-1.0 builds used a placeholder): copies
+/// the database, SSH keys and `locations.json` of the old folders into the new ones. The old
+/// folders are left as they were. The OS keychain does not depend on the identifier. Runs
+/// before logging starts, so the caller logs the outcome.
+pub fn migrate_legacy_identifier(
+    app: &AppHandle,
+) -> Result<Option<nanomgg_app_paths::DataMoved>, String> {
+    let path = app.path();
+    let data = path.app_data_dir().map_err(|e| e.to_string())?;
+    let local = path.app_local_data_dir().map_err(|e| e.to_string())?;
+    migrate_legacy_from(&data, &local, LEGACY_IDENTIFIERS)
+}
+
+fn migrate_legacy_from(
+    data: &Path,
+    local: &Path,
+    legacy: &[&str],
+) -> Result<Option<nanomgg_app_paths::DataMoved>, String> {
+    if data.join(DB_FILE).exists() || local.join(POINTER_FILE).exists() {
+        return Ok(None);
+    }
+    for id in legacy {
+        let (old_data, old_local) = (data.with_file_name(id), local.with_file_name(id));
+        let old_pointer = old_local.join(POINTER_FILE);
+        let has_db = old_data.join(DB_FILE).is_file();
+        if !has_db && !old_pointer.is_file() {
+            continue;
+        }
+        let mut moved = None;
+        if has_db {
+            // On macOS the data and local folders are the same one.
+            let exclude = [
+                old_pointer.clone(),
+                old_local.join("cache"),
+                old_local.join("EBWebView"),
+            ];
+            let tree = nanomgg_app_paths::copy_tree(&old_data, data, &exclude, &mut |_| {})
+                .map_err(|e| format!("could not copy {}: {e}", old_data.display()))?;
+            restrict_ssh_keys(data);
+            moved = Some(nanomgg_app_paths::DataMoved {
+                from: tree.from,
+                to: tree.to,
+            });
+        }
+        // Copied last: its presence marks the migration as done. When the user had moved the
+        // data folder elsewhere, the pointer alone keeps the app using it.
+        if old_pointer.is_file() {
+            std::fs::create_dir_all(local)
+                .and_then(|()| std::fs::copy(&old_pointer, local.join(POINTER_FILE)))
+                .map_err(|e| format!("could not copy {}: {e}", old_pointer.display()))?;
+        }
+        return Ok(moved);
+    }
+    Ok(None)
+}
+
 /// Copying does not keep the user-only ACL of the key files: re-apply it on the new copies.
 fn restrict_ssh_keys(data_dir: &Path) {
     let store = nanomgg_ssh_keys::KeyStore::new(data_dir);
@@ -786,6 +847,60 @@ mod tests {
         );
         assert!(!paths.defaults.data.join("nanomgg.db").exists());
         assert_eq!(status_impl(&again).pending_data, None);
+    }
+
+    #[test]
+    fn data_of_the_old_identifier_is_copied_once() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (roaming, local) = (tmp.path().join("Roaming"), tmp.path().join("Local"));
+        let old_data = roaming.join("old.id");
+        std::fs::create_dir_all(old_data.join("ssh")).unwrap();
+        std::fs::write(old_data.join(DB_FILE), "db").unwrap();
+        std::fs::write(old_data.join("ssh").join("k1"), "key").unwrap();
+        std::fs::create_dir_all(local.join("old.id")).unwrap();
+        std::fs::write(local.join("old.id").join(POINTER_FILE), "{}").unwrap();
+        let (data, new_local) = (roaming.join("new.id"), local.join("new.id"));
+
+        let moved = migrate_legacy_from(&data, &new_local, &["old.id"])
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            (moved.from, moved.to.clone()),
+            (old_data.clone(), data.clone())
+        );
+        assert_eq!(std::fs::read_to_string(data.join(DB_FILE)).unwrap(), "db");
+        assert_eq!(
+            std::fs::read_to_string(data.join("ssh").join("k1")).unwrap(),
+            "key"
+        );
+        assert!(new_local.join(POINTER_FILE).is_file());
+        // The old folder stays; a second start does nothing.
+        assert!(old_data.join(DB_FILE).is_file());
+        std::fs::write(data.join(DB_FILE), "newer").unwrap();
+        assert!(
+            migrate_legacy_from(&data, &new_local, &["old.id"])
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            std::fs::read_to_string(data.join(DB_FILE)).unwrap(),
+            "newer"
+        );
+    }
+
+    #[test]
+    fn fresh_install_without_old_data_does_nothing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (data, local) = (
+            tmp.path().join("R").join("new.id"),
+            tmp.path().join("L").join("new.id"),
+        );
+        assert!(
+            migrate_legacy_from(&data, &local, &["old.id"])
+                .unwrap()
+                .is_none()
+        );
+        assert!(!data.exists());
     }
 
     #[test]

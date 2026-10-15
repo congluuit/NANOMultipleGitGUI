@@ -4,6 +4,7 @@ import { settleOneShot, type OneShot } from "@/features/accounts/switcher/oneSho
 import { failureText, runOutcome } from "@/features/commits/outcome";
 import { cancelQueued } from "@/features/transfers/actions";
 import { useTransferQueueEvents } from "@/features/transfers/events";
+import type { Notice } from "@/stores/ui";
 import {
   selectRepoRunning,
   setRetry,
@@ -36,7 +37,7 @@ export async function startTransfer<T>(
   repoId: number,
   kind: TransferKind,
   call: (opId: string) => Promise<Outcome<T>>,
-  success: (value: T) => string | null,
+  success: (value: T) => string | Notice | null,
   subject: string | null = null,
   shot: OneShot | null = null,
 ): Promise<T | undefined> {
@@ -64,7 +65,8 @@ export async function startTransfer<T>(
   // later plain Push must not silently run as that account again. Only a cancel gives it back.
   settleOneShot(repoId, shot, out?.status !== "cancelled");
   if (out?.status === "done") {
-    queue.finish(opId, "done", { text: success(out.value) ?? "" });
+    const done = success(out.value);
+    queue.finish(opId, "done", { text: (typeof done === "string" ? done : done?.message) ?? "" });
   } else if (out?.status === "rejected") {
     queue.finish(opId, "failed", { error: failureText(out.reason, out.message) });
   } else if (out?.status === "cancelled") {

@@ -10,8 +10,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AddWorktreeDialog } from "@/features/linked-worktrees/AddWorktreeDialog";
+import { useLinkedWorktrees } from "@/features/linked-worktrees/queries";
 import { isPlausibleBranchName } from "@/features/repos/branchName";
 import { commands, type MergeMode } from "@/ipc";
+import { deleteRemoteBranch } from "./branchActions";
 import { conflictText, runOutcome } from "./outcome";
 import { useRefDialog, type RefDialog } from "./store";
 
@@ -29,6 +32,10 @@ export function RefDialogs() {
       return <NameDialog key={key} dialog={dialog} onClose={close} />;
     case "merge":
       return <MergeDialog key={key} dialog={dialog} onClose={close} />;
+    case "deleteRemoteBranch":
+      return <DeleteRemoteDialog key={key} dialog={dialog} onClose={close} />;
+    case "addWorktree":
+      return <WorktreeFromBranch key={key} dialog={dialog} onClose={close} />;
     default:
       return <ConfirmRefDialog key={key} dialog={dialog} onClose={close} />;
   }
@@ -42,7 +49,8 @@ function NameDialog({ dialog, onClose }: { dialog: NameKind; onClose: () => void
   const [checkout, setCheckout] = useState(true);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const valid = isPlausibleBranchName(name);
+  const annotated = dialog.kind === "createTag" && !!dialog.annotated;
+  const valid = isPlausibleBranchName(name) && (!annotated || message.trim().length > 0);
   const { repoId } = dialog;
 
   const submit = async () => {
@@ -78,7 +86,9 @@ function NameDialog({ dialog, onClose }: { dialog: NameKind; onClose: () => void
     dialog.kind === "createBranch"
       ? t("refs.createBranchTitle", { at: dialog.label })
       : dialog.kind === "createTag"
-        ? t("refs.createTagTitle", { at: dialog.label })
+        ? t(annotated ? "branchMenu.annotatedTagTitle" : "refs.createTagTitle", {
+            at: dialog.label,
+          })
         : t("refs.renameTitle", { name: dialog.name });
 
   return (
@@ -122,7 +132,7 @@ function NameDialog({ dialog, onClose }: { dialog: NameKind; onClose: () => void
           {dialog.kind === "createTag" && (
             <>
               <label htmlFor="tag-message" className="text-xs font-semibold">
-                {t("refs.tagMessage")}
+                {annotated ? t("branchMenu.tagMessageRequired") : t("refs.tagMessage")}
               </label>
               <textarea
                 id="tag-message"
@@ -286,6 +296,73 @@ function ConfirmRefDialog({ dialog, onClose }: { dialog: ConfirmKind; onClose: (
       busy={busy}
       onConfirm={() => void confirm()}
       onCancel={onClose}
+    />
+  );
+}
+
+function DeleteRemoteDialog({
+  dialog,
+  onClose,
+}: {
+  dialog: Extract<RefDialog, { kind: "deleteRemoteBranch" }>;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const { repoId, remote, branch, local } = dialog;
+  const full = `${remote}/${branch}`;
+
+  const confirm = async () => {
+    setBusy(true);
+    if (local) {
+      const ok = await runOutcome(
+        repoId,
+        () => commands.branchDelete(repoId, local, true),
+        () => null,
+      );
+      if (ok === undefined) {
+        setBusy(false);
+        return;
+      }
+    }
+    onClose();
+    await deleteRemoteBranch(repoId, remote, branch);
+  };
+
+  return (
+    <ConfirmDialog
+      open
+      title={
+        local
+          ? t("branchMenu.deleteBothTitle", { name: local, remote: full })
+          : t("branchMenu.deleteRemoteTitle", { name: full })
+      }
+      description={t("branchMenu.deleteRemoteBody", { name: full, remote })}
+      confirmLabel={t("refs.delete")}
+      destructive
+      busy={busy}
+      onConfirm={() => void confirm()}
+      onCancel={onClose}
+    />
+  );
+}
+
+function WorktreeFromBranch({
+  dialog,
+  onClose,
+}: {
+  dialog: Extract<RefDialog, { kind: "addWorktree" }>;
+  onClose: () => void;
+}) {
+  const list = useLinkedWorktrees(dialog.repoId);
+  if (!list.data) return null;
+  return (
+    <AddWorktreeDialog
+      repoId={dialog.repoId}
+      worktrees={list.data}
+      open
+      initialBranch={dialog.branch}
+      onClose={onClose}
     />
   );
 }

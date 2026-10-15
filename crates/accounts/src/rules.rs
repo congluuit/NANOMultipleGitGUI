@@ -28,6 +28,12 @@ pub struct MatchOptions {
     pub home_dir: Option<String>,
 }
 
+// On Linux the `cfg!` below is `false`, so clippy sees an all-default impl there; a derive
+// would silently make paths case-sensitive on Windows and macOS.
+#[allow(
+    clippy::derivable_impls,
+    reason = "the default depends on the target platform"
+)]
 impl Default for MatchOptions {
     fn default() -> Self {
         Self {

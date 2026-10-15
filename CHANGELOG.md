@@ -5,18 +5,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-15
+
+First public release.
+
 ### Added
 
 - Monorepo scaffold: Tauri 2 desktop app (React 19 + TypeScript + Vite) and a Cargo workspace of crates.
 - Design tokens for Light / Dark / System themes (warm stone + ember palette) with automated WCAG AA contrast tests and a palette preview page.
-- Main window layout shell (account pill, repo tabs, toolbar, sidebar, commit panel, status bar) with sample data.
+- Main window: account pill, repository tabs, toolbar, sidebar, commit panel and status bar.
 - Vietnamese and English UI (i18next).
 - Typed IPC bindings generated with tauri-specta.
 - SQLite storage with schema migrations; settings persisted in the database.
 - Logging to rotating files with redaction of tokens, `Authorization` headers and URL credentials.
 - CI (lint, typecheck, tests on Windows/macOS/Linux) and a release workflow producing `.exe`/`.msi`, universal `.dmg` (ad-hoc signed) and Linux packages with SHA-256 checksums; optional SignPath signing.
 - Install guides for macOS and Windows, contributor and security documentation, ADR-001 to ADR-004.
-- Prototypes: `nanomgg-credential` helper with per-account HTTPS credentials (incl. Git LFS) and a virtualized canvas commit graph.
+- `nanomgg-credential` helper giving git and Git LFS per-account HTTPS credentials, and a virtualized canvas commit graph that stays smooth with 100k+ commits.
 - Open existing repositories (from any subfolder) and create new ones with a chosen initial branch; a folder that is not a repository offers to initialize it.
 - Repository tabs that are restored on the next launch, including a recovery screen when a repository folder has moved or disappeared.
 - Recent repositories on the welcome screen and in the new-tab menu.
@@ -65,7 +69,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Pull requests (GitHub) and merge requests (GitLab) per account: list with filters in the sidebar, details with description, timeline, commits and changed files, comments (also on lines), reviews, merge (merge / squash / rebase, delete the source branch), close / reopen, create from a branch (offers to push first), and check out a PR/MR branch — also from forks.
 - Issues per repository: list, view, comment, create, close / reopen, labels and assignees, create a branch from an issue; `#` suggestions in the commit message and clickable `#123` / `!12` in commit details.
 - "My work" panel gathering, across all signed-in accounts, the PRs/MRs waiting for your review, your own PRs/MRs and the issues assigned to you.
-- CI status (GitHub Actions checks and statuses, GitLab pipelines) on the commit graph, in commit details with each job and a link to its log, in the status bar for HEAD and on pull requests.
+- CI status (GitHub Actions checks and statuses, GitLab pipelines) in commit details with each job and a link to its log, in the status bar for HEAD and on pull requests, with a note that CI runs after a push and does not tell whether the push worked. **Off by default**: Settings → "Show CI" turns it on; while off nothing about CI is shown or queried.
+- Commit graph styled for quick reading: a "Branch / Tag" column on the left with one lane-colored pill per commit (local and remote branch merged into one pill with laptop / cloud icons, ✓ on the checked-out branch, "+N" for more refs), a connector line to the node, a faint lane-colored row band, and author avatars on commit nodes (GitHub noreply addresses, your accounts, Gravatar; initials when unavailable or when Settings → "Author avatars" is off).
+- Branch context menu (sidebar and graph labels): pull (fast-forward if possible, also for a branch that is not checked out), push any branch, set / remove upstream, checkout, create worktree, create branch here, reset, edit commit message, drop commit, revert, merge / rebase, push and start a pull request, rename, delete the branch, its remote branch or both, copy branch name / SHA / web links, create tag or annotated tag. Commit menu gains edit message, drop commit, copy web link and annotated tag.
+- The Push and Pull buttons show how many commits wait to be pushed (↑N) or pulled (↓N); pushing a branch that misses commits from its upstream offers "Pull, then push".
+- The remotes of the open repository are fetched in the background (on open, every 5 minutes and when the window regains focus) for remotes bound to an account, so the ↓N count stays current.
+- A successful push shows a green message with the number of commits, the target branch and the account used.
 - Fork & clone (fork to your account or an organization, clone the fork, add `upstream`) and "Fork this repository" for an open repository.
 - Every provider action shows the account it runs as and can use another account for that action only.
 - Graph columns can be resized (double-click a handle to restore), the message column is the widest by default, and hovering a cut-off message, author or date shows the full text.
@@ -73,6 +82,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- The bundle identifier is now `io.github.congluuit.nanomultiplegitgui` (app folders follow it). On the first start, data from earlier test builds (accounts, settings, SSH keys, storage locations) is copied over automatically; sign-in tokens stay in the OS keychain.
 - The app icon now uses the project's artwork (`apps/desktop/src-tauri/icons/app-icon.png` is the source for all sizes).
 - The file watcher ignores changes to files matched by `.gitignore` (build output, `node_modules`...).
 - Dialogs scroll inside the window instead of overflowing it; the graph hides the Author and then the Date column on narrow windows.
@@ -83,6 +93,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- Settings → "View palette" no longer shows a blank window in release builds: the contrast check rejected the short `#fff` colors produced by the minified CSS.
+- Closing a terminal on Windows 10 before it finished starting no longer hangs (the console host waited for a cursor-position answer); this also fixes opening a new terminal after closing all of them.
+- Typing right after picking an issue from the `#` suggestions no longer puts the next characters before the inserted reference.
+- Worktree actions work when the folder is given through a Windows short name (`RUNNER~1`) or a symlink.
 - Two history refreshes arriving together (file watcher and UI) no longer reload the whole history and reset the graph version.
 - Cancelling fetch, pull, push or an LFS transfer on Windows now also stops processes started by hooks (Windows Job Object).
 - An HTTP 403 from the server is reported as missing permission instead of a connection problem.
@@ -91,3 +105,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Backup refs made before history rewrites are no longer drawn in the commit graph.
 - Buttons no longer disappear when the window is made smaller, and the file list of the Changes panel keeps its space on short windows.
 - GitHub accounts signed in through the browser no longer ask to sign in again right after signing in (and every 8 hours): their expiring tokens are now refreshed automatically, like GitLab's.
+
+[Unreleased]: https://github.com/congluuit/NANOMultipleGitGUI/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/congluuit/NANOMultipleGitGUI/releases/tag/v1.0.0

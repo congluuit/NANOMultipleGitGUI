@@ -8,6 +8,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { useRepoRefs } from "@/features/repos/queries";
 import { primaryRemote } from "@/features/repos/refsView";
 import { commands, type CiBatch, type CiEntry, type CiProblem } from "@/ipc";
+import { useSettings } from "@/stores/settings";
 import { entriesBySha, hasPending, MAX_CI_COMMITS, PENDING_REFRESH_MS } from "./model";
 
 export const ciKeys = {
@@ -18,6 +19,9 @@ export const ciKeys = {
   project: (accountId: string, fullName: string, sha: string) =>
     ["ci", "project", accountId, fullName, sha] as const,
 };
+
+/** Whether the user turned CI on in Settings (off by default); when off nothing is queried. */
+export const useCiEnabled = () => useSettings((s) => s.ciEnabled);
 
 const refetch = (q: { state: { data?: CiBatch } }) =>
   hasPending(q.state.data) ? PENDING_REFRESH_MS : false;
@@ -46,53 +50,59 @@ export function useCiStatuses(repoId: number | null, hashes: readonly string[]):
     [hashes],
   );
   const key = shas.join(",");
+  const on = useCiEnabled();
   const query = useQuery({
     queryKey: ciKeys.statuses(repoId ?? -1, remote, false, key),
     queryFn: () => commands.ciStatuses(repoId!, shas, remote, false),
-    enabled: isTauri() && repoId !== null && shas.length > 0,
+    enabled: on && isTauri() && repoId !== null && shas.length > 0,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
     refetchInterval: refetch,
     retry: false,
   });
-  const bySha = useMemo(() => entriesBySha(query.data), [query.data]);
-  return { bySha, problem: query.data?.problem ?? null, isLoading: query.isLoading };
+  const data = on ? query.data : undefined;
+  const bySha = useMemo(() => entriesBySha(data), [data]);
+  return { bySha, problem: data?.problem ?? null, isLoading: on && query.isLoading };
 }
 
 /** CI of one commit of an open repository, with its jobs (commit details, status bar). */
 export function useCiStatus(repoId: number | null, sha: string | null | undefined) {
   const remote = useCiRemote(repoId);
   const id = sha?.toLowerCase() ?? "";
+  const on = useCiEnabled();
   const query = useQuery({
     queryKey: ciKeys.statuses(repoId ?? -1, remote, true, id),
     queryFn: () => commands.ciStatuses(repoId!, [id], remote, true),
-    enabled: isTauri() && repoId !== null && id.length >= 7,
+    enabled: on && isTauri() && repoId !== null && id.length >= 7,
     staleTime: 15_000,
     refetchInterval: refetch,
     retry: false,
   });
+  const data = on ? query.data : undefined;
   return {
-    entry: query.data?.entries[0] ?? null,
-    problem: query.data?.problem ?? null,
-    isLoading: query.isLoading,
-    error: query.error,
+    entry: data?.entries[0] ?? null,
+    problem: data?.problem ?? null,
+    isLoading: on && query.isLoading,
+    error: on ? query.error : null,
   };
 }
 
 /** CI of one commit of any project read with `accountId` (PR / MR pages). */
 export function useCiStatusFor(accountId: string, fullName: string, sha: string) {
+  const on = useCiEnabled();
   const query = useQuery({
     queryKey: ciKeys.project(accountId, fullName, sha.toLowerCase()),
     queryFn: () => commands.ciStatusFor(accountId, fullName, sha),
-    enabled: isTauri() && accountId.length > 0 && fullName.length > 0 && sha.length >= 7,
+    enabled: on && isTauri() && accountId.length > 0 && fullName.length > 0 && sha.length >= 7,
     staleTime: 15_000,
     refetchInterval: refetch,
     retry: false,
   });
+  const data = on ? query.data : undefined;
   return {
-    entry: query.data?.entries[0] ?? null,
-    problem: query.data?.problem ?? null,
-    isLoading: query.isLoading,
-    error: query.error,
+    entry: data?.entries[0] ?? null,
+    problem: data?.problem ?? null,
+    isLoading: on && query.isLoading,
+    error: on ? query.error : null,
   };
 }

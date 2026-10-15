@@ -3,10 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { initI18n } from "@/i18n";
-import { commands, type GraphRow, type Outcome } from "@/ipc";
+import { commands, type GraphRow, type HostedRemote, type Outcome, type RepoRefs } from "@/ipc";
+import { issueKeys } from "@/features/issues/queries";
+import { useRebaseDialog } from "@/features/rebase/store";
+import { branchPushPlan } from "@/features/remote/plan";
+import { repoKeys } from "@/features/repos/queries";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { useUi } from "@/stores/ui";
+import { webBranchUrl, webCommitUrl } from "./branchActions";
 import { CommitMenuContent } from "./CommitMenu";
+import { RefMenuContent } from "./RefMenu";
 import { conflictText, failureText, runOutcome } from "./outcome";
 import { RefDialogs } from "./RefDialogs";
 import { useRefDialog } from "./store";
@@ -30,8 +36,50 @@ const row: GraphRow = {
   segments: [],
 };
 
-function wrap(ui: React.ReactNode) {
-  return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
+const refs: RepoRefs = {
+  head: { branch: "main", oid: row.hash, detached: false, unborn: false },
+  local: [
+    {
+      name: "main",
+      oid: row.hash,
+      upstream: "origin/main",
+      ahead: 0,
+      behind: 0,
+      upstreamGone: false,
+      isHead: true,
+    },
+    {
+      name: "topic",
+      oid: row.hash,
+      upstream: null,
+      ahead: 0,
+      behind: 0,
+      upstreamGone: false,
+      isHead: false,
+    },
+  ],
+  remotes: [
+    {
+      name: "origin",
+      url: "https://github.com/o/r.git",
+      branches: [{ name: "main", oid: row.hash }],
+    },
+  ],
+  tags: [],
+  stashes: [],
+};
+
+const github: HostedRemote = {
+  remote: "origin",
+  host: "github.com",
+  fullName: "o/r",
+  accountId: "a",
+  family: "github",
+  hasToken: true,
+};
+
+function wrap(ui: React.ReactNode, client = new QueryClient()) {
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
 describe("outcome helpers", () => {
@@ -99,6 +147,92 @@ describe("commit context menu", () => {
       oid: row.hash,
       label: "abcdef1",
     });
+  });
+});
+
+describe("branch context menu", () => {
+  beforeEach(() => {
+    initI18n("en");
+    useRefDialog.setState({ dialog: null });
+    useRebaseDialog.setState({ dialog: null });
+  });
+
+  const openMenu = async (label: Parameters<typeof RefMenuContent>[0]["label"]) => {
+    const client = new QueryClient();
+    client.setQueryData(repoKeys.refs(1), refs);
+    client.setQueryData(issueKeys.remotes(1), [github]);
+    const user = userEvent.setup();
+    wrap(
+      <ContextMenu>
+        <ContextMenuTrigger>target</ContextMenuTrigger>
+        <RefMenuContent repoId={1} row={row} label={label} />
+      </ContextMenu>,
+      client,
+    );
+    await user.pointer({ keys: "[MouseRight]", target: screen.getByText("target") });
+    return user;
+  };
+
+  it("offers sync, tip-commit, delete and copy actions like other Git clients", async () => {
+    const user = await openMenu({ text: "main", kind: "head" });
+    for (const text of [
+      "Pull (fast-forward if possible)",
+      "Push",
+      "Set upstream",
+      "Create worktree from main…",
+      "Create branch here…",
+      "Edit commit message…",
+      "Revert commit",
+      "Start a pull request from main…",
+      "Rename main…",
+      "Delete origin/main…",
+      "Delete main and origin/main…",
+      "Copy branch name",
+      "Copy link to branch: origin/main",
+      "Copy link to this commit on remote: origin",
+      "Create annotated tag here…",
+    ]) {
+      expect(screen.getByText(text)).toBeInTheDocument();
+    }
+    // The checked-out branch cannot be deleted locally.
+    expect(screen.getByText("Delete main…").closest("[role=menuitem]")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await user.click(screen.getByText("Drop commit…"));
+    expect(useRebaseDialog.getState().dialog).toMatchObject({
+      kind: "interactive",
+      base: `${row.hash}~1`,
+      preset: { oid: row.hash, action: "drop" },
+    });
+  });
+
+  it("deletes a branch and its remote branch after confirming", async () => {
+    const user = await openMenu({ text: "topic", kind: "branch" });
+    expect(screen.queryByText(/Delete topic and/)).not.toBeInTheDocument();
+    expect(screen.getByText("Push topic and start a pull request…")).toBeInTheDocument();
+    await user.click(screen.getByText("Delete topic…"));
+    expect(useRefDialog.getState().dialog).toEqual({
+      kind: "deleteBranch",
+      repoId: 1,
+      name: "topic",
+      force: false,
+    });
+  });
+
+  it("builds push plans and web links for any branch", () => {
+    expect(branchPushPlan(refs, "main")).toEqual({
+      remote: "origin",
+      branch: "main",
+      remoteBranch: null,
+      setUpstream: false,
+      forceWithLease: false,
+    });
+    expect(branchPushPlan(refs, "topic")).toMatchObject({ remote: "origin", setUpstream: true });
+    expect(webBranchUrl(github, "feature/x y")).toBe("https://github.com/o/r/tree/feature/x%20y");
+    const gitlab = { ...github, host: "gitlab.acme.dev", family: "gitlab" as const };
+    expect(webBranchUrl(gitlab, "main")).toBe("https://gitlab.acme.dev/o/r/-/tree/main");
+    expect(webCommitUrl(gitlab, "abc")).toBe("https://gitlab.acme.dev/o/r/-/commit/abc");
   });
 });
 

@@ -7,7 +7,7 @@ import { useAccountLabelOf } from "./hooks";
 import { CiChecksList } from "./CiChecksList";
 import { describeCiProblem } from "./errors";
 import { countJobs } from "./model";
-import { useCiStatusFor } from "./queries";
+import { useCiStatusFor, useCiEnabled } from "./queries";
 
 /** Quiet hint for a CI problem with its fix button; nothing when there is nothing to say. */
 export function CiProblemHint({ problem }: { problem: CiProblem | null }) {
@@ -88,7 +88,9 @@ export function CiSummary({
   defaultOpen?: boolean;
 }) {
   const { t } = useTranslation();
+  const on = useCiEnabled();
   const { entry, problem, isLoading } = useCiStatusFor(accountId, fullName, sha);
+  if (!on) return null;
   if (isLoading) {
     return (
       <p className="flex items-center gap-1 text-[11px] text-muted-foreground">

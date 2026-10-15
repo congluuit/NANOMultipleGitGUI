@@ -79,6 +79,9 @@ impl Shell {
     }
 }
 
+// Shell detection helpers: only Windows looks for Git Bash / PowerShell; the pure ones stay
+// compiled for the (platform-independent) unit tests.
+#[cfg(any(windows, test))]
 fn find_in_path(name: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     std::env::split_paths(&path)
@@ -89,6 +92,7 @@ fn find_in_path(name: &str) -> Option<PathBuf> {
 /// `<root>/bin/bash.exe` of a Git for Windows installation found among the ancestors of `path`
 /// (`<root>/mingw64/libexec/git-core`, `<root>/cmd/git.exe`, …). The `usr/bin` check makes sure
 /// it is Git's MSYS2 layout and not some unrelated `bin/bash.exe` (or WSL's `bash.exe`).
+#[cfg(any(windows, test))]
 fn git_bash_near(path: &Path) -> Option<PathBuf> {
     path.ancestors().take(5).find_map(|root| {
         let bash = root.join("bin").join("bash.exe");
@@ -97,6 +101,7 @@ fn git_bash_near(path: &Path) -> Option<PathBuf> {
 }
 
 /// Git Bash from, in order: `git --exec-path`, `git.exe` on `PATH`, the usual install folders.
+#[cfg(any(windows, test))]
 fn find_git_bash(
     exec_path: Option<&Path>,
     git_exe: Option<&Path>,
@@ -108,6 +113,7 @@ fn find_git_bash(
         .or_else(|| install_roots.iter().find_map(|r| git_bash_near(r)))
 }
 
+#[cfg(windows)]
 fn git_exec_path(git: &GitRunner) -> Option<PathBuf> {
     let out = git
         .command(Path::new("."), &AccountContext::default(), ["--exec-path"])
@@ -309,6 +315,10 @@ fn pty_size(cols: u16, rows: u16) -> PtySize {
     }
 }
 
+/// Reply to conhost's start-up cursor query (`ESC[6n`), as xterm.js would send it.
+#[cfg(windows)]
+const CURSOR_POSITION_REPLY: &[u8] = b"\x1b[1;1R";
+
 struct Session {
     master: Box<dyn MasterPty + Send>,
     /// Keystrokes for the writer thread; dropping it ends that thread.
@@ -321,6 +331,14 @@ impl Drop for Session {
         // Kill first, then `master` is dropped, which closes the PTY (ClosePseudoConsole on
         // Windows also terminates every process still attached to it).
         let _ = self.killer.kill();
+        // ConPTY starts conhost with `--inheritcursor`: it first asks the terminal for the
+        // cursor position (`ESC[6n`) and waits for the reply. On Windows 10 that conhost never
+        // exits while the question is unanswered, and ClosePseudoConsole waits for it — so a
+        // session closed before the UI answered (closed at once, webview reloaded, close-all)
+        // blocked the closing thread forever. Answer it here; the writer thread delivers the
+        // reply while `master` is being closed. Once answered, it is discarded with the console.
+        #[cfg(windows)]
+        let _ = self.input.send(CURSOR_POSITION_REPLY.to_vec());
     }
 }
 

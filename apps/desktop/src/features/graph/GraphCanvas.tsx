@@ -1,41 +1,26 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { commands, type GraphRow, type GraphSummary } from "@/ipc";
-import {
-  CI_BADGE_SIZE,
-  ciCandidateHashes,
-  drawCiBadge,
-  readCiColors,
-  useCiStatuses,
-  useCiTooltip,
-  type CiColors,
-} from "@/features/ci";
+import { useAccounts, useIdentities } from "@/features/accounts/queries";
 import { registerDropResolver, startBranchDrag, useDnd } from "@/features/dnd/store";
-import { useRepoRefs } from "@/features/repos/queries";
+import { useSettings } from "@/stores/settings";
 import type { ResolvedTheme } from "@/theme/theme";
+import { accountAvatarMap, AvatarCache } from "./avatars";
 import type { FrameStats } from "./benchmark";
 import { useGraphColumns } from "./columns";
 import {
-  afterLabelsX,
   cellAt,
   cellTooltip,
   columnLayout,
   drawGraph,
-  labelAt,
   labelFont,
   parseRefs,
   readPalette,
-  refLabelBoxes,
+  refAtPoint,
   ROW_HEIGHT,
+  TextWidthCache,
   type Palette,
+  type RefLabel,
 } from "./draw";
 import { nextIndex, scrollTopFor, type ScrollAlign } from "./navigation";
 import { RowCache } from "./rowCache";
@@ -43,8 +28,6 @@ import { RowCache } from "./rowCache";
 const PREFETCH_ROWS = 600;
 /** Hover time before a cut-off cell shows its full text. */
 const TOOLTIP_DELAY_MS = 450;
-/** Commits at the top of the history whose CI status is shown (with every branch tip). */
-const CI_RECENT_ROWS = 20;
 
 export interface GraphCanvasHandle {
   scroller: HTMLDivElement | null;
@@ -67,8 +50,11 @@ interface Props {
   onTopRowChange?: (hash: string) => void;
   /** Called once, when every row of the first screen has been painted. */
   onFirstPaint?: () => void;
-  /** Right-click on a loaded row (it is selected first). */
-  onRowContextMenu?: (index: number, row: GraphRow) => void;
+  /**
+   * Right-click on a loaded row (it is selected first). `ref` = the ref label under the pointer
+   * in the "Branch / Tag" column (the local branch of a merged local + remote pill), if any.
+   */
+  onRowContextMenu?: (index: number, row: GraphRow, ref: RefLabel | null) => void;
   /** Width of the drawing area (without the scrollbar), for the column header. */
   onWidthChange?: (width: number) => void;
 }
@@ -115,23 +101,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const tipTimer = useRef<number | undefined>(undefined);
   const tipKey = useRef("");
-  // CI status badges (PLAN 4.3) for the branch tips and the newest commits.
-  const refs = useRepoRefs(repoId).data;
-  const [recent, setRecent] = useState<{ hash: string }[]>([]);
-  const ciHashes = useMemo(() => ciCandidateHashes(refs, recent), [refs, recent]);
-  const ci = useCiStatuses(repoId, ciHashes);
-  const ciTooltip = useCiTooltip();
-  const ciColorsRef = useRef<CiColors | null>(null);
-  const ciEntry = useCallback((row: GraphRow) => ci.bySha.get(row.hash.toLowerCase()), [ci.bySha]);
-  const decorate = useCallback(
-    (ctx: CanvasRenderingContext2D, x: number, cy: number, row: GraphRow) => {
-      const state = ciEntry(row)?.status.state;
-      if (!state || state === "none") return 0;
-      ciColorsRef.current ??= readCiColors();
-      return drawCiBadge(ctx, x + CI_BADGE_SIZE / 2, cy, state, ciColorsRef.current);
-    },
-    [ciEntry],
-  );
+  // Author avatars on the commit nodes (loaded once per URL, redraw when one arrives).
+  const avatarsOn = useSettings((s) => s.authorAvatars);
+  const accounts = useAccounts().data;
+  const identities = useIdentities(null).data;
+  const [avatars] = useState(() => new AvatarCache({ onLoad: () => schedule() }));
+  const avatarOf = useCallback((email: string) => avatars.get(email), [avatars]);
+  const labelWidthsRef = useRef<TextWidthCache | null>(null);
 
   const scrollToIndex = useCallback((index: number, align: ScrollAlign) => {
     const el = scrollerRef.current;
@@ -161,6 +137,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     paletteRef.current ??= readPalette();
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const labelWidths = labelWidthsFor(paletteRef.current);
 
     const scrollTop = scroller.scrollTop;
     const first = Math.floor(scrollTop / ROW_HEIGHT);
@@ -183,7 +160,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
       locale,
       dropTarget: dragging ? dropTarget : null,
       columns,
-      decorate,
+      avatar: avatarOf,
+      labelWidths,
     });
     statsRef.current.drawMs.push(performance.now() - t);
     if (statsRef.current.drawMs.length > 5000) statsRef.current.drawMs.shift();
@@ -195,11 +173,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     }
     if (!missing && !firstPaintDone.current) {
       firstPaintDone.current = true;
-      setRecent(
-        Array.from({ length: Math.min(CI_RECENT_ROWS, summary.total) }, (_, i) => cache.get(i))
-          .filter((r) => r !== undefined)
-          .map((r) => ({ hash: r.hash })),
-      );
       onFirstPaint?.();
     }
   }, [
@@ -215,7 +188,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     dragging,
     dropTarget,
     columns,
-    decorate,
+    avatarOf,
   ]);
 
   const drawRef = useRef(draw);
@@ -227,12 +200,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     if (!frame.current) frame.current = requestAnimationFrame(() => drawRef.current());
   }
 
+  /** Label-font measurements, kept across frames while the font stays the same. */
+  function labelWidthsFor(palette: Palette) {
+    const font = labelFont(palette);
+    if (labelWidthsRef.current?.font !== font) labelWidthsRef.current = new TextWidthCache(font);
+    return labelWidthsRef.current;
+  }
+
   // Re-read colors when the theme changes.
   useEffect(() => {
     paletteRef.current = null;
-    ciColorsRef.current = null;
     schedule();
   }, [theme]);
+
+  useEffect(() => {
+    avatars.setEnabled(avatarsOn);
+    schedule();
+  }, [avatars, avatarsOn]);
+
+  useEffect(() => {
+    avatars.setAccountAvatars(accountAvatarMap(accounts, identities));
+    schedule();
+  }, [avatars, accounts, identities]);
 
   useEffect(() => {
     schedule();
@@ -273,12 +262,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     return i >= 0 && i < summary.total ? i : null;
   };
 
-  /**
-   * Local branch under a point: its label, or — when `rowFallback` — the only local branch of
-   * the row under the pointer (so dropping anywhere on that row works).
-   */
-  const branchAtPoint = useCallback(
-    (clientX: number, clientY: number, rowFallback: boolean) => {
+  /** Ref label in the "Branch / Tag" column under a point (any kind), with its row. */
+  const refAt = useCallback(
+    (clientX: number, clientY: number) => {
       const el = scrollerRef.current;
       const ctx = canvasRef.current?.getContext("2d");
       if (!el || !ctx) return null;
@@ -286,28 +272,42 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
       const i = Math.floor((clientY - rect.top + el.scrollTop) / ROW_HEIGHT);
       const row = i >= 0 && i < summary.total ? cache.get(i) : undefined;
       if (!row) return null;
-      const labels = parseRefs(row.refs).filter(
-        (l) => (l.kind === "branch" || l.kind === "head") && l.text !== "HEAD",
-      );
       paletteRef.current ??= readPalette();
+      const widths = labelWidthsFor(paletteRef.current);
       ctx.save();
-      ctx.font = labelFont(paletteRef.current);
-      const boxes = refLabelBoxes(
-        parseRefs(row.refs),
-        columnLayout(el.clientWidth, summary.maxLanes, columns).textX,
-        (text) => ctx.measureText(text).width,
+      const label = refAtPoint(
+        row,
+        columnLayout(el.clientWidth, summary.maxLanes, columns),
+        clientX - rect.left,
+        (text) => widths.measure(ctx, text),
       );
       ctx.restore();
-      const hit = labelAt(boxes, clientX - rect.left);
-      const name =
-        hit && labels.some((l) => l.text === hit.text)
-          ? hit.text
-          : rowFallback && labels.length === 1
-            ? labels[0]!.text
-            : null;
-      return name ? { index: i, branch: name } : null;
+      return { index: i, row, label };
     },
     [cache, summary, columns],
+  );
+
+  /**
+   * Local branch under a point: its pill, or — when `rowFallback` — the only local branch of
+   * the row under the pointer (so dropping anywhere on that row works).
+   */
+  const branchAtPoint = useCallback(
+    (clientX: number, clientY: number, rowFallback: boolean) => {
+      const hit = refAt(clientX, clientY);
+      if (!hit) return null;
+      const locals = parseRefs(hit.row.refs).filter(
+        (l) => (l.kind === "branch" || l.kind === "head") && l.text !== "HEAD",
+      );
+      const label = hit.label;
+      const name =
+        label && locals.some((l) => l.text === label.text && l.kind === label.kind)
+          ? label.text
+          : rowFallback && locals.length === 1
+            ? locals[0]!.text
+            : null;
+      return name ? { index: hit.index, branch: name } : null;
+    },
+    [refAt],
   );
 
   /** Full text of a cut-off cell under the pointer, shown after a short hover. */
@@ -323,30 +323,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
     const x = clientX - el.getBoundingClientRect().left;
     const cols = columnLayout(el.clientWidth, summary.maxLanes, columns);
     const cell = cellAt(cols, x);
-    const entry = ciEntry(row);
-    const badgeX = afterLabelsX(row, cols.textX, (t) => {
-      ctx.font = labelFont(paletteRef.current ?? (paletteRef.current = readPalette()));
-      return ctx.measureText(t).width;
-    });
-    const onBadge =
-      cell === "message" &&
-      entry !== undefined &&
-      entry.status.state !== "none" &&
-      x >= badgeX &&
-      x <= badgeX + CI_BADGE_SIZE;
-    const key = `${row.hash}:${onBadge ? "ci" : cell}`;
+    const key = `${row.hash}:${cell}`;
     if (key === tipKey.current) return;
     hideTooltip();
     tipKey.current = key;
     if (!cell || cell === "graph") return;
-    if (onBadge) {
-      const ciText = ciTooltip(entry.status.state, entry.status.jobs);
-      tipTimer.current = window.setTimeout(
-        () => setTip({ x: clientX, y: clientY, text: ciText }),
-        TOOLTIP_DELAY_MS,
-      );
-      return;
-    }
     paletteRef.current ??= readPalette();
     const palette = paletteRef.current;
     const measureWith = (font: string) => (text: string) => {
@@ -362,10 +343,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
         label: measureWith(labelFont(palette)),
         text: measureWith(`12px ${palette.font}`),
         date: measureWith(`11px ${palette.mono}`),
-        mark: (r) => {
-          const state = ciEntry(r)?.status.state;
-          return state && state !== "none" ? CI_BADGE_SIZE : 0;
-        },
       },
       locale,
     );
@@ -453,7 +430,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, Props>(function GraphCa
           return;
         }
         onSelect(i, row);
-        onRowContextMenu(i, row);
+        onRowContextMenu(i, row, refAt(e.clientX, e.clientY)?.label ?? null);
       }}
       onKeyDown={onKeyDown}
       role="grid"

@@ -122,7 +122,9 @@ function Item({
       <li title={title}>
         <ContextMenu>
           <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-          <ContextMenuContent className="w-64">{menu}</ContextMenuContent>
+          <ContextMenuContent className="max-h-[calc(100dvh-2rem)] w-80 overflow-y-auto">
+            {menu}
+          </ContextMenuContent>
         </ContextMenu>
       </li>
     );
@@ -364,6 +366,7 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                                 repoId={repo.id}
                                 current={current}
                                 full={`${r.name}/${b.name}`}
+                                oid={b.oid}
                               />
                             )
                           }

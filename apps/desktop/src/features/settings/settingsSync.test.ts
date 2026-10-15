@@ -1,19 +1,25 @@
 import { describe, expect, it } from "vitest";
+import type { SettingsValues } from "@/stores/settings";
 import { diffSettings } from "./settingsSync";
+
+const base: SettingsValues = {
+  theme: "dark",
+  language: "vi",
+  ciEnabled: false,
+  authorAvatars: true,
+};
 
 describe("diffSettings", () => {
   it("returns null when nothing changed", () => {
-    expect(
-      diffSettings({ theme: "dark", language: "vi" }, { theme: "dark", language: "vi" }),
-    ).toBeNull();
+    expect(diffSettings(base, { ...base })).toBeNull();
   });
 
   it("includes only changed fields", () => {
-    expect(
-      diffSettings({ theme: "dark", language: "vi" }, { theme: "light", language: "vi" }),
-    ).toEqual({ theme: "light" });
-    expect(
-      diffSettings({ theme: "dark", language: "vi" }, { theme: "dark", language: "en" }),
-    ).toEqual({ language: "en" });
+    expect(diffSettings(base, { ...base, theme: "light" })).toEqual({ theme: "light" });
+    expect(diffSettings(base, { ...base, language: "en" })).toEqual({ language: "en" });
+    expect(diffSettings(base, { ...base, ciEnabled: true })).toEqual({ ciEnabled: true });
+    expect(diffSettings(base, { ...base, authorAvatars: false })).toEqual({
+      authorAvatars: false,
+    });
   });
 });

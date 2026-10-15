@@ -4,7 +4,7 @@ import { useActiveRepo } from "@/stores/workspace";
 import { useRepoRefs } from "@/features/repos/queries";
 import { CiBadge } from "./CiBadge";
 import { CiEntryView, CiProblemHint } from "./CiSummary";
-import { useCiStatus } from "./queries";
+import { useCiEnabled, useCiStatus } from "./queries";
 
 /**
  * "CI" row of the commit details: badge + summary, expandable to jobs and log links. Nothing
@@ -12,7 +12,9 @@ import { useCiStatus } from "./queries";
  */
 export function CommitCiRow({ repoId, hash }: { repoId: number; hash: string }) {
   const { t } = useTranslation();
+  const on = useCiEnabled();
   const { entry, problem } = useCiStatus(repoId, hash);
+  if (!on) return null;
   const hint = problem && problem.kind !== "noHostedRemote" && !entry;
   if (!hint && (!entry || entry.status.state === "none")) return null;
   return (
@@ -20,7 +22,10 @@ export function CommitCiRow({ repoId, hash }: { repoId: number; hash: string }) 
       <span className="text-muted-foreground">{t("ci.title")}</span>
       <div className="min-w-0">
         {entry && entry.status.state !== "none" ? (
-          <CiEntryView entry={entry} defaultOpen={entry.status.state === "failure"} />
+          <>
+            <CiEntryView entry={entry} />
+            <p className="mt-1 text-[11px] text-muted-foreground">{t("ci.notPushHint")}</p>
+          </>
         ) : (
           <CiProblemHint problem={problem} />
         )}
@@ -54,6 +59,8 @@ export function HeadCiIndicator() {
         jobs={entry.status.jobs}
         label={t("ci.short")}
         size={12}
+        title={`${t(`ci.state.${entry.status.state}`)}
+${t("ci.notPushHint")}`}
       />
     </button>
   );

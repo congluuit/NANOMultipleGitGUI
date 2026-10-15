@@ -14,4 +14,11 @@ export { CommitCiRow, HeadCiIndicator } from "./CommitCi";
 export { CI_BADGE_SIZE, ciColor, drawCiBadge, readCiColors, type CiColors } from "./draw";
 export { describeCiProblem, describeProviderError } from "./errors";
 export { ciCandidateHashes, ciGlyph, entriesBySha, hasPending } from "./model";
-export { ciKeys, useCiStatus, useCiStatusFor, useCiStatuses, type CiStatuses } from "./queries";
+export {
+  ciKeys,
+  useCiEnabled,
+  useCiStatus,
+  useCiStatusFor,
+  useCiStatuses,
+  type CiStatuses,
+} from "./queries";

@@ -83,14 +83,14 @@ export function conflictText(outcome: Pick<OpOutcome, "conflicts">): string {
 export async function runOutcome<T>(
   repoId: number,
   call: () => Promise<Outcome<T>>,
-  success?: (value: T) => string | null,
+  success?: (value: T) => string | Notice | null,
 ): Promise<T | undefined> {
   const notify = useUi.getState().showNotice;
   try {
     const out = await call();
     if (out.status === "done") {
-      const text = success?.(out.value);
-      if (text) notify({ kind: "info", message: text });
+      const done = success?.(out.value);
+      if (done) notify(typeof done === "string" ? { kind: "info", message: done } : done);
       return out.value;
     }
     if (out.status === "rejected") {

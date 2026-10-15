@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { CircleAlert, Info, TriangleAlert, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CircleAlert, CircleCheck, Info, TriangleAlert, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,20 +12,28 @@ function Bar({
   children,
   onDismiss,
 }: {
-  tone: "danger" | "warning" | "info";
+  tone: "danger" | "warning" | "info" | "success";
   children: React.ReactNode;
   onDismiss?: () => void;
 }) {
   const { t } = useTranslation();
-  const Icon = tone === "danger" ? CircleAlert : tone === "warning" ? TriangleAlert : Info;
+  const Icon =
+    tone === "danger"
+      ? CircleAlert
+      : tone === "warning"
+        ? TriangleAlert
+        : tone === "success"
+          ? CircleCheck
+          : Info;
   return (
     <div
-      role={tone === "info" ? "status" : "alert"}
+      role={tone === "info" || tone === "success" ? "status" : "alert"}
       className={cn(
         "flex items-center gap-2 border-b px-3 py-1.5 text-xs",
         tone === "danger" && "bg-danger/10 text-danger",
         tone === "warning" && "bg-warning/10 text-warning",
         tone === "info" && "bg-info/10 text-info",
+        tone === "success" && "bg-success/10 text-success",
       )}
     >
       <Icon className="size-4 shrink-0" />
@@ -82,14 +90,27 @@ export function ToolBanner() {
   return null;
 }
 
+/** How long a success notice (e.g. "Pushed …") stays before hiding itself. */
+const SUCCESS_NOTICE_MS = 10_000;
+
 export function NoticeBar() {
   const { t } = useTranslation();
   const notice = useUi((s) => s.notice);
   const showNotice = useUi((s) => s.showNotice);
+  useEffect(() => {
+    if (notice?.kind !== "success") return;
+    const timer = window.setTimeout(() => {
+      if (useUi.getState().notice === notice) showNotice(null);
+    }, SUCCESS_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [notice, showNotice]);
   if (!notice) return null;
   const rich = Boolean(notice.hint || notice.detail || notice.actions?.length);
   return (
-    <Bar tone={notice.kind === "error" ? "danger" : "info"} onDismiss={() => showNotice(null)}>
+    <Bar
+      tone={notice.kind === "error" ? "danger" : notice.kind === "success" ? "success" : "info"}
+      onDismiss={() => showNotice(null)}
+    >
       {rich ? (
         <div className="grid min-w-0 flex-1 gap-1 py-0.5">
           <span className="font-medium break-words">{notice.message}</span>

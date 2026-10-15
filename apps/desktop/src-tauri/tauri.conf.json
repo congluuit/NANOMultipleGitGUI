@@ -3,7 +3,7 @@
   "productName": "NANOMultipleGitGUI",
   "mainBinaryName": "nanomgg",
   "version": "../package.json",
-  "identifier": "io.github.nanomgg.nanomultiplegitgui",
+  "identifier": "io.github.congluuit.nanomultiplegitgui",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",

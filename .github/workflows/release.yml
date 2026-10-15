@@ -77,7 +77,7 @@ jobs:
         run: |
           notes=$(awk -v head="## [${TAG#v}]" '
             index($0, head) == 1 { on = 1; next }
-            on && /^## \[/ { exit }
+            on && (/^## \[/ || /^\[[^]]+\]: /) { exit }
             on { print }' CHANGELOG.md)
           if [ -z "${notes//[[:space:]]/}" ]; then
             echo "::warning::CHANGELOG.md has no section for ${TAG#v}; the update dialog will show no release notes."

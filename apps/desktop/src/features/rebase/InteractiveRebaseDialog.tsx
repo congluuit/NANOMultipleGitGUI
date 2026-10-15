@@ -41,17 +41,23 @@ export function InteractiveRebaseView({
   preview,
   baseLabel,
   busy,
+  preset,
   onSubmit,
   onCancel,
 }: {
   preview: RebasePreview;
   baseLabel: string;
   busy?: boolean;
+  preset?: { oid: string; action: "drop" | "reword" };
   onSubmit: (s: InteractiveSubmit) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
-  const [rows, setRows] = useState<TodoRow[]>(() => initialRows(preview.commits));
+  const [rows, setRows] = useState<TodoRow[]>(() =>
+    initialRows(preview.commits).map((r) =>
+      preset && r.oid.startsWith(preset.oid) ? { ...r, action: preset.action } : r,
+    ),
+  );
   const [allowPushed, setAllowPushed] = useState(false);
   const [autostash, setAutostash] = useState(false);
   const errors = useMemo(() => validate(rows), [rows]);
@@ -200,7 +206,7 @@ export function InteractiveRebaseDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const { repoId, base, baseLabel } = dialog;
+  const { repoId, base, baseLabel, preset } = dialog;
   const [busy, setBusy] = useState(false);
   const todo = useQuery({
     queryKey: ["rebase-todo", repoId, base],
@@ -219,6 +225,7 @@ export function InteractiveRebaseDialog({
         preview={p}
         baseLabel={label}
         busy={busy}
+        preset={preset}
         onCancel={onClose}
         onSubmit={async ({ steps, autostash, allowPushed }) => {
           setBusy(true);

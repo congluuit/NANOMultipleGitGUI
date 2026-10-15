@@ -836,6 +836,13 @@ export type AppInfo = {
 export type AppSettings = {
 	theme: ThemeMode,
 	language: Language | null,
+	/**
+	 *  Show CI results (GitHub Actions / GitLab pipelines). Off by default: most people only
+	 *  care whether push / pull worked.
+	 */
+	ciEnabled: boolean,
+	/**  Load author avatars for the commit graph from GitHub / Gravatar. */
+	authorAvatars: boolean,
 };
 
 /**  Result of one ticked suggestion. */
@@ -3582,6 +3589,8 @@ export type RuleTestResult = {
 export type SettingsPatch = {
 	theme?: ThemeMode | null,
 	language?: Language | null,
+	ciEnabled?: boolean | null,
+	authorAvatars?: boolean | null,
 };
 
 /**  How much the app needs the tool: git blocks, git-lfs / OpenSSH warn, gh / glab are info only. */

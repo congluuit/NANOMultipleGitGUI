@@ -2854,7 +2854,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "nanomgg-accounts",
  "nanomgg-app-paths",
@@ -2891,7 +2891,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-accounts"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "getrandom 0.3.4",
  "regex",
@@ -2903,7 +2903,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-app-paths"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "fs4",
  "serde",
@@ -2914,7 +2914,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-auth"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "base64 0.22.1",
  "getrandom 0.3.4",
@@ -2934,7 +2934,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-credential-helper"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "nanomgg-credentials",
  "nanomgg-git-engine",
@@ -2944,7 +2944,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-credentials"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "getrandom 0.3.4",
  "interprocess",
@@ -2958,7 +2958,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-git-engine"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "nanomgg-test-git-server",
  "notify-debouncer-mini",
@@ -2972,7 +2972,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-import"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "nanomgg-ssh-keys",
  "serde",
@@ -2986,7 +2986,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-lfs"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "fs4",
  "nanomgg-git-engine",
@@ -3000,7 +3000,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-logging"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "regex",
  "tempfile",
@@ -3011,7 +3011,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-providers"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "reqwest",
  "rustls",
@@ -3028,7 +3028,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-ssh-keys"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "serde",
  "specta",
@@ -3040,7 +3040,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-storage"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "nanomgg-accounts",
  "rusqlite",
@@ -3052,7 +3052,7 @@ dependencies = [
 
 [[package]]
 name = "nanomgg-test-git-server"
-version = "0.0.1"
+version = "1.0.0"
 dependencies = [
  "axum",
  "base64 0.22.1",

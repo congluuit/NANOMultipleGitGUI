@@ -4,7 +4,7 @@ import {
   Copy,
   GitBranch,
   GitBranchPlus,
-  History,
+  Link,
   LogIn,
   PencilLine,
   Tag,
@@ -24,23 +24,20 @@ import { parseRefs } from "@/features/graph/draw";
 import { RebaseCommitItems } from "@/features/rebase/MenuItems";
 import { useRepoRefs } from "@/features/repos/queries";
 import { commands, type GraphRow, type Head } from "@/ipc";
-import { useGraphStore } from "@/stores/graph";
-import { useWorktreeStore } from "@/stores/worktree";
+import { useHostedRemotes } from "@/features/issues/queries";
+import { copyText, startAmend, webCommitUrl } from "./branchActions";
 import { conflictText, runOutcome } from "./outcome";
-import { LocalBranchItems, RemoteBranchItems, TagItems } from "./RefMenuItems";
+import {
+  LocalBranchItems,
+  RemoteBranchItems,
+  ResetItems,
+  RewriteCommitItems,
+  TagHereItems,
+  TagItems,
+} from "./RefMenuItems";
 import { useRefDialog } from "./store";
 
 const short = (oid: string) => oid.slice(0, 7);
-
-/** Puts the staging panel in amend mode with the last commit's message. */
-async function startAmend(repoId: number) {
-  useGraphStore.getState().select(repoId, null);
-  const last = await commands.headMessage(repoId).catch(() => null);
-  const [summary = "", ...rest] = (last ?? "").split("\n");
-  useWorktreeStore
-    .getState()
-    .updateDraft(repoId, { amend: true, summary, body: rest.join("\n").trim(), prefill: last });
-}
 
 export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphRow }) {
   const { t } = useTranslation();
@@ -54,6 +51,8 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
   const remotes = labels.filter((l) => l.kind === "remote" && !l.text.endsWith("/HEAD"));
   const tags = labels.filter((l) => l.kind === "tag").map((l) => l.text);
   const label = `${short(row.hash)} ${row.subject}`;
+  const hostedList = useHostedRemotes(repoId).data;
+  const hosted = hostedList?.find((h) => h.remote === "origin") ?? hostedList?.[0] ?? null;
 
   const cherryPick = () =>
     void runOutcome(
@@ -66,12 +65,6 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
       repoId,
       () => commands.commitRevert(repoId, row.hash),
       (o) => conflictText(o) || t("ops.reverted", { oid: short(row.hash) }),
-    );
-  const reset = (mode: "soft" | "mixed") =>
-    void runOutcome(
-      repoId,
-      () => commands.resetTo(repoId, row.hash, mode),
-      () => t("ops.resetDone", { oid: short(row.hash), mode }),
     );
   const checkoutCommit = () =>
     void runOutcome(
@@ -96,14 +89,6 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
         <GitBranchPlus />
         {t("menu.createBranch")}
       </ContextMenuItem>
-      <ContextMenuItem
-        onSelect={() =>
-          openDialog({ kind: "createTag", repoId, oid: row.hash, label: short(row.hash) })
-        }
-      >
-        <Tag />
-        {t("menu.createTag")}
-      </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem disabled={isHead} onSelect={cherryPick}>
         <Cherry />
@@ -113,36 +98,22 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
         <Undo2 />
         {t("menu.revert")}
       </ContextMenuItem>
-      <ContextMenuSub>
-        <ContextMenuSubTrigger disabled={!head || head.unborn}>
-          <History />
-          {current ? t("menu.resetBranch", { branch: current }) : t("menu.resetHead")}
-        </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-64">
-          <ContextMenuItem onSelect={() => reset("soft")}>{t("menu.resetSoft")}</ContextMenuItem>
-          <ContextMenuItem onSelect={() => reset("mixed")}>{t("menu.resetMixed")}</ContextMenuItem>
-          <ContextMenuItem
-            variant="destructive"
-            onSelect={() =>
-              openDialog({
-                kind: "resetHard",
-                repoId,
-                oid: row.hash,
-                label: short(row.hash),
-                branch: current,
-              })
-            }
-          >
-            {t("menu.resetHard")}
-          </ContextMenuItem>
-        </ContextMenuSubContent>
-      </ContextMenuSub>
+      <ResetItems repoId={repoId} oid={row.hash} />
       <RebaseCommitItems repoId={repoId} oid={row.hash} current={current} isHead={isHead} />
       {isHead && (
         <ContextMenuItem onSelect={() => void startAmend(repoId)}>
           <PencilLine />
           {t("menu.amend")}
         </ContextMenuItem>
+      )}
+      {!isHead && (
+        <RewriteCommitItems
+          repoId={repoId}
+          oid={row.hash}
+          isHead={false}
+          onCurrentBranch={!!current}
+          isMerge={row.isMerge}
+        />
       )}
 
       {(locals.length > 0 || remotes.length > 0 || tags.length > 0) && <ContextMenuSeparator />}
@@ -153,7 +124,13 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
             <span className="truncate">{name}</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-64">
-            <LocalBranchItems repoId={repoId} current={current} name={name} />
+            <LocalBranchItems
+              repoId={repoId}
+              current={current}
+              name={name}
+              oid={row.hash}
+              isMerge={row.isMerge}
+            />
           </ContextMenuSubContent>
         </ContextMenuSub>
       ))}
@@ -164,7 +141,7 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
             <span className="truncate">{text}</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-64">
-            <RemoteBranchItems repoId={repoId} current={current} full={text} />
+            <RemoteBranchItems repoId={repoId} current={current} full={text} oid={row.hash} />
           </ContextMenuSubContent>
         </ContextMenuSub>
       ))}
@@ -175,20 +152,28 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
             <span className="truncate">{name}</span>
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-56">
-            <TagItems repoId={repoId} name={name} />
+            <TagItems repoId={repoId} name={name} oid={row.hash} />
           </ContextMenuSubContent>
         </ContextMenuSub>
       ))}
 
       <ContextMenuSeparator />
-      <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(row.hash)}>
+      <ContextMenuItem onSelect={() => copyText(row.hash)}>
         <Copy />
         {t("menu.copySha")}
       </ContextMenuItem>
-      <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(row.subject)}>
+      <ContextMenuItem onSelect={() => copyText(row.subject)}>
         <Copy />
         {t("menu.copySubject")}
       </ContextMenuItem>
+      {hosted && (
+        <ContextMenuItem onSelect={() => copyText(webCommitUrl(hosted, row.hash))}>
+          <Link />
+          {t("branchMenu.copyCommitLink", { remote: hosted.remote })}
+        </ContextMenuItem>
+      )}
+      <ContextMenuSeparator />
+      <TagHereItems repoId={repoId} oid={row.hash} />
     </ContextMenuContent>
   );
 }

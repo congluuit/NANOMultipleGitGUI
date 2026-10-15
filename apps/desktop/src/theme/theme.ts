@@ -1,3 +1,5 @@
+import { expandHex } from "./color";
+
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
@@ -29,5 +31,5 @@ export function watchSystemTheme(onChange: (dark: boolean) => void): () => void 
 
 /** Reads a token (e.g. `--primary`) as resolved on `el`; used by canvas/Monaco/xterm renderers. */
 export function readToken(name: `--${string}`, el: Element = document.documentElement): string {
-  return getComputedStyle(el).getPropertyValue(name).trim();
+  return expandHex(getComputedStyle(el).getPropertyValue(name).trim());
 }

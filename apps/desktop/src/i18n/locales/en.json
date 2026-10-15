@@ -76,8 +76,12 @@
     "columnName": {
       "graph": "Branch / Graph",
       "author": "Author",
-      "date": "Date"
-    }
+      "date": "Date",
+      "refs": "Branch / Tag",
+      "lanes": "Graph"
+    },
+    "colRefs": "Branch / Tag",
+    "colLanes": "Graph"
   },
   "commit": {
     "title": "Commit / WIP",
@@ -111,6 +115,10 @@
     "themeSystem": "System",
     "language": "Language",
     "openPalette": "View palette (design tokens)",
+    "ciEnabled": "Show CI (GitHub Actions / GitLab pipelines)",
+    "ciEnabledHint": "Build/test results that run on the server after a push. Off: every CI badge, job list and notice is hidden and CI is never queried. It doesn't affect push, pull or conflicts.",
+    "authorAvatars": "Author avatars on the commit graph",
+    "authorAvatarsHint": "Loaded from GitHub (noreply emails, your accounts) or Gravatar. Off: initials only, no avatar requests leave the app.",
     "about": "Version"
   },
   "palette": {
@@ -597,7 +605,20 @@
     "pushed": "Pushed {{branch}} to {{remote}}.",
     "pushUpToDate": "The remote already has these commits.",
     "branchTip": "Create a new branch at HEAD",
-    "fetched_one": "Fetched: {{count}} ref updated."
+    "fetched_one": "Fetched: {{count}} ref updated.",
+    "lastChecked": "Remote last checked at {{time}} (checked automatically every few minutes).",
+    "notCheckedYet": "The remote has not been checked yet in this session.",
+    "pushedCount": "Pushed {{count}} commits from {{branch}} to {{target}}.",
+    "pushedCount_one": "Pushed 1 commit from {{branch}} to {{target}}.",
+    "pushedAs": "Sent as {{account}}.",
+    "pushedHint": "If the project has CI, its build / test result appears in the status bar after a few minutes.",
+    "behindTip": "Pull — {{upstream}} has {{count}} new commits you do not have yet.",
+    "behindTip_one": "Pull — {{upstream}} has 1 new commit you do not have yet.",
+    "behindTitle": "Pull first: {{branch}} is missing {{count}} commits",
+    "behindTitle_one": "Pull first: {{branch}} is missing 1 commit",
+    "behindBody": "Someone pushed {{count}} commits to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull them first (merge), then push — the app can do both for you.",
+    "behindBody_one": "Someone pushed 1 commit to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull it first (merge), then push — the app can do both for you.",
+    "pullThenPush": "Pull, then push"
   },
   "terminal": {
     "title": "Terminal",
@@ -1470,6 +1491,42 @@
   },
   "notice": {
     "technical": "Technical details (git output)"
+  },
+  "branchMenu": {
+    "pull": "Pull (fast-forward if possible)",
+    "push": "Push",
+    "setUpstream": "Set upstream",
+    "unsetUpstream": "Remove upstream",
+    "noRemoteBranches": "No remote branches — fetch first.",
+    "checkout": "Checkout {{name}}",
+    "worktree": "Create worktree from {{name}}…",
+    "createBranchHere": "Create branch here…",
+    "editMessage": "Edit commit message…",
+    "dropCommit": "Drop commit…",
+    "startPull": "Start a pull request from {{name}}…",
+    "pushAndStartPull": "Push {{name}} and start a pull request…",
+    "rename": "Rename {{name}}…",
+    "delete": "Delete {{name}}…",
+    "deleteBoth": "Delete {{name}} and {{remote}}…",
+    "copyName": "Copy branch name",
+    "copyBranchLink": "Copy link to branch: {{name}}",
+    "copyCommitLink": "Copy link to this commit on remote: {{remote}}",
+    "createTag": "Create tag here…",
+    "createAnnotatedTag": "Create annotated tag here…",
+    "annotatedTagTitle": "Create annotated tag at {{at}}",
+    "tagMessageRequired": "Message (required for an annotated tag)",
+    "noUpstream": "{{name}} has no upstream on a remote. Use \"Set upstream\" or push it first.",
+    "fastForwarded": "{{name}} fast-forwarded to {{upstream}} ({{count}} new commits).",
+    "fastForwarded_one": "{{name}} fast-forwarded to {{upstream}} (1 new commit).",
+    "upToDate": "{{name}} is already up to date with {{upstream}}.",
+    "diverged": "{{name}} and {{upstream}} have diverged, so it cannot be fast-forwarded.",
+    "divergedHint": "Check out {{name}} and pull (merge or rebase) to combine both sides.",
+    "upstreamSet": "{{name}} now tracks {{upstream}}.",
+    "upstreamUnset": "{{name}} no longer tracks a remote branch.",
+    "remoteDeleted": "Deleted {{name}} on the remote.",
+    "deleteRemoteTitle": "Delete {{name}} on the remote?",
+    "deleteBothTitle": "Delete {{name}} and {{remote}}?",
+    "deleteRemoteBody": "The branch {{name}} is removed from {{remote}} for everyone. Commits that only exist on it can no longer be fetched by others (your local copy keeps them until it is deleted too)."
   },
   "rebase": {
     "menu": {
@@ -2466,7 +2523,8 @@
       "network": "Cannot reach the server. Check the network and try again.",
       "server": "The server failed (HTTP {{status}}). Try again later.",
       "other": "Server error: {{message}}"
-    }
+    },
+    "notPushHint": "CI is the automatic build / test run by GitHub Actions or GitLab CI after a commit reaches the server. It does not tell whether the push worked: this commit is already pushed. Open a job to see why it failed."
   },
   "forks": {
     "title": "Fork this repository",

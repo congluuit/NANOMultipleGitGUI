@@ -1,4 +1,5 @@
 import { useState } from "react";
+import i18n from "i18next";
 import { ArrowDownToLine, ArrowUpFromLine, GitBranchPlus, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -27,7 +28,10 @@ import { errorMessage, commands, type PullMode, type PushEstimate, type PushRequ
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runPushGuard } from "@/features/guards";
 import { offerCreatePull } from "@/features/pulls/actions";
+import { useAutoFetch, useLastFetch } from "./autoFetch";
 import { pushPlan } from "./plan";
+import { useSettings } from "@/stores/settings";
+import type { Notice } from "@/stores/ui";
 import { startTransfer, useRepoTransfer } from "./transfers";
 
 const PULL_MODES: PullMode[] = ["merge", "rebase", "fastForwardOnly"];
@@ -42,6 +46,10 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
   const account = useRepoAccountSummary(repoId);
   const accounts = useSortedAccounts();
   const [confirmForce, setConfirmForce] = useState(false);
+  // Push while the branch misses commits from its upstream: offer to pull first.
+  const [behindConfirm, setBehindConfirm] = useState(false);
+  const lastFetch = useLastFetch((s) => s.at[repoId] ?? null);
+  useAutoFetch(repoId);
   const [estimating, setEstimating] = useState(false);
   const [lfsConfirm, setLfsConfirm] = useState<{
     plan: PushRequest;
@@ -53,6 +61,17 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
   const busy = running !== null || estimating;
   const pushing = estimating || running?.kind === "push" || running?.kind === "lfsUpload";
   const head = refs?.head;
+  const current = refs?.local.find((b) => b.isHead && b.upstream && !b.upstreamGone) ?? null;
+  const ahead = current?.ahead ?? 0;
+  const behind = current?.behind ?? 0;
+  const checkedAt = lastFetch
+    ? t("remote.lastChecked", {
+        time: new Date(lastFetch).toLocaleTimeString(i18n.language, {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })
+    : t("remote.notCheckedYet");
 
   // One-shot "… as" overrides (switcher) are taken right before each command starts.
   const fetchAll = () => {
@@ -65,12 +84,14 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         s.updatedRefs ? t("remote.fetched", { count: s.updatedRefs }) : t("remote.fetchedNothing"),
       null,
       shot,
-    );
+    ).then((s) => {
+      if (s) useLastFetch.getState().mark(repoId);
+    });
   };
 
   const pull = (mode: PullMode) => {
     const shot = takeOneShot(repoId, "fetch");
-    void startTransfer(
+    return startTransfer(
       repoId,
       "pull",
       (op) => commands.remotePull(repoId, op, null, null, mode, asAccountOf(shot)),
@@ -80,30 +101,53 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
     );
   };
 
-  const gitPush = (p: PushRequest, shot: OneShot | null) =>
-    void startTransfer(
+  const gitPush = (p: PushRequest, shot: OneShot | null, pulledFirst = false) => {
+    // After a pull the counts in `refs` are stale: say it without a number then.
+    const count = p.setUpstream || pulledFirst ? 0 : ahead;
+    const target = `${p.remote}/${p.remoteBranch ?? p.branch}`;
+    const shotAccount = shot ? accounts.find((a) => a.id === shot.accountId) : undefined;
+    const who = shotAccount ? accountLabel(shotAccount) : (account?.label ?? null);
+    return void startTransfer(
       repoId,
       "push",
       (op) => commands.remotePush(repoId, op, p, asAccountOf(shot)),
-      (s) =>
+      (s): Notice | string =>
         s.upToDate
           ? t("remote.pushUpToDate")
-          : t("remote.pushed", { branch: p.branch, remote: p.remote }),
+          : {
+              kind: "success",
+              message:
+                count > 0
+                  ? t("remote.pushedCount", { count, branch: p.branch, target })
+                  : t("remote.pushed", { branch: p.branch, remote: p.remote }),
+              hint:
+                [
+                  who ? t("remote.pushedAs", { account: who }) : null,
+                  useSettings.getState().ciEnabled ? t("remote.pushedHint") : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined,
+            },
       `${p.remote}/${p.remoteBranch ?? p.branch}`,
       shot,
     ).then((s) => {
       // Phase 4.1: a new branch on GitHub/GitLab → offer "Create PR/MR".
       if (s && !s.upToDate && p.setUpstream) void offerCreatePull(repoId, p.remote, p.branch);
     });
+  };
 
   /**
    * Push. In an LFS repository: 1) estimate the LFS upload, 2) after confirmation upload the
    * LFS objects with progress (cancel/retry from the transfer queue), 3) `git push`, whose
    * pre-push hook then finds every object on the server already.
    */
-  const push = async (force: boolean) => {
+  const push = async (force: boolean, pulledFirst = false) => {
     const p = refs ? pushPlan(refs, force) : null;
     if (!p) return;
+    if (!force && !pulledFirst && behind > 0) {
+      setBehindConfirm(true);
+      return;
+    }
     // Push Guard (PLAN §4.6, §6.3) before anything is uploaded; an explicit "Push as…"
     // override skips it (the guard checks against the repo's own account).
     if (
@@ -131,7 +175,7 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         setEstimating(false);
       }
     }
-    gitPush(p, shot);
+    gitPush(p, shot, pulledFirst);
   };
 
   const confirmLfsPush = () => {
@@ -161,7 +205,8 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         id="fetch"
         icon={RefreshCw}
         label={t("toolbar.fetch")}
-        tooltip={t("remote.fetchTip")}
+        tooltip={`${t("remote.fetchTip")}
+${checkedAt}`}
         busy={running?.kind === "fetch"}
         disabled={!hasRemote || busy}
         onClick={fetchAll}
@@ -170,10 +215,17 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         id="pull"
         icon={ArrowDownToLine}
         label={t("toolbar.pull")}
-        tooltip={t("remote.pullTip")}
+        tooltip={
+          behind > 0
+            ? `${t("remote.behindTip", { count: behind, upstream: current?.upstream ?? "" })}
+${checkedAt}`
+            : `${t("remote.pullTip")}
+${checkedAt}`
+        }
+        badge={behind > 0 ? { text: `↓${behind}`, tone: ahead > 0 ? "warning" : "info" } : null}
         busy={running?.kind === "pull"}
         disabled={!hasRemote || busy || !!head?.detached}
-        onClick={() => pull("merge")}
+        onClick={() => void pull("merge")}
         menuLabel={t("remote.pullOptions")}
         menu={
           <>
@@ -182,7 +234,7 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
               <DropdownMenuItem
                 key={m}
                 disabled={!hasRemote || busy || !!head?.detached}
-                onSelect={() => pull(m)}
+                onSelect={() => void pull(m)}
               >
                 {t(`remote.pullMode.${m}`)}
               </DropdownMenuItem>
@@ -201,6 +253,7 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
               : t("remote.pushTip", { branch: plan.branch, remote: plan.remote })
             : t("remote.pushUnavailable")
         }
+        badge={ahead > 0 ? { text: `↑${ahead}`, tone: behind > 0 ? "warning" : "success" } : null}
         busy={pushing}
         disabled={!plan || busy}
         onClick={() => void push(false)}
@@ -249,6 +302,23 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
           void push(true);
         }}
         onCancel={() => setConfirmForce(false)}
+      />
+      <ConfirmDialog
+        open={behindConfirm}
+        title={t("remote.behindTitle", { branch: current?.name ?? "", count: behind })}
+        description={t("remote.behindBody", {
+          upstream: current?.upstream ?? "",
+          count: behind,
+        })}
+        confirmLabel={t("remote.pullThenPush")}
+        onConfirm={() => {
+          setBehindConfirm(false);
+          void pull("merge").then((o) => {
+            // Conflicts: the user resolves them first; the push waits.
+            if (o && !conflictText(o)) void push(false, true);
+          });
+        }}
+        onCancel={() => setBehindConfirm(false)}
       />
       <ConfirmDialog
         open={lfsConfirm !== null}

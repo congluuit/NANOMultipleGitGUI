@@ -8,6 +8,7 @@ import { repoKeys } from "@/features/repos/queries";
 import { WipRow } from "@/features/worktree/WipRow";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { CommitMenuContent } from "@/features/commits/CommitMenu";
+import { RefMenuContent } from "@/features/commits/RefMenu";
 import {
   commands,
   errorMessage,
@@ -20,6 +21,7 @@ import { useUi } from "@/stores/ui";
 import { runScrollBenchmark } from "./benchmark";
 import { GraphHeader } from "./GraphHeader";
 import { GraphCanvas, type GraphCanvasHandle } from "./GraphCanvas";
+import type { RefLabel } from "./draw";
 import { cycleMatch } from "./navigation";
 
 const SEARCH_LIMIT = 5000;
@@ -64,8 +66,11 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
   }, []);
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState<SearchState>({ query: "", matches: [], current: -1 });
-  const [menuRow, setMenuRow] = useState<GraphRow | null>(null);
-  const onRowContextMenu = useCallback((_: number, row: GraphRow) => setMenuRow(row), []);
+  const [menu, setMenu] = useState<{ row: GraphRow; ref: RefLabel | null } | null>(null);
+  const onRowContextMenu = useCallback(
+    (_: number, row: GraphRow, ref?: RefLabel | null) => setMenu({ row, ref: ref ?? null }),
+    [],
+  );
 
   useEffect(() => {
     openStarted.current = performance.now();
@@ -353,7 +358,7 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
         </div>
       )}
       {view && s && s.total > 0 && (
-        <ContextMenu onOpenChange={(open) => !open && setMenuRow(null)}>
+        <ContextMenu onOpenChange={(open) => !open && setMenu(null)}>
           <ContextMenuTrigger asChild>
             <div className="flex min-h-0 flex-1 flex-col">
               <GraphCanvas
@@ -374,7 +379,12 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
               />
             </div>
           </ContextMenuTrigger>
-          {menuRow && <CommitMenuContent repoId={repoId} row={menuRow} />}
+          {menu &&
+            (menu.ref && menu.ref.text !== "HEAD" ? (
+              <RefMenuContent repoId={repoId} row={menu.row} label={menu.ref} />
+            ) : (
+              <CommitMenuContent repoId={repoId} row={menu.row} />
+            ))}
         </ContextMenu>
       )}
     </div>

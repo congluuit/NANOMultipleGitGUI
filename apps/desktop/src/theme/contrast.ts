@@ -1,6 +1,11 @@
-/** WCAG 2.1 relative luminance of a `#rrggbb` color. */
+import { expandHex } from "./color";
+
+/**
+ * WCAG 2.1 relative luminance of a `#rrggbb` color. `#rgb` is accepted too: the CSS minifier
+ * of release builds shortens token values such as `#ffffff` to `#fff`.
+ */
 export function relativeLuminance(hex: string): number {
-  const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  const m = /^#([0-9a-f]{6})$/i.exec(expandHex(hex.trim()));
   if (!m?.[1]) throw new Error(`Expected #rrggbb color, got "${hex}"`);
   const value = m[1];
   const channel = (i: number) => {

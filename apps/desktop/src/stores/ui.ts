@@ -9,7 +9,8 @@ export interface NoticeAction {
 }
 
 export interface Notice {
-  kind: "error" | "info";
+  /** "success" notices hide themselves after a few seconds. */
+  kind: "error" | "info" | "success";
   message: string;
   /** What to do about it, in plain words (for users new to git). */
   hint?: string;

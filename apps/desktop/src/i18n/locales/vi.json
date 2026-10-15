@@ -76,8 +76,12 @@
     "columnName": {
       "graph": "Nhánh / Graph",
       "author": "Tác giả",
-      "date": "Ngày"
-    }
+      "date": "Ngày",
+      "refs": "Nhánh / Tag",
+      "lanes": "Graph"
+    },
+    "colRefs": "Nhánh / Tag",
+    "colLanes": "Graph"
   },
   "commit": {
     "title": "Commit / WIP",
@@ -111,6 +115,10 @@
     "themeSystem": "Theo hệ thống",
     "language": "Ngôn ngữ",
     "openPalette": "Xem bảng màu (design tokens)",
+    "ciEnabled": "Hiện CI (GitHub Actions / GitLab pipeline)",
+    "ciEnabledHint": "Kết quả build/test chạy trên server sau khi push. Tắt: ẩn mọi badge, danh sách job và thông báo về CI, không hỏi CI nữa. Không ảnh hưởng tới push, pull hay xung đột.",
+    "authorAvatars": "Avatar tác giả trên graph",
+    "authorAvatarsHint": "Tải từ GitHub (email noreply, tài khoản của bạn) hoặc Gravatar. Tắt: chỉ hiện chữ viết tắt, không gửi yêu cầu avatar ra ngoài.",
     "about": "Phiên bản"
   },
   "palette": {
@@ -597,7 +605,20 @@
     "pushed": "Đã push {{branch}} lên {{remote}}.",
     "pushUpToDate": "Remote đã có đủ commit, không cần push.",
     "branchTip": "Tạo nhánh mới tại HEAD",
-    "fetched_one": "Đã fetch: {{count}} ref thay đổi."
+    "fetched_one": "Đã fetch: {{count}} ref thay đổi.",
+    "lastChecked": "Kiểm tra remote lần cuối lúc {{time}} (tự kiểm tra vài phút một lần).",
+    "notCheckedYet": "Chưa kiểm tra remote trong lần mở app này.",
+    "pushedCount": "Đã push {{count}} commit của {{branch}} lên {{target}}.",
+    "pushedCount_one": "Đã push 1 commit của {{branch}} lên {{target}}.",
+    "pushedAs": "Gửi bằng tài khoản {{account}}.",
+    "pushedHint": "Nếu dự án có CI, kết quả build / test sẽ hiện ở thanh trạng thái sau vài phút.",
+    "behindTip": "Pull — {{upstream}} có {{count}} commit mới bạn chưa có.",
+    "behindTip_one": "Pull — {{upstream}} có 1 commit mới bạn chưa có.",
+    "behindTitle": "Cần pull trước: {{branch}} đang thiếu {{count}} commit",
+    "behindTitle_one": "Cần pull trước: {{branch}} đang thiếu 1 commit",
+    "behindBody": "Có người đã push {{count}} commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
+    "behindBody_one": "Có người đã push 1 commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
+    "pullThenPush": "Pull rồi push"
   },
   "terminal": {
     "title": "Terminal",
@@ -1470,6 +1491,42 @@
   },
   "notice": {
     "technical": "Chi tiết kỹ thuật (log của git)"
+  },
+  "branchMenu": {
+    "pull": "Pull (fast-forward nếu được)",
+    "push": "Push",
+    "setUpstream": "Đặt upstream",
+    "unsetUpstream": "Bỏ upstream",
+    "noRemoteBranches": "Chưa có nhánh remote — hãy fetch trước.",
+    "checkout": "Checkout {{name}}",
+    "worktree": "Tạo worktree từ {{name}}…",
+    "createBranchHere": "Tạo nhánh tại đây…",
+    "editMessage": "Sửa message commit…",
+    "dropCommit": "Bỏ commit (drop)…",
+    "startPull": "Tạo pull request từ {{name}}…",
+    "pushAndStartPull": "Push {{name}} rồi tạo pull request…",
+    "rename": "Đổi tên {{name}}…",
+    "delete": "Xóa {{name}}…",
+    "deleteBoth": "Xóa {{name}} và {{remote}}…",
+    "copyName": "Sao chép tên nhánh",
+    "copyBranchLink": "Sao chép link tới nhánh: {{name}}",
+    "copyCommitLink": "Sao chép link tới commit này trên remote: {{remote}}",
+    "createTag": "Tạo tag tại đây…",
+    "createAnnotatedTag": "Tạo annotated tag tại đây…",
+    "annotatedTagTitle": "Tạo annotated tag tại {{at}}",
+    "tagMessageRequired": "Message (bắt buộc với annotated tag)",
+    "noUpstream": "{{name}} chưa có upstream trên remote. Dùng \"Đặt upstream\" hoặc push nhánh trước.",
+    "fastForwarded": "Đã fast-forward {{name}} tới {{upstream}} ({{count}} commit mới).",
+    "fastForwarded_one": "Đã fast-forward {{name}} tới {{upstream}} (1 commit mới).",
+    "upToDate": "{{name}} đã cập nhật như {{upstream}}.",
+    "diverged": "{{name}} và {{upstream}} đã rẽ nhánh khác nhau nên không fast-forward được.",
+    "divergedHint": "Checkout {{name}} rồi pull (merge hoặc rebase) để gộp hai phía.",
+    "upstreamSet": "{{name}} giờ theo dõi {{upstream}}.",
+    "upstreamUnset": "{{name}} không còn theo dõi nhánh remote nào.",
+    "remoteDeleted": "Đã xóa {{name}} trên remote.",
+    "deleteRemoteTitle": "Xóa {{name}} trên remote?",
+    "deleteBothTitle": "Xóa {{name}} và {{remote}}?",
+    "deleteRemoteBody": "Nhánh {{name}} bị xóa khỏi {{remote}} với mọi người. Commit chỉ có trên nhánh này sẽ không còn fetch được (bản trên máy bạn vẫn giữ cho tới khi bị xóa)."
   },
   "rebase": {
     "menu": {
@@ -2466,7 +2523,8 @@
       "network": "Không kết nối được tới máy chủ. Kiểm tra mạng rồi thử lại.",
       "server": "Máy chủ đang lỗi (HTTP {{status}}). Thử lại sau.",
       "other": "Lỗi từ máy chủ: {{message}}"
-    }
+    },
+    "notPushHint": "CI là bước build / test tự động do GitHub Actions hoặc GitLab CI chạy sau khi commit đã lên server. Nó không cho biết push có thành công hay không: commit này đã được push. Mở từng job để xem lý do lỗi."
   },
   "forks": {
     "title": "Fork repo này",

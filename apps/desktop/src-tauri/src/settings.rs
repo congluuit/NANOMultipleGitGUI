@@ -21,11 +21,27 @@ pub enum Language {
 }
 
 /// User preferences persisted in SQLite. `language: None` means "follow the OS locale".
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub theme: ThemeMode,
     pub language: Option<Language>,
+    /// Show CI results (GitHub Actions / GitLab pipelines). Off by default: most people only
+    /// care whether push / pull worked.
+    pub ci_enabled: bool,
+    /// Load author avatars for the commit graph from GitHub / Gravatar.
+    pub author_avatars: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            theme: ThemeMode::default(),
+            language: None,
+            ci_enabled: false,
+            author_avatars: true,
+        }
+    }
 }
 
 /// Partial update; omitted fields keep their stored value.
@@ -38,15 +54,30 @@ pub struct SettingsPatch {
     #[serde(default)]
     #[specta(optional)]
     pub language: Option<Language>,
+    #[serde(default)]
+    #[specta(optional)]
+    pub ci_enabled: Option<bool>,
+    #[serde(default)]
+    #[specta(optional)]
+    pub author_avatars: Option<bool>,
 }
 
 const KEY_THEME: &str = "theme";
 const KEY_LANGUAGE: &str = "language";
+const KEY_CI_ENABLED: &str = "ciEnabled";
+const KEY_AUTHOR_AVATARS: &str = "authorAvatars";
 
 pub fn load(db: &Storage) -> AppResult<AppSettings> {
+    let defaults = AppSettings::default();
     Ok(AppSettings {
         theme: db.get_setting(KEY_THEME)?.unwrap_or_default(),
         language: db.get_setting(KEY_LANGUAGE)?,
+        ci_enabled: db
+            .get_setting(KEY_CI_ENABLED)?
+            .unwrap_or(defaults.ci_enabled),
+        author_avatars: db
+            .get_setting(KEY_AUTHOR_AVATARS)?
+            .unwrap_or(defaults.author_avatars),
     })
 }
 
@@ -56,6 +87,12 @@ pub fn apply(db: &Storage, patch: SettingsPatch) -> AppResult<AppSettings> {
     }
     if let Some(language) = patch.language {
         db.set_setting(KEY_LANGUAGE, &language)?;
+    }
+    if let Some(on) = patch.ci_enabled {
+        db.set_setting(KEY_CI_ENABLED, &on)?;
+    }
+    if let Some(on) = patch.author_avatars {
+        db.set_setting(KEY_AUTHOR_AVATARS, &on)?;
     }
     load(db)
 }
@@ -77,7 +114,7 @@ mod tests {
             &db,
             SettingsPatch {
                 theme: Some(ThemeMode::Dark),
-                language: None,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -87,8 +124,8 @@ mod tests {
         let s = apply(
             &db,
             SettingsPatch {
-                theme: None,
                 language: Some(Language::Vi),
+                ..Default::default()
             },
         )
         .unwrap();
@@ -104,11 +141,32 @@ mod tests {
             SettingsPatch {
                 theme: Some(ThemeMode::Light),
                 language: Some(Language::En),
+                ..Default::default()
             },
         )
         .unwrap();
         let raw = db.settings().unwrap();
         assert_eq!(raw["theme"], serde_json::json!("light"));
         assert_eq!(raw["language"], serde_json::json!("en"));
+    }
+
+    #[test]
+    fn ci_is_off_and_avatars_on_by_default() {
+        let db = Storage::open_in_memory().unwrap();
+        let s = load(&db).unwrap();
+        assert!(!s.ci_enabled);
+        assert!(s.author_avatars);
+        let s = apply(
+            &db,
+            SettingsPatch {
+                ci_enabled: Some(true),
+                author_avatars: Some(false),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(s.ci_enabled);
+        assert!(!s.author_avatars);
+        assert_eq!(s.theme, ThemeMode::System);
     }
 }

@@ -47,9 +47,31 @@ fn normalize(p: &str) -> String {
     }
 }
 
-/// Same folder? (case-insensitive and separator-agnostic on Windows).
+/// The folder's real path (symlinks, `..` and Windows 8.3 short names such as `RUNNER~1`
+/// resolved), normalized like [`normalize`]; `None` when it does not exist.
+fn canonical(p: &str) -> Option<String> {
+    let real = std::fs::canonicalize(p).ok()?;
+    let real = real.to_string_lossy();
+    // Windows returns verbatim paths: `\\?\C:\x` / `\\?\UNC\server\share`.
+    let real = match real.strip_prefix(r"\\?\UNC\") {
+        Some(unc) => format!(r"\\{unc}"),
+        None => real.strip_prefix(r"\\?\").unwrap_or(&real).to_owned(),
+    };
+    Some(normalize(&real))
+}
+
+/// Same folder? (case-insensitive and separator-agnostic on Windows). Git prints worktree
+/// paths resolved, so when the spellings differ and both folders exist their real paths are
+/// compared: a folder given through a short name (`C:/Users/RUNNER~1/…`) or a symlink
+/// (`/var` → `/private/var` on macOS) still matches what `git worktree list` prints.
 pub fn same_path(a: &str, b: &str) -> bool {
-    normalize(a) == normalize(b)
+    if normalize(a) == normalize(b) {
+        return true;
+    }
+    match (canonical(a), canonical(b)) {
+        (Some(a), Some(b)) => a == b,
+        _ => false,
+    }
 }
 
 /// Parses `git worktree list --porcelain -z`.
@@ -365,6 +387,22 @@ mod tests {
         assert!(w[2].detached && w[2].prunable && w[2].branch.is_none());
         assert!(w[3].locked && w[3].lock_reason.is_none());
         assert!(parse_worktree_list(b"", "x").is_empty());
+    }
+
+    #[test]
+    fn same_path_resolves_other_spellings_of_existing_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let sub = dir.path().join("sub");
+        std::fs::create_dir(&sub).unwrap();
+        let real = std::fs::canonicalize(&sub).unwrap();
+        let other = dir.path().join("sub").join("..").join("sub");
+        assert!(same_path(&other.to_string_lossy(), &real.to_string_lossy()));
+        assert!(!same_path(
+            &dir.path().to_string_lossy(),
+            &sub.to_string_lossy()
+        ));
+        // Missing folders fall back to comparing the text.
+        assert!(!same_path("/no/such/a", "/no/such/b"));
     }
 
     #[test]

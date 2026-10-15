@@ -1,4 +1,11 @@
-import { useState, type KeyboardEvent, type ReactNode, type SyntheticEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type SyntheticEvent,
+} from "react";
 import { CircleDot } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { IssueSummary } from "@/ipc";
@@ -41,6 +48,17 @@ export function useIssueRefSuggest<E extends Field>(
     trigger && open.data ? matchIssues(open.data.page.items, trigger.query) : [];
   const shown = trigger !== null && ready;
   const active = Math.min(index, Math.max(items.length - 1, 0));
+  // Caret to restore once the inserted reference is rendered. Applied in a layout effect right
+  // after that commit, not in a later frame: a key typed before the next frame would otherwise
+  // land at the caret first and then be jumped over (`#3` became `3#`).
+  const pendingCaret = useRef<{ el: E; value: string; caret: number } | null>(null);
+  useLayoutEffect(() => {
+    const p = pendingCaret.current;
+    if (!p || p.el.value !== p.value) return;
+    pendingCaret.current = null;
+    p.el.focus();
+    p.el.setSelectionRange(p.caret, p.caret);
+  });
 
   const onCaret = (e: SyntheticEvent<E>) => {
     const el = e.currentTarget;
@@ -60,12 +78,9 @@ export function useIssueRefSuggest<E extends Field>(
     const caret = el.selectionStart ?? value.length;
     const text = closes ? `Closes #${issue.number}` : `#${issue.number}`;
     const next = applyRef(value, trigger, caret, text);
+    pendingCaret.current = { el, value: next.value, caret: next.caret };
     setValue(next.value);
     setTrigger(null);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(next.caret, next.caret);
-    });
   };
 
   const onKeyDown = (e: KeyboardEvent<E>) => {

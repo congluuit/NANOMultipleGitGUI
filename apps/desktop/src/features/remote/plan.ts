@@ -18,22 +18,31 @@ export function splitUpstream(
 export function pushPlan(refs: RepoRefs, forceWithLease = false): PushRequest | null {
   const head = refs.head;
   if (head.detached || head.unborn || !head.branch) return null;
+  return branchPushPlan(refs, head.branch, forceWithLease);
+}
+
+/** Like {@link pushPlan} for any local branch (branch context menu). */
+export function branchPushPlan(
+  refs: RepoRefs,
+  branch: string,
+  forceWithLease = false,
+): PushRequest | null {
   const names = refs.remotes.map((r) => r.name);
-  const current = refs.local.find((b) => b.isHead);
-  const up =
-    current?.upstream && !current.upstreamGone ? splitUpstream(current.upstream, names) : null;
+  const local = refs.local.find((b) => b.name === branch);
+  if (!local) return null;
+  const up = local.upstream && !local.upstreamGone ? splitUpstream(local.upstream, names) : null;
   if (up) {
     return {
       remote: up.remote,
-      branch: head.branch,
-      remoteBranch: up.branch === head.branch ? null : up.branch,
+      branch,
+      remoteBranch: up.branch === branch ? null : up.branch,
       setUpstream: false,
       forceWithLease,
     };
   }
   const remote = names.includes("origin") ? "origin" : names.length === 1 ? names[0] : undefined;
   if (!remote) return null;
-  return { remote, branch: head.branch, remoteBranch: null, setUpstream: true, forceWithLease };
+  return { remote, branch, remoteBranch: null, setUpstream: true, forceWithLease };
 }
 
 /** One-line description of a progress event: `Receiving objects 45% · 1.2 MiB · 2 MiB/s`. */

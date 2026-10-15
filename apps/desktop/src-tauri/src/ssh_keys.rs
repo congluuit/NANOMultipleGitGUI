@@ -23,7 +23,6 @@ use nanomgg_accounts::{
     Account, AccountSecret, Provider, ProviderKind as AccountProviderKind, SshKey, new_id,
 };
 use nanomgg_credentials::SecretKey;
-use nanomgg_git_engine::AccountContext;
 use nanomgg_providers::{
     AccessHint, HttpConfig, Provider as _, ProviderClient, ProviderEndpoint, ProviderError,
     ProviderKind, SecretToken, build_http_client,
@@ -848,7 +847,7 @@ fn ssh_program(st: &AppState) -> PathBuf {
             .git
             .command(
                 &std::env::temp_dir(),
-                &AccountContext::default(),
+                &nanomgg_git_engine::AccountContext::default(),
                 ["--exec-path"],
             )
             .output();
