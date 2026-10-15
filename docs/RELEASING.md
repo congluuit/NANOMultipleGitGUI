@@ -6,11 +6,11 @@ Tài liệu này hướng dẫn cách đưa một bản mới lên GitHub Releas
 
 Repo đã được thiết lập sẵn (mục A): khóa ký bản cập nhật, Client ID đăng nhập GitHub. Mỗi lần phát hành chỉ cần:
 
-1. Đổi version và ghi `CHANGELOG.md` (mục B, bước 1–2). **Bản 1.0.0 đầu tiên đã sẵn sàng, bỏ qua bước này.**
-2. Gắn tag và đẩy lên GitHub:
+1. Đổi version và ghi `CHANGELOG.md` (mục B, bước 1–2), ví dụ lên `1.0.1`, rồi commit và push lên `main`.
+2. Gắn tag đúng version đó và đẩy lên GitHub:
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag v1.0.1
+   git push origin v1.0.1
    ```
 3. Chờ khoảng 20–30 phút: GitHub tự build bộ cài Windows, macOS, Linux (xem tiến độ ở tab **Actions → Release**) và tạo một bản **nháp** (draft) trên trang **Releases**.
 4. Mở trang [Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases) → bản nháp → kiểm tra mục **Assets** có đủ file → bấm **Edit** → **Publish release**. Từ lúc này mọi người tải được, và app đã cài sẽ tự thấy bản mới.
