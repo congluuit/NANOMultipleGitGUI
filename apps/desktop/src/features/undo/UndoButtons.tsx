@@ -25,6 +25,7 @@ export function UndoRedoButtons({
   return (
     <>
       <ToolButton
+        id="undo"
         icon={Undo2}
         label={t("toolbar.undo")}
         tooltip={stepTooltip(t, undo, false)}
@@ -32,6 +33,7 @@ export function UndoRedoButtons({
         disabled={!isRunnable(undo)}
       />
       <ToolButton
+        id="redo"
         icon={Redo2}
         label={t("toolbar.redo")}
         tooltip={stepTooltip(t, redo, true)}

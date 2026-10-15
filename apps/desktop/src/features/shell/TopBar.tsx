@@ -8,6 +8,7 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import { useEffect, useRef, type WheelEvent } from "react";
 import type { RepoTab } from "@/ipc";
 import { useTranslation } from "react-i18next";
 import {
@@ -100,7 +101,7 @@ function RepoTabItem({ tab, active }: { tab: RepoTab; active: boolean }) {
       onKeyDown={(e) => e.key === "Enter" && setActive(tab.id)}
       onAuxClick={(e) => e.button === 1 && void closeRepository(tab.id)}
       className={cn(
-        "group flex h-8 max-w-48 cursor-default items-center gap-2 rounded-t-md border border-b-0 px-3 text-xs",
+        "group flex h-8 max-w-48 min-w-24 shrink cursor-default items-center gap-2 rounded-t-md border border-b-0 px-3 text-xs",
         active
           ? "bg-background font-medium"
           : "border-transparent text-muted-foreground hover:bg-surface",
@@ -133,23 +134,50 @@ export function TopBar() {
   const tabs = useWorkspace((s) => s.tabs);
   const activeId = useWorkspace((s) => s.activeId);
   const isMac = navigator.userAgent.includes("Mac");
+  const tabsRef = useRef<HTMLElement>(null);
+
+  // Keep the active tab in view when it changes (or the strip scrolls).
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLElement>("[role=tab][aria-selected=true]");
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeId, tabs.length]);
+
+  // A mouse wheel scrolls the tab strip sideways.
+  const onTabsWheel = (e: WheelEvent<HTMLElement>) => {
+    if (e.deltaY !== 0 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.currentTarget.scrollLeft += e.deltaY;
+    }
+  };
 
   return (
     <header className="flex h-10 shrink-0 items-center gap-3 border-b bg-surface-2 px-2">
-      <AccountPill />
-      <nav className="flex min-w-0 flex-1 items-end gap-1 self-end" role="tablist">
-        {tabs.map((tab) => (
-          <RepoTabItem key={tab.id} tab={tab} active={tab.id === activeId} />
-        ))}
-        <NewTabMenu />
-      </nav>
+      <div className="flex shrink-0">
+        <AccountPill />
+      </div>
+      {/* Tabs shrink to a minimum, then scroll sideways; "+" and the search box stay visible. */}
+      <div className="flex min-w-0 flex-1 items-end gap-1 self-end">
+        <nav
+          ref={tabsRef}
+          role="tablist"
+          onWheel={onTabsWheel}
+          className="flex min-w-0 items-end gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {tabs.map((tab) => (
+            <RepoTabItem key={tab.id} tab={tab} active={tab.id === activeId} />
+          ))}
+        </nav>
+        <div className="shrink-0">
+          <NewTabMenu />
+        </div>
+      </div>
       <button
         type="button"
         onClick={() => openCommandPalette()}
-        className="flex h-7 w-56 items-center gap-2 rounded-md border bg-surface px-2 text-xs text-muted-foreground hover:border-primary/60"
+        aria-label={t("toolbar.search")}
+        className="flex h-7 w-40 shrink-0 items-center gap-2 rounded-md border bg-surface px-2 text-xs text-muted-foreground hover:border-primary/60 xl:w-56"
       >
-        <Search className="size-3.5" />
-        <span className="flex-1 text-left">{t("toolbar.search")}</span>
+        <Search className="size-3.5 shrink-0" />
+        <span className="flex-1 truncate text-left">{t("toolbar.search")}</span>
         <kbd className="rounded border bg-surface-2 px-1 font-mono text-[10px]">
           {isMac ? "⌘K" : "Ctrl+K"}
         </kbd>

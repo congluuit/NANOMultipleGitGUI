@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { commands, errorMessage, type Account, type AccountHealth, type Provider } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { AccountAvatar } from "../AccountAvatar";
+import { CliAccountsPanel } from "../cli-sync/CliAccountsPanel";
+import { authMethodText } from "../cli-sync/labels";
 import { useAccountDialogs } from "../dialogs";
 import { moveRule, textOn } from "./forms";
 import { expiryText, healthBadges } from "./health";
@@ -65,6 +67,7 @@ export function AccountsTab({ accounts, providers, health, focusId, onAdd, onRea
           <p>{t("accounts.list.empty")}</p>
         </Callout>
       )}
+      <CliAccountsPanel />
       {error && <Callout tone="danger">{error}</Callout>}
       <ol className="grid gap-2">
         {accounts.map((a, index) => (
@@ -155,7 +158,7 @@ function AccountCard({
           </span>
           <span className="truncate text-muted-foreground">
             {provider?.name ?? account.providerId} · @{account.username} ·{" "}
-            {t(`accounts.authMethod.${account.authMethod}`)}
+            {authMethodText(t, account, provider?.kind)}
           </span>
           <span className="flex flex-wrap gap-1">
             {badges.map((b) => (

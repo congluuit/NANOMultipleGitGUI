@@ -48,11 +48,18 @@ reqwest = { version = "0.13", default-features = false }
 tokio = { version = "1", features = ["time", "sync", "macros"] }
 # First-run import wizard (PLAN §4.2): read-only scan of ~/.gitconfig, ~/.ssh/config, gh, glab.
 nanomgg-import = { path = "../../../crates/import", features = ["specta"] }
+# Phase 3B.3: log / cache / app-data folders (pointer file, safe moves).
+nanomgg-app-paths = { path = "../../../crates/app-paths", features = ["specta"] }
+# Phase 3B.4: Check for Update from GitHub Releases (configured at runtime, see updater.rs).
+tauri-plugin-updater = "2"
+semver = "1"
 
 [dev-dependencies]
 tempfile = { workspace = true }
 nanomgg-test-git-server = { workspace = true }
 wiremock = "0.6"
+# Mock runtime for the updater tests (an AppHandle without a window).
+tauri = { version = "2", features = ["test"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time", "sync"] }
 
 [lints]

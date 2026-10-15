@@ -43,6 +43,9 @@ Sau đó mở lại app.
 
 ## 4. Câu hỏi thường gặp
 
+**Cập nhật app thế nào?**
+App tự kiểm tra bản mới khi khởi động (tối đa một lần mỗi ngày) và hỏi bạn: **Cập nhật & khởi động lại** / **Để sau** / **Bỏ qua bản này**. Muốn kiểm tra ngay: Settings → **Cập nhật** → **Kiểm tra cập nhật** (hoặc gõ "cập nhật" trong command palette `⌘K`). Dữ liệu và tài khoản được giữ nguyên.
+
 **Có phải làm lại mỗi lần cập nhật không?**
 Không. Bản cập nhật tải qua tính năng tự cập nhật của app không bị gắn cờ quarantine. Nếu bạn tự tải `.dmg` mới về cài đè thì có thể phải cho phép lại.
 
@@ -99,6 +102,8 @@ xattr -cr /Applications/NANOMultipleGitGUI.app
 Then open the app again.
 
 ## 4. FAQ
+
+**How do I update?** The app checks for a new version at startup (at most once a day) and asks: **Update & restart** / **Later** / **Skip this version**. To check now: Settings → **Updates** → **Check for updates** (or type "update" in the command palette, `⌘K`). Your data and accounts are kept.
 
 **Do I have to repeat this after every update?** No. Updates installed by the built-in updater are not quarantined. Manually downloaded `.dmg` files may need to be allowed again.
 

@@ -10,7 +10,10 @@ import {
   GitPullRequest,
   HardDrive,
   Layers,
+  LoaderCircle,
   Package,
+  PanelLeftClose,
+  PanelLeftOpen,
   Server,
   Tag,
 } from "lucide-react";
@@ -18,15 +21,17 @@ import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commits/RefMenuItems";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useRepoRefs } from "@/features/repos/queries";
 import { headState, matchesFilter, shortOid } from "@/features/repos/refsView";
 import { startBranchDrag, useDnd } from "@/features/dnd/store";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "@/stores/graph";
+import { useLayout } from "@/stores/layout";
 import { useActiveRepo } from "@/stores/workspace";
 import { LfsPanel } from "@/features/lfs/LfsPanel";
-import { LfsManagerHost } from "@/features/lfs/LfsManagerDialog";
 import { StashList } from "@/features/stash/StashList";
 import { useLinkedWorktrees } from "@/features/linked-worktrees/queries";
 import { WorktreeList } from "@/features/linked-worktrees/WorktreeList";
@@ -141,13 +146,104 @@ function Empty({ children }: { children: ReactNode }) {
   return <li className="py-1 pr-2 pl-8 text-[11px] text-muted-foreground italic">{children}</li>;
 }
 
-export function Sidebar() {
+interface SectionDef {
+  id: string;
+  icon: LucideIcon;
+  title: string;
+  count?: number;
+  defaultOpen?: boolean;
+  content: ReactNode;
+}
+
+/** Collapsed sidebar: one icon per section, each opening the section's list in a popover. */
+function SidebarRail({ sections, loading }: { sections: SectionDef[]; loading: boolean }) {
+  const { t } = useTranslation();
+  const toggle = useLayout((s) => s.togglePanel);
+  return (
+    <nav className="flex w-full flex-col items-center gap-1" aria-label={t("layout.sidebar")}>
+      <RailButton
+        icon={PanelLeftOpen}
+        label={t("layout.expandSidebar")}
+        onClick={() => toggle("sidebar")}
+      />
+      <span className="my-1 h-px w-6 bg-border" />
+      {loading && <LoaderCircle className="size-4 animate-spin text-muted-foreground" />}
+      {sections.map((s) => (
+        <Popover key={`rail-${s.id}`}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={s.count !== undefined ? `${s.title} (${s.count})` : s.title}
+                  className="relative flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground data-[state=open]:bg-surface-2 data-[state=open]:text-foreground"
+                >
+                  <s.icon className="size-4" />
+                  {!!s.count && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-3.5 rounded-full bg-surface-2 px-0.5 text-center text-[9px] leading-3.5 font-medium text-foreground">
+                      {s.count > 99 ? "99+" : s.count}
+                    </span>
+                  )}
+                </button>
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">{s.title}</TooltipContent>
+          </Tooltip>
+          <PopoverContent
+            side="right"
+            align="start"
+            className="flex max-h-[min(32rem,calc(100dvh-4rem))] w-72 flex-col p-0"
+          >
+            <div className="flex h-8 shrink-0 items-center gap-1.5 border-b px-3 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+              <s.icon className="size-3.5" />
+              <span className="flex-1">{s.title}</span>
+              {s.count !== undefined && <span className="font-normal">{s.count}</span>}
+            </div>
+            <ul className="min-h-0 flex-1 overflow-y-auto py-1">{s.content}</ul>
+          </PopoverContent>
+        </Popover>
+      ))}
+    </nav>
+  );
+}
+
+function RailButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+        >
+          <Icon className="size-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Branches, remotes, tags… of the active repo; `rail` renders the collapsed icon column. */
+export function Sidebar({ rail = false }: { rail?: boolean }) {
   const { t } = useTranslation();
   const repo = useActiveRepo();
   const refs = useRepoRefs(repo?.id ?? null, !repo?.missing);
   const submodules = useSubmodules(repo?.id ?? -1, !!repo && !repo.missing);
   const worktrees = useLinkedWorktrees(repo?.id ?? -1, !!repo && !repo.missing);
-  const [filter, setFilter] = useState("");
+  const [typed, setFilter] = useState("");
+  // The rail has no filter box: its popovers list everything.
+  const filter = rail ? "" : typed;
+  const toggle = useLayout((s) => s.togglePanel);
   const requestJump = useGraphStore((s) => s.requestJump);
   const jumpTo = (oid: string | null | undefined) => () => {
     if (repo && oid) requestJump(repo.id, oid);
@@ -160,28 +256,17 @@ export function Sidebar() {
   const current = head?.kind === "branch" ? head.branch : null;
   const remoteBranchCount = (data?.remotes ?? []).reduce((n, r) => n + r.branches.length, 0);
 
-  return (
-    <aside className="flex w-60 shrink-0 flex-col border-r bg-surface">
-      <div className="p-2">
-        <input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder={t("sidebar.filter")}
-          className="h-7 w-full rounded-md border bg-background px-2 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-        />
-      </div>
-      <ScrollArea className="min-h-0 flex-1">
-        {!data && repo && !repo.missing && (
-          <p className="px-3 py-2 text-xs text-muted-foreground">{t("sidebar.loading")}</p>
-        )}
-        {data && (
-          <>
-            <Section
-              icon={HardDrive}
-              title={t("sidebar.local")}
-              count={data.local.length}
-              defaultOpen
-            >
+  const sections: SectionDef[] = !data
+    ? []
+    : [
+        {
+          id: "local",
+          icon: HardDrive,
+          title: t("sidebar.local"),
+          count: data.local.length,
+          defaultOpen: true,
+          content: (
+            <>
               {head?.kind === "unborn" && (
                 <Item active>
                   <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
@@ -229,9 +314,17 @@ export function Sidebar() {
               {data.local.length === 0 && head?.kind !== "unborn" && (
                 <Empty>{t("sidebar.noBranches")}</Empty>
               )}
-            </Section>
-
-            <Section icon={Cloud} title={t("sidebar.remote")} count={remoteBranchCount} defaultOpen>
+            </>
+          ),
+        },
+        {
+          id: "remote",
+          icon: Cloud,
+          title: t("sidebar.remote"),
+          count: remoteBranchCount,
+          defaultOpen: true,
+          content: (
+            <>
               {data.remotes.length === 0 && <Empty>{t("sidebar.noRemotes")}</Empty>}
               {data.remotes.map((r) => (
                 <li key={r.name}>
@@ -268,9 +361,16 @@ export function Sidebar() {
                   </ul>
                 </li>
               ))}
-            </Section>
-
-            <Section icon={Tag} title={t("sidebar.tags")} count={data.tags.length}>
+            </>
+          ),
+        },
+        {
+          id: "tags",
+          icon: Tag,
+          title: t("sidebar.tags"),
+          count: data.tags.length,
+          content: (
+            <>
               {data.tags.length === 0 && <Empty>{t("sidebar.noTags")}</Empty>}
               {tags.map((tag) => (
                 <Item
@@ -283,33 +383,91 @@ export function Sidebar() {
                   <span className="truncate">{tag.name}</span>
                 </Item>
               ))}
-            </Section>
-
-            <Section icon={Archive} title={t("sidebar.stashes")} count={data.stashes.length}>
+            </>
+          ),
+        },
+        {
+          id: "stashes",
+          icon: Archive,
+          title: t("sidebar.stashes"),
+          count: data.stashes.length,
+          content: (
+            <>
               {data.stashes.length === 0 && <Empty>{t("sidebar.noStashes")}</Empty>}
               {repo && <StashList repoId={repo.id} stashes={data.stashes} />}
-            </Section>
+            </>
+          ),
+        },
+        {
+          id: "prs",
+          icon: GitPullRequest,
+          title: t("sidebar.prs"),
+          content: <Empty>{t("sidebar.comingSoon")}</Empty>,
+        },
+        {
+          id: "lfs",
+          icon: Package,
+          title: t("sidebar.lfs"),
+          content: repo && <LfsPanel repoId={repo.id} />,
+        },
+        {
+          id: "submodules",
+          icon: Layers,
+          title: t("sidebar.submodules"),
+          count: submodules.data?.length,
+          content: repo && <SubmoduleList repoId={repo.id} root={repo.path} filter={filter} />,
+        },
+        {
+          id: "worktrees",
+          icon: FolderTree,
+          title: t("sidebar.worktrees"),
+          count: worktrees.data?.length,
+          content: repo && <WorktreeList repoId={repo.id} filter={filter} />,
+        },
+      ];
 
-            <Section icon={GitPullRequest} title={t("sidebar.prs")}>
-              <Empty>{t("sidebar.comingSoon")}</Empty>
-            </Section>
-            <Section icon={Package} title={t("sidebar.lfs")}>
-              {repo && <LfsPanel repoId={repo.id} />}
-            </Section>
-            <Section icon={Layers} title={t("sidebar.submodules")} count={submodules.data?.length}>
-              {repo && <SubmoduleList repoId={repo.id} root={repo.path} filter={filter} />}
-            </Section>
-            <Section
-              icon={FolderTree}
-              title={t("sidebar.worktrees")}
-              count={worktrees.data?.length}
+  const loading = !data && !!repo && !repo.missing;
+  if (rail) return <SidebarRail sections={sections} loading={loading} />;
+
+  return (
+    <aside className="flex min-w-0 flex-1 flex-col bg-surface" aria-label={t("layout.sidebar")}>
+      <div className="flex items-center gap-1 p-2">
+        <input
+          value={typed}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder={t("sidebar.filter")}
+          className="h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label={t("layout.collapseSidebar")}
+              onClick={() => toggle("sidebar")}
+              className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
             >
-              {repo && <WorktreeList repoId={repo.id} filter={filter} />}
-            </Section>
-          </>
+              <PanelLeftClose className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t("layout.collapseSidebar")}</TooltipContent>
+        </Tooltip>
+      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        {loading && (
+          <p className="px-3 py-2 text-xs text-muted-foreground">{t("sidebar.loading")}</p>
         )}
+        {sections.map((s) => (
+          <Section
+            key={`section-${s.id}`}
+            icon={s.icon}
+            title={s.title}
+            count={s.count}
+            defaultOpen={s.defaultOpen}
+          >
+            {s.content}
+          </Section>
+        ))}
       </ScrollArea>
-      <LfsManagerHost />
     </aside>
   );
 }

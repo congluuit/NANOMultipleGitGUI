@@ -266,6 +266,100 @@ mod tests {
     }
 
     #[test]
+    fn upgrades_a_v3_database_keeping_accounts_and_their_children() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("v3.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.pragma_update(None, "foreign_keys", true).unwrap();
+            for sql in &migrations::MIGRATIONS[..3] {
+                conn.execute_batch(sql).unwrap();
+            }
+            conn.pragma_update(None, "user_version", 3).unwrap();
+            conn.execute_batch(
+                "INSERT INTO repos (id, path, path_key, name, last_opened_at) VALUES (7, '/w/api', '/w/api', 'api', 5);
+                 INSERT INTO accounts (id, provider_id, username, auth_method, color, secrets, sort_order, created_at, updated_at)
+                     VALUES ('acc_1', 'github', 'An-Dev', 'pat', '#336699', '[\"token\"]', 3, 10, 11);
+                 INSERT INTO identities (id, account_id, name, email, is_default, created_at)
+                     VALUES ('idn_1', 'acc_1', 'An', 'an@x.vn', 1, 12);
+                 INSERT INTO rules (id, priority, host, account_id, identity_id, created_at)
+                     VALUES ('rul_1', 1, 'github.com', 'acc_1', 'idn_1', 13);
+                 INSERT INTO repo_bindings (repo_id, account_id, identity_id, source, updated_at)
+                     VALUES (7, 'acc_1', 'idn_1', 'manual', 14);
+                 INSERT INTO ssh_keys (id, account_id, key_type, fingerprint, public_key, created_at)
+                     VALUES ('key_1', 'acc_1', 'ed25519', 'SHA256:x', 'ssh-ed25519 AAAA', 15);
+                 INSERT INTO workspaces (id, name, default_account_id, created_at)
+                     VALUES ('wsp_1', 'Work', 'acc_1', 16);",
+            )
+            .unwrap();
+            assert!(
+                conn.execute(
+                    "INSERT INTO accounts (id, provider_id, username, auth_method, color, created_at, updated_at)
+                     VALUES ('acc_2', 'github', 'b', 'imported_cli', '#336699', 0, 0)",
+                    [],
+                )
+                .is_err(),
+                "v3 refuses the new auth method"
+            );
+        }
+        let db = Storage::open(&path).unwrap();
+        assert_eq!(db.schema_version().unwrap(), LATEST_VERSION);
+        use nanomgg_accounts::AccountSecret;
+        let acc = db.account("acc_1").unwrap().unwrap();
+        assert_eq!(acc.username, "An-Dev");
+        assert_eq!(acc.secrets, [AccountSecret::Token]);
+        assert_eq!(acc.sort_order, 3);
+        assert_eq!(db.identities(Some("acc_1")).unwrap().len(), 1, "no cascade");
+        assert_eq!(db.rules().unwrap().len(), 1);
+        assert_eq!(db.repo_bindings(7).unwrap().len(), 1);
+        assert_eq!(db.ssh_keys(Some("acc_1")).unwrap().len(), 1, "no SET NULL");
+
+        let conn = db.conn();
+        let fk: i64 = conn
+            .query_row("PRAGMA foreign_keys", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(fk, 1, "foreign keys back on");
+        conn.execute(
+            "INSERT INTO accounts (id, provider_id, username, auth_method, color, created_at, updated_at)
+             VALUES ('acc_2', 'github', 'cli-user', 'imported_cli', '#336699', 0, 0)",
+            [],
+        )
+        .unwrap();
+        // Unique (provider, username) index and the provider reference survive the rebuild.
+        assert!(
+            conn.execute(
+                "INSERT INTO accounts (id, provider_id, username, auth_method, color, created_at, updated_at)
+                 VALUES ('acc_3', 'github', 'AN-DEV', 'pat', '#336699', 0, 0)",
+                [],
+            )
+            .is_err()
+        );
+        assert!(
+            conn.execute(
+                "INSERT INTO accounts (id, provider_id, username, auth_method, color, created_at, updated_at)
+                 VALUES ('acc_4', 'nope', 'x', 'pat', '#336699', 0, 0)",
+                [],
+            )
+            .is_err()
+        );
+        // Children still reference the rebuilt table: deleting the account cascades.
+        conn.execute("DELETE FROM accounts WHERE id = 'acc_1'", [])
+            .unwrap();
+        let left: i64 = conn
+            .query_row("SELECT count(*) FROM identities", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(left, 0);
+        let strict: i64 = conn
+            .query_row(
+                "SELECT strict FROM pragma_table_list WHERE name = 'accounts'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(strict, 1);
+    }
+
+    #[test]
     fn upgrades_a_v2_database_keeping_repos_and_adding_account_tables() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("v2.db");

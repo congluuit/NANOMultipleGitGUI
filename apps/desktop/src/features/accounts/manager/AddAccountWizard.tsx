@@ -22,6 +22,7 @@ import {
 } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { AccountAvatar } from "../AccountAvatar";
+import { authMethodText } from "../cli-sync/labels";
 import { useIdentities } from "../queries";
 import { describeAuthError, type DescribedError } from "./errors";
 import { copyText, openExternal } from "./openExternal";
@@ -623,7 +624,7 @@ function DoneSummary({ account, provider }: { account: Account; provider: Provid
           <span className="text-muted-foreground">@{account.username}</span>
         </span>
         <span className="text-muted-foreground">
-          {provider?.name} · {t(`accounts.authMethod.${account.authMethod}`)}
+          {provider?.name} · {authMethodText(t, account, provider?.kind)}
         </span>
         {identity && (
           <span className="truncate">

@@ -24,6 +24,10 @@ if (import.meta.env.DEV) {
   }
   if (lang === "vi" || lang === "en") useSettings.getState().setLanguage(lang);
   if (params.get("view") === "palette") useUi.getState().setView("palette");
+  // Fake backend with a sample repository for layout screenshots (step 3B.5), e.g. ?mock=shell
+  if (params.get("mock") === "shell") {
+    (await import("./features/shell/dev/mockShell")).installShellMock();
+  }
 }
 
 const { theme, language } = useSettings.getState();

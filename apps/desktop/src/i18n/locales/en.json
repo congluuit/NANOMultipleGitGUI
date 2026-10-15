@@ -2017,5 +2017,391 @@
   "viewError": {
     "title": "This view could not be shown",
     "body": "Something went wrong while drawing it. Close it and try again; the rest of the app keeps working. If it happens again, please report it with the message below."
+  },
+  "layout": {
+    "toolbar": "Toolbar",
+    "moreActions": "More actions",
+    "sidebar": "Sidebar",
+    "sidebarButton": "Sidebar",
+    "rightButton": "Panel",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Show sidebar",
+    "collapseRight": "Collapse right panel",
+    "expandRight": "Show right panel",
+    "resizeSidebar": "Resize sidebar (drag, or use ←/→; double-click to reset)",
+    "resizeRight": "Resize right panel (drag, or use ←/→; double-click to reset)",
+    "cmd": {
+      "toggleSidebar": "Show / hide the sidebar",
+      "toggleRight": "Show / hide the right panel",
+      "reset": "Reset panel layout"
+    }
+  },
+  "setup": {
+    "title": "Getting started",
+    "subtitle": "A few short steps to get ready: check tools, add accounts and open your first repo.",
+    "stepsLabel": "Steps",
+    "step": {
+      "welcome": "Welcome",
+      "tools": "Check tools",
+      "accounts": "Accounts",
+      "finish": "Done"
+    },
+    "skip": "Skip setup",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "blocked": "Install Git to continue",
+    "welcome": {
+      "title": "Welcome to NANOMultipleGitGUI",
+      "tagline": "A Git GUI for people with several GitHub / GitLab accounts.",
+      "about": "NANOMultipleGitGUI is an open-source project (Apache-2.0 license) developed by NANO Pret. It is free to use, share and give feedback on.",
+      "repo": "Source code on GitHub"
+    },
+    "tools": {
+      "intro": "The app relies on the tools below being installed. Git is required; the others unlock more features.",
+      "checking": "Checking the tools on this computer…",
+      "checkFailed": "Could not check the tools: {{message}}",
+      "recheck": "Check again",
+      "install": "Install it for me",
+      "download": "Open official download page",
+      "gitRequired": "Git is missing — the app needs it for everything. Click \"Install it for me\" or download it from the official page, then click \"Check again\".",
+      "gitTooOld": "Your Git is too old. Version {{min}} or newer is needed — click \"Install it for me\" to update, then \"Check again\".",
+      "restartNeeded": "The tool you just installed was found, but the app cannot use it yet (it must restart to pick up the new path).",
+      "restart": "Restart the app",
+      "managerMissing": {
+        "winget": "winget (the Windows package installer) is not available, so \"Install it for me\" cannot be used. Install \"App Installer\" from the Microsoft Store, or use \"Open official download page\".",
+        "brew": "Homebrew is not installed, so only Git can be installed for you (via the Xcode Command Line Tools). For the others use \"Open official download page\" or install Homebrew from brew.sh.",
+        "xcodeSelect": "xcode-select was not found. Use \"Open official download page\"."
+      }
+    },
+    "tool": {
+      "git": {
+        "name": "Git",
+        "purpose": "The version control tool the app drives: commits, branches, push, pull…"
+      },
+      "gitLfs": {
+        "name": "Git LFS",
+        "purpose": "Keeps large files (images, video, game assets) out of git history so repos stay small."
+      },
+      "ssh": {
+        "name": "OpenSSH",
+        "purpose": "Connects to GitHub / GitLab with SSH keys (not needed if you only use HTTPS)."
+      },
+      "gh": {
+        "name": "GitHub CLI (gh)",
+        "purpose": "Optional. If you signed in with gh, the app can take your accounts from it."
+      },
+      "glab": {
+        "name": "GitLab CLI (glab)",
+        "purpose": "Optional. If you signed in with glab, the app can take your accounts from it."
+      },
+      "webview2": {
+        "name": "Microsoft WebView2",
+        "purpose": "The Windows component that displays the app's interface."
+      }
+    },
+    "importance": {
+      "required": "Required",
+      "recommended": "Recommended",
+      "optional": "Optional"
+    },
+    "level": {
+      "ok": "Ready",
+      "warn": "Warning",
+      "error": "Missing",
+      "info": "Info"
+    },
+    "state": {
+      "ok": "Installed and working.",
+      "outdated": "Too old — version {{min}} or newer is needed.",
+      "outsidePath": "Installed, but the app does not see it yet — restart the app to use it.",
+      "missing": {
+        "required": "Not installed. This is required.",
+        "recommended": "Not installed. The app works, but some features are unavailable.",
+        "optional": "Not installed (that is fine)."
+      }
+    },
+    "manager": {
+      "winget": "winget",
+      "brew": "Homebrew",
+      "xcodeSelect": "Xcode Command Line Tools"
+    },
+    "install": {
+      "running": "Installing… this can take a few minutes.",
+      "runningWinget": "Installing with winget… If Windows asks for administrator permission (UAC), click \"Yes\". This can take a few minutes.",
+      "details": "Technical details",
+      "exitCode": "Exit code: {{code}}",
+      "outcome": {
+        "installed": "Installed. The check results have been updated.",
+        "alreadyInstalled": "This tool is already installed.",
+        "started": "The macOS installer has opened. Follow its dialog, then click \"Check again\" when it is done.",
+        "cancelled": "Installation stopped.",
+        "userCancelled": "The installation was cancelled (perhaps \"No\" was clicked on the permission prompt). Click \"Install it for me\" again and choose \"Yes\".",
+        "needsAdmin": "Administrator rights are needed to install. Ask the computer's administrator, or download the installer from the official page.",
+        "managerMissing": "{{manager}} could not be run on this computer. Use \"Open official download page\".",
+        "network": "Could not download the installer — check your network connection and try again.",
+        "packageNotFound": "{{manager}} could not find the package. Use \"Open official download page\".",
+        "timedOut": "The installation took too long and was stopped. Try again or download it from the official page.",
+        "failed": "The installation did not succeed. See \"Technical details\" below, or download the installer from the official page."
+      }
+    },
+    "accounts": {
+      "intro": "Add your GitHub / GitLab accounts so the app uses the right one for each repo when cloning, pushing and pulling.",
+      "signIn": "Sign in to a new account",
+      "import": "Import from .gitconfig / .ssh",
+      "list": "Accounts in the app ({{count}})",
+      "none": "No accounts yet. You can still work with repos on this computer and add accounts later.",
+      "later": "You can add or edit accounts at any time in Manage accounts."
+    },
+    "finish": {
+      "intro": "All set! The app is ready. Summary:",
+      "tools": "Tools ready: {{ok}}/{{total}}",
+      "toolsMissing": "still missing: {{names}}",
+      "accounts": "Accounts: {{count}}",
+      "openRepo": "Open a repo on this computer",
+      "clone": "Clone a repo",
+      "rerunHint": "You can run this guide again from Settings → Getting started."
+    },
+    "settings": {
+      "title": "Getting started",
+      "rerun": "Run the getting-started guide again",
+      "pending": "Not finished yet: {{steps}}."
+    },
+    "cmd": {
+      "rerun": "Run the getting-started guide again"
+    }
+  },
+  "updater": {
+    "cmd": {
+      "check": "Check for updates"
+    },
+    "upToDate": "You're on the latest version ({{version}}).",
+    "notConfigured": "Automatic updates are not enabled in this build.",
+    "notConfiguredHint": "You can still download the new version from the project's Releases page and install it over this one — your data and accounts are kept.",
+    "notConfiguredNoRepo": "This build does not know where its releases are published (common for builds made from source). Update by rebuilding or by installing a newer installer.",
+    "action": {
+      "openReleases": "Open Releases page"
+    },
+    "channel": {
+      "stable": "Stable (recommended)",
+      "beta": "Beta — try new features",
+      "stableHint": "Only official releases.",
+      "betaHint": "Also beta versions: new features earlier, but they may still have bugs."
+    },
+    "settings": {
+      "title": "Updates",
+      "current": "Current version: {{version}}",
+      "channel": "Update channel",
+      "lastCheck": "Last checked: {{date}}",
+      "never": "never",
+      "skipped": "Skipping version {{version}}.",
+      "unskip": "Remind me again"
+    },
+    "dialog": {
+      "title": "New version {{version}} is available",
+      "current": "You're using {{version}}",
+      "date": "released {{date}}",
+      "notes": "What's new",
+      "noNotes": "This release has no release notes.",
+      "viewOnGithub": "View details on GitHub",
+      "skippedNote": "You chose to skip this version earlier. You can still update now.",
+      "saveHint": "The app closes and reopens by itself once the update is installed. Changes in your repositories are not affected.",
+      "restartHint": "Don't shut down your computer while installing. The app reopens when done.",
+      "install": "Update & restart",
+      "retry": "Try again",
+      "later": "Later",
+      "skip": "Skip this version"
+    },
+    "phase": {
+      "downloading": "Downloading the update…",
+      "installing": "Installing…",
+      "restarting": "Restarting…"
+    },
+    "error": {
+      "offline": "Couldn't reach GitHub",
+      "noRelease": "No release supports automatic updates yet",
+      "noBuildForPlatform": "The new version has no update package for your computer yet",
+      "badManifest": "The update information on GitHub is broken",
+      "badSignature": "The update package is not properly signed — stopped to protect your computer",
+      "downloadFailed": "Downloading the update failed",
+      "notConfigured": "Automatic updates are not enabled in this build",
+      "noPendingUpdate": "The selected update could not be found",
+      "busy": "Another update is being installed",
+      "cancelled": "The password prompt was cancelled",
+      "failed": "The update failed"
+    },
+    "errorHelp": {
+      "offline": "Check your Internet connection (or your company proxy/VPN), then click “Check for updates” again.",
+      "noRelease": "Nothing to do — the app tells you when a new version is out. You can also look at the Releases page.",
+      "noBuildForPlatform": "Usually the release was just published and the package for your OS is still uploading. Try again in a few minutes, or download the installer from the Releases page.",
+      "badManifest": "This is a problem on the publisher's side, not your computer. Try again later, or download the installer from the Releases page.",
+      "badSignature": "The downloaded file does not match the project's signature, so it was not installed. Try again later; if it keeps failing, download the installer from the Releases page and tell the developers.",
+      "downloadFailed": "The connection may have dropped. Click “Try again” to download it again.",
+      "notConfigured": "Download the new installer from the project's Releases page and install it over this version.",
+      "noPendingUpdate": "Click “Check for updates” to look for the latest version again.",
+      "busy": "Wait for the running update to finish — the app restarts by itself.",
+      "cancelled": "Click “Try again” and enter your computer password when asked to install the update.",
+      "failed": "Try again. If it keeps failing, download the new installer from the Releases page and install it over this version — your data is kept."
+    }
+  },
+  "storage": {
+    "title": "Storage",
+    "description": "Where the app keeps its own logs, cache and data. Move them to another drive if this one is getting full. Your code (repositories) is not stored here.",
+    "sectionHint": "See sizes, move or clean up the log, cache and app data folders.",
+    "manage": "Manage storage…",
+    "openSettings": "Open Settings → Storage",
+    "kind": {
+      "log": "Logs",
+      "cache": "Cache",
+      "data": "App data"
+    },
+    "about": {
+      "log": "Activity log to attach to bug reports. Deleting it has no effect except losing that history.",
+      "cache": "Temporary data (repository lists, avatars, graph). Deleting it loses nothing; the next start is a bit slower while it is loaded again.",
+      "data": "Accounts, rules, bindings and SSH keys created by the app (SQLite). It can only be moved, not deleted. Tokens stay in the OS keychain."
+    },
+    "default": "Default",
+    "custom": "Custom",
+    "used_one": "{{size}} · {{count}} file",
+    "used_other": "{{size}} · {{count}} files",
+    "free": "{{size}} free on this drive",
+    "measuring": "Measuring…",
+    "loadFailed": "Could not read the storage information",
+    "open": "Open folder",
+    "change": "Change…",
+    "reset": "Back to default",
+    "clearCache": "Clear all cache",
+    "pruneLogs": "Delete old logs",
+    "pickTitle": "Choose a new folder for {{kind}}",
+    "checkFailed": "Could not check this folder",
+    "changeTitle": "Move {{kind}} to a new folder",
+    "resetTitle": "Move {{kind}} back to the default folder",
+    "changeNowBody": "The app copies the data to the new folder, checks every file, and only then deletes the old copy. If anything fails midway, the old copy is kept as it was.",
+    "changeDataBody": "App data is in use, so it is moved on the next start, before the app opens its database. The old copy is deleted only after the new one has been fully checked.",
+    "cannotUse": "This folder cannot be used.",
+    "target": "Folder to use",
+    "subfolderNote": "The folder you chose already contains other files, so the app creates its own subfolder inside it to keep them apart.",
+    "sizes": "{{needed}} to move · {{free}} free on the target drive",
+    "moveNow": "Move now",
+    "schedule": "Move on restart",
+    "moved": "Moved {{kind}} to {{path}}.",
+    "oldFilesLeft_one": "{{count}} old file could not be deleted (open in another program?) — you can delete it by hand.",
+    "oldFilesLeft_other": "{{count}} old files could not be deleted (open in another program?) — you can delete them by hand.",
+    "moveFailed": "The move failed. The old data is still where it was; nothing was lost.",
+    "dataScheduled": "App data will be moved to {{path}}. Restart the app to finish.",
+    "phase": {
+      "copying": "Copying",
+      "verifying": "Checking the copy",
+      "cleaning": "Deleting the old copy"
+    },
+    "restartNeeded": "Restart needed to move the app data",
+    "restartNeededHint": "On the next start, the app data is moved to {{path}} before the app opens.",
+    "restartNow": "Restart now",
+    "cancelPending": "Cancel move",
+    "pendingCancelled": "The app data move was cancelled.",
+    "pendingRow": "Will move to {{path}} on the next start",
+    "restartTitle": "Restart the app?",
+    "restartBody": "The app closes, moves the data and opens again. Anything running (clone, push, pull, terminals) is stopped — wait for it to finish first.",
+    "clearCacheTitle": "Clear all cache?",
+    "clearCacheBody": "No data is lost: your accounts, settings and code stay as they are. The next start is a bit slower while repository lists, avatars and the graph are loaded again.",
+    "pruneLogsTitle": "Delete old logs?",
+    "pruneLogsBody": "This does not affect the app. Only the activity history of previous days (used for bug reports) is lost. Today's log file is kept.",
+    "cacheCleared_one": "Cache cleared ({{count}} file, {{size}}).",
+    "cacheCleared_other": "Cache cleared ({{count}} files, {{size}}).",
+    "logsPruned_one": "Deleted {{count}} old log file ({{size}}).",
+    "logsPruned_other": "Deleted {{count}} old log files ({{size}}).",
+    "cleanFailed_one": "{{count}} item could not be deleted (in use?).",
+    "cleanFailed_other": "{{count}} items could not be deleted (in use?).",
+    "cleanError": "Could not clean up",
+    "openFailed": "Could not open the folder",
+    "cloneTitle": "Default clone folder: per account",
+    "cloneHint": "That is your code — the app never deletes it. Change it in Manage accounts.",
+    "openAccounts": "Manage accounts",
+    "lowSpace": "Only {{free}} free on the drive holding the app data",
+    "lowSpaceHint": "When the drive is full the app may fail to save accounts, settings or logs. Free up some space, or move the app data to another drive in Settings → Storage. (In use: {{path}})",
+    "problem": {
+      "invalidPath": "Invalid path. Choose the folder with the Change… button.",
+      "notAFolder": "This is a file, not a folder. Choose a folder.",
+      "sameAsCurrent": "This is the folder already in use.",
+      "insideAppFolder": "This folder is inside one of the app's folders (logs, cache or data). Choose another place, e.g. a new folder on another drive.",
+      "containsAppFolder": "This folder contains an app data folder. Choose or create another, empty folder.",
+      "notEmpty": "The folder {{path}} already has files in it. Choose an empty folder or create a new one.",
+      "notWritable": "The app cannot write to this folder ({{message}}). Choose a folder you can write to, e.g. in your user folder or on another drive.",
+      "notEnoughSpace": "Not enough space on the target drive: about {{needed}} needed but only {{free}} free. Free up space or choose another drive."
+    },
+    "warning": {
+      "pointerUnreadable": "Could not read the storage location settings — using the default folders for now",
+      "pointerUnreadableHint": "Open Settings → Storage to choose the folders again; the settings file is rewritten when you change one.",
+      "missingFolder": "{{kind}} folder not found: {{path}}",
+      "missingFolderHint": "A removable drive may be unplugged. The app uses {{fallback}} for now. Plug the drive back in and restart the app, or choose another folder in Settings → Storage.",
+      "dataMoved": "App data moved to {{to}}.",
+      "dataMoveFailed": "Could not move the app data to {{to}}",
+      "dataMoveFailedHint": "Nothing was lost: the app still uses the data in {{from}}. You can try again in Settings → Storage.",
+      "oldFilesLeft_one": "{{count}} old file in {{path}} could not be deleted — you can delete it by hand.",
+      "oldFilesLeft_other": "{{count}} old files in {{path}} could not be deleted — you can delete them by hand."
+    }
+  },
+  "cliSync": {
+    "title": "Found {{count}} accounts signed in with a CLI — add them to the app",
+    "title_one": "Found {{count}} account signed in with a CLI — add it to the app",
+    "titleDone": "Accounts from the gh / glab CLI",
+    "description": "These accounts are signed in with GitHub CLI (gh) or GitLab CLI (glab) on this computer. Add them to use them right away, without signing in again.",
+    "consent": "The app asks gh / glab for the token only when you click Add, checks it with GitHub/GitLab and stores it in your system's password store. The gh / glab configuration is not changed.",
+    "scanning": "Looking for accounts signed in with gh / glab…",
+    "scanFailed": "Could not read the gh / glab configuration: {{message}}",
+    "noneFound": "No account is signed in with gh / glab on this computer. If you just ran `gh auth login`, click Scan again.",
+    "allAdded": "All {{count}} gh / glab accounts on this computer are already in the app.",
+    "allAdded_one": "The {{count}} gh / glab account on this computer is already in the app.",
+    "known": "Already in the app ({{count}})",
+    "known_one": "Already in the app ({{count}})",
+    "unknownUser": "(unknown name)",
+    "active": "active in {{tool}}",
+    "notInstalled": "The {{tool}} program was not found, so the app cannot get the token. Install {{tool}} and click Scan again, or sign in directly in the app.",
+    "add": "Add {{count}} accounts to the app",
+    "add_one": "Add {{count}} account to the app",
+    "adding": "Adding…",
+    "rescan": "Scan again",
+    "importFailed": "Could not add the accounts: {{message}}",
+    "updateToken": "Get the token again from {{tool}}",
+    "source": "Imported from {{tool}} CLI",
+    "status": {
+      "added": "Added — ready in the account pill and with Ctrl+Alt+1..9.",
+      "missingScopes": "Added, but the token lacks scopes: {{scopes}}",
+      "invalidToken": "The token in {{tool}} no longer works (expired or revoked).",
+      "wrongUser": "The token from {{tool}} belongs to {{actual}}, not {{user}} — not added.",
+      "noToken": "{{tool}} did not give a token for this account.",
+      "cliMissing": "{{tool}} is not installed, so the token cannot be read.",
+      "alreadyExists": "This account is already in the app.",
+      "notFound": "This account is no longer in the {{tool}} configuration.",
+      "failed": "Could not add it: {{message}}"
+    },
+    "hint": {
+      "missingScopes": "Without these scopes some actions are refused (e.g. without workflow you cannot push files under .github/workflows). Run the command below in a terminal, then click “Get the token again” — or click “Sign in again in the app” so the app asks for every scope.",
+      "missingScopesManual": "Without these scopes some actions are refused. Give {{tool}} a token with enough scopes (or sign in to {{tool}} again), then click “Get the token again” — or click “Sign in again in the app”.",
+      "invalidToken": "Sign in to {{tool}} again with the command below, then click Scan again — or sign in directly in the app.",
+      "wrongUser": "{{tool}} may have switched accounts. Check with the command below, then click Scan again — or sign in directly in the app.",
+      "noToken": "{{tool}} may have signed this account out. Sign in again with the command below, then click Scan again — or sign in directly in the app. With several gh accounts on one server, update gh to 2.40 or newer.",
+      "cliMissing": "Install {{tool}} and click Scan again, or sign in directly in the app.",
+      "alreadyExists": "Nothing else to do.",
+      "notFound": "Click Scan again to refresh the list.",
+      "failed": "Check your network connection (and VPN for a company server), then try again."
+    },
+    "action": {
+      "signInApp": "Sign in in the app",
+      "reauth": "Sign in again in the app",
+      "retry": "Get the token again from {{tool}}",
+      "tryAgain": "Try again",
+      "copy": "Copy command"
+    },
+    "notice": {
+      "message": "Found {{count}} accounts signed in with gh / glab that are not in the app yet.",
+      "message_one": "Found {{count}} account signed in with gh / glab that is not in the app yet.",
+      "hint": "Add them to use them right away without signing in again. You pick each account in the account manager.",
+      "open": "Open account manager",
+      "dismiss": "Skip"
+    },
+    "cmd": {
+      "import": "Import accounts from gh/glab CLI…"
+    }
   }
 }

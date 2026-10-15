@@ -2017,5 +2017,391 @@
   "viewError": {
     "title": "Không hiển thị được khung này",
     "body": "Có lỗi khi vẽ khung này. Hãy đóng rồi mở lại; phần còn lại của app vẫn dùng bình thường. Nếu lặp lại, hãy báo lỗi kèm thông báo bên dưới."
+  },
+  "layout": {
+    "toolbar": "Thanh công cụ",
+    "moreActions": "Thêm thao tác",
+    "sidebar": "Thanh bên",
+    "sidebarButton": "Thanh bên",
+    "rightButton": "Bảng phải",
+    "collapseSidebar": "Thu gọn thanh bên",
+    "expandSidebar": "Hiện thanh bên",
+    "collapseRight": "Thu gọn bảng bên phải",
+    "expandRight": "Hiện bảng bên phải",
+    "resizeSidebar": "Đổi độ rộng thanh bên (kéo, hoặc dùng ←/→; bấm đúp để về mặc định)",
+    "resizeRight": "Đổi độ rộng bảng bên phải (kéo, hoặc dùng ←/→; bấm đúp để về mặc định)",
+    "cmd": {
+      "toggleSidebar": "Hiện / ẩn thanh bên",
+      "toggleRight": "Hiện / ẩn bảng bên phải",
+      "reset": "Đặt lại bố cục các bảng"
+    }
+  },
+  "setup": {
+    "title": "Hướng dẫn ban đầu",
+    "subtitle": "Vài bước ngắn để app sẵn sàng: kiểm tra công cụ, thêm tài khoản và mở repo đầu tiên.",
+    "stepsLabel": "Các bước",
+    "step": {
+      "welcome": "Chào mừng",
+      "tools": "Kiểm tra công cụ",
+      "accounts": "Tài khoản",
+      "finish": "Hoàn tất"
+    },
+    "skip": "Bỏ qua hướng dẫn",
+    "back": "Quay lại",
+    "next": "Tiếp",
+    "close": "Đóng",
+    "blocked": "Cần cài Git trước khi tiếp tục",
+    "welcome": {
+      "title": "Chào mừng đến với NANOMultipleGitGUI",
+      "tagline": "Git GUI cho người dùng nhiều tài khoản GitHub / GitLab.",
+      "about": "NANOMultipleGitGUI là dự án mã nguồn mở (giấy phép Apache-2.0) do NANO Pret phát triển. Bạn có thể dùng, chia sẻ và góp ý miễn phí.",
+      "repo": "Mã nguồn trên GitHub"
+    },
+    "tools": {
+      "intro": "App dùng các công cụ dưới đây đã cài trên máy. Git là bắt buộc; các mục khác giúp dùng thêm tính năng.",
+      "checking": "Đang kiểm tra các công cụ trên máy…",
+      "checkFailed": "Không kiểm tra được công cụ: {{message}}",
+      "recheck": "Kiểm tra lại",
+      "install": "Cài giúp tôi",
+      "download": "Mở trang tải chính thức",
+      "gitRequired": "Chưa có Git — app cần Git để làm mọi việc. Bấm \"Cài giúp tôi\" hoặc tải từ trang chính thức, cài xong bấm \"Kiểm tra lại\".",
+      "gitTooOld": "Git trên máy đã cũ. Cần bản {{min}} trở lên — bấm \"Cài giúp tôi\" để cập nhật, xong bấm \"Kiểm tra lại\".",
+      "restartNeeded": "Đã tìm thấy công cụ vừa cài nhưng app chưa dùng được (app phải khởi động lại để nhận đường dẫn mới).",
+      "restart": "Khởi động lại app",
+      "managerMissing": {
+        "winget": "Máy chưa có winget (trình cài đặt của Windows) nên nút \"Cài giúp tôi\" không dùng được. Hãy cài \"App Installer\" từ Microsoft Store, hoặc dùng nút \"Mở trang tải chính thức\".",
+        "brew": "Máy chưa có Homebrew nên chỉ cài giúp được Git (qua Xcode Command Line Tools). Công cụ khác hãy dùng nút \"Mở trang tải chính thức\" hoặc cài Homebrew từ brew.sh.",
+        "xcodeSelect": "Không tìm thấy xcode-select. Hãy dùng nút \"Mở trang tải chính thức\"."
+      }
+    },
+    "tool": {
+      "git": {
+        "name": "Git",
+        "purpose": "Công cụ quản lý phiên bản mà app điều khiển: commit, nhánh, push, pull…"
+      },
+      "gitLfs": {
+        "name": "Git LFS",
+        "purpose": "Lưu file lớn (ảnh, video, asset game) ngoài lịch sử git để repo không phình to."
+      },
+      "ssh": {
+        "name": "OpenSSH",
+        "purpose": "Kết nối tới GitHub / GitLab bằng SSH key (không cần nếu chỉ dùng HTTPS)."
+      },
+      "gh": {
+        "name": "GitHub CLI (gh)",
+        "purpose": "Không bắt buộc. Nếu đã đăng nhập bằng gh, app có thể lấy tài khoản từ đó."
+      },
+      "glab": {
+        "name": "GitLab CLI (glab)",
+        "purpose": "Không bắt buộc. Nếu đã đăng nhập bằng glab, app có thể lấy tài khoản từ đó."
+      },
+      "webview2": {
+        "name": "Microsoft WebView2",
+        "purpose": "Thành phần Windows dùng để hiển thị giao diện app."
+      }
+    },
+    "importance": {
+      "required": "Bắt buộc",
+      "recommended": "Nên có",
+      "optional": "Không bắt buộc"
+    },
+    "level": {
+      "ok": "Đã sẵn sàng",
+      "warn": "Cảnh báo",
+      "error": "Thiếu",
+      "info": "Thông tin"
+    },
+    "state": {
+      "ok": "Đã cài, dùng được.",
+      "outdated": "Phiên bản quá cũ — cần {{min}} trở lên.",
+      "outsidePath": "Đã cài nhưng app chưa nhận ra — khởi động lại app để dùng.",
+      "missing": {
+        "required": "Chưa cài. Bắt buộc phải có.",
+        "recommended": "Chưa cài. App vẫn chạy nhưng thiếu một số tính năng.",
+        "optional": "Chưa cài (không sao)."
+      }
+    },
+    "manager": {
+      "winget": "winget",
+      "brew": "Homebrew",
+      "xcodeSelect": "Xcode Command Line Tools"
+    },
+    "install": {
+      "running": "Đang cài đặt… việc này có thể mất vài phút.",
+      "runningWinget": "Đang cài bằng winget… Nếu Windows hỏi quyền quản trị (UAC), hãy bấm \"Có\". Việc này có thể mất vài phút.",
+      "details": "Chi tiết kỹ thuật",
+      "exitCode": "Mã thoát: {{code}}",
+      "outcome": {
+        "installed": "Đã cài xong. Kết quả kiểm tra đã được cập nhật.",
+        "alreadyInstalled": "Công cụ này đã được cài trên máy rồi.",
+        "started": "Đã mở trình cài đặt của macOS. Làm theo hộp thoại hiện ra, cài xong bấm \"Kiểm tra lại\".",
+        "cancelled": "Đã dừng cài đặt.",
+        "userCancelled": "Cài đặt bị hủy (có thể bạn đã bấm \"Không\" ở hộp thoại xin quyền). Bấm \"Cài giúp tôi\" lần nữa và chọn \"Có\".",
+        "needsAdmin": "Cần quyền quản trị để cài. Hãy nhờ người quản trị máy, hoặc tải bản cài từ trang chính thức.",
+        "managerMissing": "Không chạy được {{manager}} trên máy này. Hãy dùng nút \"Mở trang tải chính thức\".",
+        "network": "Không tải được bản cài — kiểm tra kết nối mạng rồi thử lại.",
+        "packageNotFound": "{{manager}} không tìm thấy gói cài đặt. Hãy dùng nút \"Mở trang tải chính thức\".",
+        "timedOut": "Cài đặt chạy quá lâu nên đã dừng. Thử lại hoặc tải từ trang chính thức.",
+        "failed": "Cài đặt không thành công. Xem \"Chi tiết kỹ thuật\" bên dưới, hoặc tải bản cài từ trang chính thức."
+      }
+    },
+    "accounts": {
+      "intro": "Thêm tài khoản GitHub / GitLab để app tự dùng đúng tài khoản cho từng repo khi clone, push, pull.",
+      "signIn": "Đăng nhập tài khoản mới",
+      "import": "Nhập từ .gitconfig / .ssh",
+      "list": "Tài khoản trong app ({{count}})",
+      "none": "Chưa có tài khoản nào. Bạn vẫn có thể làm việc với repo trên máy và thêm tài khoản sau.",
+      "later": "Có thể thêm hoặc sửa tài khoản bất cứ lúc nào trong Quản lý tài khoản."
+    },
+    "finish": {
+      "intro": "Xong! App đã sẵn sàng. Tóm tắt:",
+      "tools": "Công cụ sẵn sàng: {{ok}}/{{total}}",
+      "toolsMissing": "còn thiếu: {{names}}",
+      "accounts": "Tài khoản: {{count}}",
+      "openRepo": "Mở repo trên máy",
+      "clone": "Clone repo",
+      "rerunHint": "Có thể chạy lại hướng dẫn này trong Cài đặt → Hướng dẫn ban đầu."
+    },
+    "settings": {
+      "title": "Hướng dẫn ban đầu",
+      "rerun": "Chạy lại hướng dẫn ban đầu",
+      "pending": "Bạn chưa làm xong: {{steps}}."
+    },
+    "cmd": {
+      "rerun": "Chạy lại hướng dẫn ban đầu"
+    }
+  },
+  "updater": {
+    "cmd": {
+      "check": "Kiểm tra cập nhật"
+    },
+    "upToDate": "Bạn đang dùng phiên bản mới nhất ({{version}}).",
+    "notConfigured": "Bản build này chưa bật tự cập nhật.",
+    "notConfiguredHint": "Bạn vẫn có thể tải bản mới thủ công trên trang Releases của dự án rồi cài đè lên bản cũ — dữ liệu và tài khoản được giữ nguyên.",
+    "notConfiguredNoRepo": "Bản build này không kèm địa chỉ trang phát hành (thường gặp khi tự build từ mã nguồn). Hãy cập nhật bằng cách build lại hoặc tải bộ cài mới.",
+    "action": {
+      "openReleases": "Mở trang Releases"
+    },
+    "channel": {
+      "stable": "Ổn định (khuyến nghị)",
+      "beta": "Beta — thử tính năng mới",
+      "stableHint": "Chỉ nhận các bản đã phát hành chính thức.",
+      "betaHint": "Nhận cả bản beta: có tính năng mới sớm hơn nhưng có thể còn lỗi."
+    },
+    "settings": {
+      "title": "Cập nhật",
+      "current": "Phiên bản hiện tại: {{version}}",
+      "channel": "Kênh cập nhật",
+      "lastCheck": "Lần kiểm tra gần nhất: {{date}}",
+      "never": "chưa kiểm tra lần nào",
+      "skipped": "Đang bỏ qua bản {{version}}.",
+      "unskip": "Nhắc lại bản này"
+    },
+    "dialog": {
+      "title": "Đã có phiên bản mới {{version}}",
+      "current": "Bạn đang dùng {{version}}",
+      "date": "phát hành ngày {{date}}",
+      "notes": "Có gì mới",
+      "noNotes": "Bản này không kèm ghi chú phát hành.",
+      "viewOnGithub": "Xem chi tiết trên GitHub",
+      "skippedNote": "Trước đây bạn đã chọn bỏ qua bản này. Bạn vẫn có thể cập nhật ngay bây giờ.",
+      "saveHint": "App sẽ tự đóng và mở lại sau khi cài xong. Các thay đổi trong repo của bạn không bị ảnh hưởng.",
+      "restartHint": "Đừng tắt máy trong lúc cài. App sẽ tự mở lại khi xong.",
+      "install": "Cập nhật & khởi động lại",
+      "retry": "Thử lại",
+      "later": "Để sau",
+      "skip": "Bỏ qua bản này"
+    },
+    "phase": {
+      "downloading": "Đang tải bản cập nhật…",
+      "installing": "Đang cài đặt…",
+      "restarting": "Đang khởi động lại…"
+    },
+    "error": {
+      "offline": "Không kết nối được tới GitHub",
+      "noRelease": "Chưa có bản phát hành nào hỗ trợ tự cập nhật",
+      "noBuildForPlatform": "Bản mới chưa có gói cập nhật cho máy của bạn",
+      "badManifest": "Thông tin bản cập nhật trên GitHub bị lỗi",
+      "badSignature": "Gói cập nhật không có chữ ký hợp lệ — đã dừng để bảo vệ máy bạn",
+      "downloadFailed": "Tải bản cập nhật không thành công",
+      "notConfigured": "Bản build này chưa bật tự cập nhật",
+      "noPendingUpdate": "Không tìm thấy bản cập nhật đã chọn",
+      "busy": "Đang cài một bản cập nhật khác",
+      "cancelled": "Bạn đã hủy bước xác nhận mật khẩu",
+      "failed": "Cập nhật không thành công"
+    },
+    "errorHelp": {
+      "offline": "Kiểm tra kết nối Internet (hoặc proxy/VPN của công ty) rồi bấm “Kiểm tra cập nhật” lại.",
+      "noRelease": "Không cần làm gì cả — app sẽ tự báo khi có bản mới. Bạn cũng có thể xem trang Releases.",
+      "noBuildForPlatform": "Thường là do bản mới vừa phát hành, gói cho hệ điều hành của bạn chưa tải lên xong. Hãy thử lại sau ít phút, hoặc tải bộ cài trên trang Releases.",
+      "badManifest": "Lỗi này nằm ở phía người phát hành, không phải máy bạn. Hãy thử lại sau, hoặc tải bộ cài trên trang Releases.",
+      "badSignature": "File tải về không khớp với chữ ký của dự án nên app không cài. Hãy thử lại sau; nếu vẫn lỗi, tải bộ cài trên trang Releases và báo cho nhóm phát triển.",
+      "downloadFailed": "Kết nối có thể bị ngắt giữa chừng. Bấm “Thử lại” để tải lại từ đầu.",
+      "notConfigured": "Hãy tải bộ cài mới trên trang Releases của dự án và cài đè lên bản đang dùng.",
+      "noPendingUpdate": "Bấm “Kiểm tra cập nhật” để tìm lại bản mới nhất.",
+      "busy": "Đợi bản cập nhật đang cài xong — app sẽ tự khởi động lại.",
+      "cancelled": "Bấm “Thử lại” và nhập mật khẩu máy tính khi được hỏi để cài bản mới.",
+      "failed": "Hãy thử lại. Nếu vẫn lỗi, tải bộ cài mới trên trang Releases và cài đè lên bản đang dùng — dữ liệu được giữ nguyên."
+    }
+  },
+  "storage": {
+    "title": "Lưu trữ",
+    "description": "Nơi app giữ log, cache và dữ liệu của riêng nó. Bạn có thể chuyển sang ổ khác nếu ổ hiện tại sắp đầy. Code (các repo) của bạn không nằm ở đây.",
+    "sectionHint": "Xem dung lượng, chuyển hoặc dọn thư mục log, cache và dữ liệu app.",
+    "manage": "Quản lý lưu trữ…",
+    "openSettings": "Mở Cài đặt → Lưu trữ",
+    "kind": {
+      "log": "Log",
+      "cache": "Cache",
+      "data": "Dữ liệu app"
+    },
+    "about": {
+      "log": "Nhật ký hoạt động để gửi kèm báo lỗi. Xóa không ảnh hưởng gì, chỉ mất lịch sử để gửi báo lỗi.",
+      "cache": "Dữ liệu tạm (danh sách repo, ảnh đại diện, graph). Xóa không mất dữ liệu; lần mở sau chậm hơn một chút vì phải tải lại.",
+      "data": "Tài khoản, rule, binding, khóa SSH do app tạo (SQLite). Chỉ đổi được vị trí, không có nút xóa. Token vẫn nằm trong keychain của hệ điều hành."
+    },
+    "default": "Mặc định",
+    "custom": "Tùy chỉnh",
+    "used_one": "{{size}} · {{count}} file",
+    "used_other": "{{size}} · {{count}} file",
+    "free": "Ổ này còn trống {{size}}",
+    "measuring": "Đang đo dung lượng…",
+    "loadFailed": "Không đọc được thông tin lưu trữ",
+    "open": "Mở thư mục",
+    "change": "Đổi…",
+    "reset": "Về mặc định",
+    "clearCache": "Xóa toàn bộ cache",
+    "pruneLogs": "Xóa log cũ",
+    "pickTitle": "Chọn thư mục mới cho {{kind}}",
+    "checkFailed": "Không kiểm tra được thư mục này",
+    "changeTitle": "Chuyển {{kind}} sang thư mục mới",
+    "resetTitle": "Đưa {{kind}} về thư mục mặc định",
+    "changeNowBody": "App sẽ sao chép dữ liệu sang thư mục mới, kiểm tra lại từng file rồi mới xóa bản cũ. Nếu có lỗi giữa chừng, bản cũ được giữ nguyên.",
+    "changeDataBody": "Dữ liệu app đang được dùng nên sẽ được chuyển ở lần khởi động sau, trước khi app mở cơ sở dữ liệu. Bản cũ chỉ bị xóa khi bản mới đã được kiểm tra đầy đủ.",
+    "cannotUse": "Không dùng được thư mục này.",
+    "target": "Thư mục sẽ dùng",
+    "subfolderNote": "Thư mục bạn chọn đã có file khác, nên app sẽ tạo một thư mục con riêng bên trong để không lẫn với file của bạn.",
+    "sizes": "Cần chuyển {{needed}} · ổ đích còn trống {{free}}",
+    "moveNow": "Chuyển ngay",
+    "schedule": "Chuyển khi khởi động lại",
+    "moved": "Đã chuyển {{kind}} sang {{path}}.",
+    "oldFilesLeft_one": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác) — bạn có thể xóa tay.",
+    "oldFilesLeft_other": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác) — bạn có thể xóa tay.",
+    "moveFailed": "Không chuyển được. Dữ liệu cũ vẫn ở chỗ cũ, không có gì bị mất.",
+    "dataScheduled": "Đã hẹn chuyển dữ liệu app sang {{path}}. Hãy khởi động lại app để hoàn tất.",
+    "phase": {
+      "copying": "Đang sao chép",
+      "verifying": "Đang kiểm tra bản sao",
+      "cleaning": "Đang xóa bản cũ"
+    },
+    "restartNeeded": "Cần khởi động lại để chuyển dữ liệu app",
+    "restartNeededHint": "Lần khởi động sau, dữ liệu app sẽ được chuyển tới {{path}} trước khi app mở.",
+    "restartNow": "Khởi động lại ngay",
+    "cancelPending": "Hủy chuyển",
+    "pendingCancelled": "Đã hủy việc chuyển dữ liệu app.",
+    "pendingRow": "Sẽ chuyển tới {{path}} ở lần khởi động sau",
+    "restartTitle": "Khởi động lại app?",
+    "restartBody": "App sẽ đóng rồi mở lại và chuyển dữ liệu trước khi mở. Việc đang chạy (clone, push, pull, terminal) sẽ bị dừng — hãy đợi chúng xong trước.",
+    "clearCacheTitle": "Xóa toàn bộ cache?",
+    "clearCacheBody": "Không mất dữ liệu nào: tài khoản, cài đặt và code của bạn vẫn giữ nguyên. Lần mở sau sẽ chậm hơn một chút vì app phải tải lại danh sách repo, ảnh đại diện, graph.",
+    "pruneLogsTitle": "Xóa log cũ?",
+    "pruneLogsBody": "Không ảnh hưởng tới app. Chỉ mất lịch sử hoạt động của các ngày trước (dùng để gửi kèm khi báo lỗi). File log đang ghi hôm nay được giữ lại.",
+    "cacheCleared_one": "Đã xóa cache ({{count}} file, {{size}}).",
+    "cacheCleared_other": "Đã xóa cache ({{count}} file, {{size}}).",
+    "logsPruned_one": "Đã xóa {{count}} file log cũ ({{size}}).",
+    "logsPruned_other": "Đã xóa {{count}} file log cũ ({{size}}).",
+    "cleanFailed_one": "{{count}} mục không xóa được (đang được dùng?).",
+    "cleanFailed_other": "{{count}} mục không xóa được (đang được dùng?).",
+    "cleanError": "Không dọn được",
+    "openFailed": "Không mở được thư mục",
+    "cloneTitle": "Thư mục clone mặc định: theo từng tài khoản",
+    "cloneHint": "Đó là code của bạn — app không bao giờ xóa. Đổi trong Quản lý tài khoản.",
+    "openAccounts": "Quản lý tài khoản",
+    "lowSpace": "Ổ chứa dữ liệu app chỉ còn {{free}} trống",
+    "lowSpaceHint": "Khi ổ đầy, app có thể không lưu được tài khoản, cài đặt hay log. Hãy dọn bớt ổ đĩa, hoặc chuyển dữ liệu app sang ổ khác trong Cài đặt → Lưu trữ. (Đang dùng: {{path}})",
+    "problem": {
+      "invalidPath": "Đường dẫn không hợp lệ. Hãy chọn thư mục bằng nút Đổi….",
+      "notAFolder": "Đây là một file, không phải thư mục. Hãy chọn một thư mục.",
+      "sameAsCurrent": "Đây chính là thư mục đang dùng.",
+      "insideAppFolder": "Thư mục này nằm bên trong một thư mục của app (log, cache hoặc dữ liệu). Hãy chọn chỗ khác, ví dụ một thư mục mới trên ổ D:.",
+      "containsAppFolder": "Thư mục này chứa thư mục dữ liệu của app. Hãy chọn hoặc tạo một thư mục trống khác.",
+      "notEmpty": "Thư mục {{path}} đã có file. Hãy chọn một thư mục trống hoặc tạo thư mục mới.",
+      "notWritable": "App không ghi được vào thư mục này ({{message}}). Hãy chọn thư mục bạn có quyền ghi, ví dụ trong thư mục người dùng hoặc trên ổ D:.",
+      "notEnoughSpace": "Ổ đích không đủ chỗ: cần khoảng {{needed}} nhưng chỉ còn {{free}}. Hãy dọn bớt hoặc chọn ổ khác."
+    },
+    "warning": {
+      "pointerUnreadable": "Không đọc được file cấu hình vị trí lưu trữ — app tạm dùng thư mục mặc định",
+      "pointerUnreadableHint": "Mở Cài đặt → Lưu trữ để chọn lại thư mục; file cấu hình sẽ được ghi lại khi bạn đổi.",
+      "missingFolder": "Không tìm thấy thư mục {{kind}}: {{path}}",
+      "missingFolderHint": "Có thể ổ đĩa rời chưa được cắm. App tạm dùng {{fallback}}. Cắm lại ổ rồi khởi động lại app, hoặc chọn thư mục khác trong Cài đặt → Lưu trữ.",
+      "dataMoved": "Đã chuyển dữ liệu app sang {{to}}.",
+      "dataMoveFailed": "Không chuyển được dữ liệu app sang {{to}}",
+      "dataMoveFailedHint": "Không có gì bị mất: app vẫn dùng dữ liệu ở {{from}}. Bạn có thể thử lại trong Cài đặt → Lưu trữ.",
+      "oldFilesLeft_one": "Còn {{count}} file cũ trong {{path}} không xóa được — bạn có thể xóa tay.",
+      "oldFilesLeft_other": "Còn {{count}} file cũ trong {{path}} không xóa được — bạn có thể xóa tay."
+    }
+  },
+  "cliSync": {
+    "title": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI — thêm vào app",
+    "title_one": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI — thêm vào app",
+    "titleDone": "Tài khoản từ gh / glab CLI",
+    "description": "Các tài khoản này đã đăng nhập bằng GitHub CLI (gh) hoặc GitLab CLI (glab) trên máy. Thêm vào app để dùng ngay, không cần đăng nhập lại.",
+    "consent": "App chỉ hỏi gh / glab lấy token khi bạn bấm Thêm, kiểm tra token với GitHub/GitLab rồi lưu vào kho mật khẩu của hệ điều hành. Cấu hình của gh / glab không bị thay đổi.",
+    "scanning": "Đang tìm tài khoản đã đăng nhập bằng gh / glab…",
+    "scanFailed": "Không đọc được cấu hình gh / glab: {{message}}",
+    "noneFound": "Không thấy tài khoản nào đăng nhập bằng gh / glab trên máy này. Nếu bạn vừa chạy `gh auth login`, bấm Quét lại.",
+    "allAdded": "{{count}} tài khoản gh / glab trên máy đều đã có trong app.",
+    "allAdded_one": "{{count}} tài khoản gh / glab trên máy đã có trong app.",
+    "known": "Đã có trong app ({{count}})",
+    "known_one": "Đã có trong app ({{count}})",
+    "unknownUser": "(chưa rõ tên)",
+    "active": "{{tool}} đang dùng",
+    "notInstalled": "Không tìm thấy chương trình {{tool}} nên app không lấy được token. Cài {{tool}} rồi bấm Quét lại, hoặc đăng nhập trực tiếp trong app.",
+    "add": "Thêm {{count}} tài khoản vào app",
+    "add_one": "Thêm {{count}} tài khoản vào app",
+    "adding": "Đang thêm…",
+    "rescan": "Quét lại",
+    "importFailed": "Không thêm được tài khoản: {{message}}",
+    "updateToken": "Lấy lại token từ {{tool}}",
+    "source": "Nhập từ {{tool}} CLI",
+    "status": {
+      "added": "Đã thêm — dùng được ngay ở thanh tài khoản và Ctrl+Alt+1..9.",
+      "missingScopes": "Đã thêm, nhưng token thiếu quyền: {{scopes}}",
+      "invalidToken": "Token trong {{tool}} không còn dùng được (đã hết hạn hoặc bị thu hồi).",
+      "wrongUser": "Token {{tool}} trả về thuộc tài khoản {{actual}}, không phải {{user}} — chưa thêm.",
+      "noToken": "{{tool}} không đưa token cho tài khoản này.",
+      "cliMissing": "Chưa cài {{tool}} nên không lấy được token.",
+      "alreadyExists": "Tài khoản này đã có trong app.",
+      "notFound": "Không còn thấy tài khoản này trong cấu hình {{tool}}.",
+      "failed": "Không thêm được: {{message}}"
+    },
+    "hint": {
+      "missingScopes": "Thiếu quyền thì một số việc sẽ bị từ chối (vd. thiếu workflow thì không push được file trong .github/workflows). Chạy lệnh dưới đây trong terminal rồi bấm “Lấy lại token”, hoặc bấm “Đăng nhập lại trong app” để app xin đủ quyền.",
+      "missingScopesManual": "Thiếu quyền thì một số việc sẽ bị từ chối. Tạo token mới đủ quyền cho {{tool}} (hoặc đăng nhập lại {{tool}}) rồi bấm “Lấy lại token”, hoặc bấm “Đăng nhập lại trong app”.",
+      "invalidToken": "Đăng nhập lại {{tool}} bằng lệnh dưới đây rồi bấm Quét lại, hoặc đăng nhập trực tiếp trong app.",
+      "wrongUser": "Có thể {{tool}} vừa đổi tài khoản. Kiểm tra bằng lệnh dưới đây rồi bấm Quét lại, hoặc đăng nhập trực tiếp trong app.",
+      "noToken": "Có thể {{tool}} đã đăng xuất tài khoản này. Đăng nhập lại bằng lệnh dưới đây rồi bấm Quét lại, hoặc đăng nhập trực tiếp trong app. Nếu bạn có nhiều tài khoản gh trên cùng máy chủ, hãy cập nhật gh lên bản 2.40 trở lên.",
+      "cliMissing": "Cài {{tool}} rồi bấm Quét lại, hoặc đăng nhập trực tiếp trong app.",
+      "alreadyExists": "Không cần làm gì thêm.",
+      "notFound": "Bấm Quét lại để cập nhật danh sách.",
+      "failed": "Kiểm tra kết nối mạng (và VPN nếu máy chủ là của công ty) rồi thử lại."
+    },
+    "action": {
+      "signInApp": "Đăng nhập trong app",
+      "reauth": "Đăng nhập lại trong app",
+      "retry": "Lấy lại token từ {{tool}}",
+      "tryAgain": "Thử lại",
+      "copy": "Sao chép lệnh"
+    },
+    "notice": {
+      "message": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng gh / glab nhưng chưa có trong app.",
+      "message_one": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng gh / glab nhưng chưa có trong app.",
+      "hint": "Thêm vào app để dùng ngay mà không cần đăng nhập lại. Bạn chọn từng tài khoản trong Quản lý tài khoản.",
+      "open": "Mở Quản lý tài khoản",
+      "dismiss": "Bỏ qua"
+    },
+    "cmd": {
+      "import": "Nhập tài khoản từ gh/glab CLI…"
+    }
   }
 }

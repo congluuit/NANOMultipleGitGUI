@@ -569,21 +569,27 @@ async fn blocking<T: Send + 'static>(
 #[specta::specta]
 pub async fn import_scan(app: AppHandle) -> AppResult<ImportScan> {
     blocking(app, |app, st| {
-        let home = app
-            .path()
-            .home_dir()
-            .map_err(|e| AppError::Internal(e.to_string()))?;
-        let appdata = if cfg!(windows) {
-            std::env::var_os("APPDATA")
-                .filter(|v| !v.is_empty())
-                .map(PathBuf::from)
-                .or_else(|| app.path().config_dir().ok())
-        } else {
-            None
-        };
+        let (home, appdata) = real_locations(app)?;
         scan_impl(st, &home, appdata.as_deref(), &ScanEnv::from_process())
     })
     .await
+}
+
+/// The user's home and, on Windows, `%APPDATA%` (Roaming).
+pub(crate) fn real_locations(app: &AppHandle) -> AppResult<(PathBuf, Option<PathBuf>)> {
+    let home = app
+        .path()
+        .home_dir()
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    let appdata = if cfg!(windows) {
+        std::env::var_os("APPDATA")
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+            .or_else(|| app.path().config_dir().ok())
+    } else {
+        None
+    };
+    Ok((home, appdata))
 }
 
 /// Creates the ticked identities / rules / SSH key imports.
@@ -594,10 +600,7 @@ pub async fn import_apply(
     selection: ImportSelection,
 ) -> AppResult<ImportApplyResult> {
     blocking(app, move |app, st| {
-        let dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| AppError::Internal(e.to_string()))?;
+        let dir = crate::app_paths::data_dir(app)?;
         apply_impl(st, &KeyStore::new(&dir), selection)
     })
     .await

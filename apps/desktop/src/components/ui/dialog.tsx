@@ -50,21 +50,30 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        // Never taller than the window: the dialog scrolls, its direct header / footer stick
+        // (step 3B.5). Dialogs with their own inner scroll area just fit inside.
         className={cn(
-          "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+          "fixed top-[50%] left-[50%] z-50 flex max-h-[calc(100dvh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-4 overflow-y-auto overscroll-contain rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
+          // Sticky offsets count from the content box: header / footer also cover the p-6 padding.
+          "[&>[data-slot=dialog-footer]]:sticky [&>[data-slot=dialog-footer]]:-bottom-6 [&>[data-slot=dialog-footer]]:z-10 [&>[data-slot=dialog-footer]]:-mb-6 [&>[data-slot=dialog-footer]]:bg-background [&>[data-slot=dialog-footer]]:pb-6",
+          "[&>[data-slot=dialog-header]]:sticky [&>[data-slot=dialog-header]]:-top-6 [&>[data-slot=dialog-header]]:z-10 [&>[data-slot=dialog-header]]:-mt-6 [&>[data-slot=dialog-header]]:bg-background [&>[data-slot=dialog-header]]:pt-6",
           className,
         )}
         {...props}
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            className="absolute top-4 right-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
+          // Zero-height sticky anchor shown first (kept last in the DOM so the first field still
+          // gets the initial focus): the close button stays in the corner while the body scrolls.
+          <div className="pointer-events-none sticky top-0 z-20 order-first -mb-4 h-0 self-end">
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              className="pointer-events-auto absolute -top-2 -right-2 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </div>
         )}
       </DialogPrimitive.Content>
     </DialogPortal>

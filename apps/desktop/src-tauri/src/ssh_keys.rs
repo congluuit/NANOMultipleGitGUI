@@ -1009,11 +1009,7 @@ fn build_test_result(
 // ----- commands ------------------------------------------------------------------------------
 
 fn key_store(app: &AppHandle) -> AppResult<KeyStore> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::Internal(e.to_string()))?;
-    Ok(KeyStore::new(&dir))
+    Ok(KeyStore::new(&crate::app_paths::data_dir(app)?))
 }
 
 async fn blocking<T: Send + 'static>(

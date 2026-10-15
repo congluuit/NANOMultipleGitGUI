@@ -45,6 +45,24 @@ export function graphWidth(maxLanes: number): number {
   );
 }
 
+/** Room the message column keeps before the author / date columns give way. */
+const MIN_MESSAGE_WIDTH = 180;
+const MIN_AUTHOR_WIDTH = 100;
+
+/**
+ * Author / date column widths for a graph `width` px wide (0 = column hidden): in a narrow
+ * window the author column shrinks, then hides, then the date hides, so the message stays.
+ */
+export function sideColumns(width: number, maxLanes: number): { author: number; date: number } {
+  const free = width - graphWidth(maxLanes) - 8 - MIN_MESSAGE_WIDTH;
+  if (width <= 0 || free >= AUTHOR_WIDTH + DATE_WIDTH) {
+    return { author: AUTHOR_WIDTH, date: DATE_WIDTH };
+  }
+  if (free >= MIN_AUTHOR_WIDTH + DATE_WIDTH) return { author: free - DATE_WIDTH, date: DATE_WIDTH };
+  if (free >= DATE_WIDTH) return { author: 0, date: DATE_WIDTH };
+  return { author: 0, date: 0 };
+}
+
 export const laneX = (lane: number) => GRAPH_PAD + lane * LANE_WIDTH + LANE_WIDTH / 2;
 
 export interface RefLabel {
@@ -142,8 +160,9 @@ export function drawGraph(p: DrawParams): number {
   const last = Math.min(p.total, Math.ceil((scrollTop + height) / ROW_HEIGHT));
   const gWidth = graphWidth(p.maxLanes);
   const textX = gWidth + 8;
-  const authorX = width - AUTHOR_WIDTH - DATE_WIDTH;
-  const dateX = width - DATE_WIDTH;
+  const cols = sideColumns(width, p.maxLanes);
+  const authorX = width - cols.author - cols.date;
+  const dateX = width - cols.date;
   let missing = 0;
 
   ctx.clearRect(0, 0, width, height);
@@ -242,18 +261,22 @@ export function drawGraph(p: DrawParams): number {
     ctx.fillText(row.subject, x + (x > textX ? 4 : 0), cy + 0.5);
     ctx.restore();
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(authorX, y0, AUTHOR_WIDTH - 12, ROW_HEIGHT);
-    ctx.clip();
-    ctx.font = `12px ${palette.font}`;
-    ctx.fillStyle = palette.muted;
-    ctx.fillText(row.authorName, authorX, cy + 0.5);
-    ctx.restore();
+    if (cols.author > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(authorX, y0, cols.author - 12, ROW_HEIGHT);
+      ctx.clip();
+      ctx.font = `12px ${palette.font}`;
+      ctx.fillStyle = palette.muted;
+      ctx.fillText(row.authorName, authorX, cy + 0.5);
+      ctx.restore();
+    }
 
-    ctx.font = `11px ${palette.mono}`;
-    ctx.fillStyle = palette.muted;
-    ctx.fillText(formatDate(row.authorTime, p.locale), dateX, cy + 0.5);
+    if (cols.date > 0) {
+      ctx.font = `11px ${palette.mono}`;
+      ctx.fillStyle = palette.muted;
+      ctx.fillText(formatDate(row.authorTime, p.locale), dateX, cy + 0.5);
+    }
   }
   return missing;
 }

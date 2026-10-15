@@ -4,6 +4,8 @@
 //! the GitHub CLI `hosts.yml` and the glab `config.yml`, and turn them into **suggestions**
 //! (identities, path/remote rules, SSH host ↔ key mappings, provider accounts). Nothing is ever
 //! written; tokens found in gh/glab files are never returned (only the fact that one exists).
+//! [`cli_token`] is the one exception, run only after the user agreed: it asks the gh / glab
+//! executable for a token (PLAN 3B.1).
 //!
 //! Every suggestion carries a [`SourceRef`] (file + 1-based line) so the UI can show where it
 //! came from; unreadable or malformed files become [`ImportWarning`]s instead of errors.
@@ -12,6 +14,7 @@
 //! with temporary directories; [`ScanEnv::from_process`] reads the real environment.
 
 pub mod cli_hosts;
+pub mod cli_token;
 pub mod gitconfig;
 pub mod paths;
 pub mod ssh_config;

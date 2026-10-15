@@ -176,8 +176,22 @@ impl AccountDirectory for StorageDirectory {
     fn account(&self, account_id: &str) -> Option<AccountRef> {
         let account = self.0.account(account_id).ok()??;
         let provider = self.0.provider(&account.provider_id).ok()??;
-        // GitLab accepts OAuth access tokens only with the user name `oauth2`.
-        let username = if account.auth_method == AuthMethod::Oauth
+        // GitLab accepts OAuth access tokens only with the user name `oauth2` (a token copied
+        // from glab is OAuth when glab signed in through the browser).
+        let oauth = match account.auth_method {
+            AuthMethod::Oauth => true,
+            AuthMethod::ImportedCli => self
+                .0
+                .get_setting::<crate::auth::AuthStatus>(&format!(
+                    "{}{account_id}",
+                    crate::auth::service::KEY_STATUS
+                ))
+                .ok()
+                .flatten()
+                .is_some_and(|s| s.token_kind == Some(nanomgg_auth::TokenKind::GitlabOauth)),
+            AuthMethod::Pat | AuthMethod::SshOnly => false,
+        };
+        let username = if oauth
             && matches!(
                 provider.kind,
                 ProviderKind::Gitlab | ProviderKind::GitlabSelfHosted

@@ -202,12 +202,16 @@ pub enum AuthMethod {
     Pat,
     /// No HTTPS token: the account is only used over SSH (e.g. imported from `~/.ssh/config`).
     SshOnly,
+    /// Token copied from the `gh` / `glab` CLI (PLAN 3B.1). Treated like a PAT: validated and
+    /// re-validated, never refreshed by the app; the CLI's own config is never modified.
+    ImportedCli,
 }
 
 db_enum!(AuthMethod {
     Oauth => "oauth",
     Pat => "pat",
     SshOnly => "ssh_only",
+    ImportedCli => "imported_cli",
 });
 
 /// Which keychain entries of an account exist (the values never leave the keychain).
@@ -588,6 +592,14 @@ mod tests {
             Some(BindingSource::AutoRule)
         );
         assert_eq!(AuthMethod::parse("nope"), None);
+        for m in AuthMethod::ALL {
+            assert_eq!(AuthMethod::parse(m.as_str()), Some(*m));
+        }
+        assert_eq!(AuthMethod::ImportedCli.as_str(), "imported_cli");
+        assert_eq!(
+            serde_json::to_value(AuthMethod::ImportedCli).unwrap(),
+            serde_json::json!("importedCli")
+        );
         assert_eq!(
             serde_json::to_value(ProviderKind::GithubEnterprise).unwrap(),
             serde_json::json!("githubEnterprise")

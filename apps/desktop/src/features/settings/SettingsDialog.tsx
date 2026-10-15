@@ -18,6 +18,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { useAppInfo } from "@/features/app/useAppInfo";
+import { SetupSettingsSection } from "@/features/onboarding/setup/SetupSettingsSection";
+import { UpdaterSettingsSection } from "@/features/updater/UpdaterSettingsSection";
+import { StorageSection } from "@/features/settings/storage/StorageSection";
 import { LANGUAGES, type Language } from "@/i18n";
 import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
@@ -113,6 +116,10 @@ export function SettingsDialog() {
             <Palette />
             {t("settings.openPalette")}
           </Button>
+
+          <SetupSettingsSection />
+          <UpdaterSettingsSection />
+          <StorageSection />
         </div>
 
         <div className="text-[11px] text-muted-foreground">

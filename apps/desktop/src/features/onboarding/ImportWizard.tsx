@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { isTauri } from "@tauri-apps/api/core";
 import {
@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CliAccountsPanel } from "@/features/accounts/cli-sync";
 import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { invalidateAccounts, useAccounts, useProviders } from "@/features/accounts/queries";
 import { invalidateSshKeys } from "@/features/ssh/queries";
@@ -51,24 +52,6 @@ import {
 } from "./model";
 import { onboardingKeys } from "./queries";
 
-/** Opens the wizard once per session on first run (no account, wizard never finished/skipped). */
-function useAutoOpen() {
-  const status = useQuery({
-    queryKey: onboardingKeys.status,
-    queryFn: () => commands.onboardingStatus(),
-    enabled: isTauri(),
-    staleTime: Infinity,
-  });
-  const opened = useRef(false);
-  const shouldOpen = status.data?.shouldOpenWizard ?? false;
-  useEffect(() => {
-    if (shouldOpen && !opened.current) {
-      opened.current = true;
-      useAccountDialogs.getState().openImportWizard();
-    }
-  }, [shouldOpen]);
-}
-
 /** Closing the wizard in any way (Skip, Done, ×, Esc) marks the import as handled. */
 async function markDone() {
   if (!isTauri()) return;
@@ -80,9 +63,11 @@ async function markDone() {
   }
 }
 
-/** Mounted once in `App.tsx`: the wizard dialog plus its first-run auto-open. */
+/**
+ * Mounted once in `App.tsx`. It no longer opens by itself: the first-run setup
+ * (`setup/SetupWizard.tsx`) replaced that and opens it from its accounts step.
+ */
 export function ImportWizardHost() {
-  useAutoOpen();
   const open = useAccountDialogs((s) => s.importWizard);
   const close = () => {
     useAccountDialogs.getState().close("importWizard");
@@ -455,37 +440,13 @@ function ChooseStep({
       )}
 
       {r.accounts.length > 0 && (
-        <Section title={t("onboarding.section.accounts")}>
-          {r.accounts.map((a, i) => {
-            const added = accounts.some(
-              (acc) => !!a.username && acc.username.toLowerCase() === a.username.toLowerCase(),
-            );
-            return (
-              <li key={i} className="flex flex-wrap items-center gap-2 rounded-md border p-2">
-                <span className="rounded border px-1 font-mono text-[10px] uppercase">
-                  {a.tool}
-                </span>
-                <span className="font-medium">{a.username ?? t("onboarding.unknownUser")}</span>
-                <span className="text-muted-foreground">@ {a.host}</span>
-                {a.active && (
-                  <span className="text-[10px] text-success">{t("onboarding.active")}</span>
-                )}
-                <span className="basis-full text-[11px] text-muted-foreground">
-                  {t("onboarding.signInNote")}
-                  {a.notes.includes("tokenInPlainText") && ` ${t("onboarding.plainToken")}`}
-                </span>
-                {added ? (
-                  <CheckCircle2 className="ml-auto size-4 text-success" />
-                ) : (
-                  <Button size="xs" variant="outline" className="ml-auto" onClick={signIn}>
-                    <LogIn />
-                    {t("onboarding.signInAgain")}
-                  </Button>
-                )}
-              </li>
-            );
-          })}
-        </Section>
+        // Phase 3B.1: CLI accounts are added with their token here (no sign-in needed).
+        <section className="space-y-1.5">
+          <h3 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            {t("onboarding.section.accounts")}
+          </h3>
+          <CliAccountsPanel compact />
+        </section>
       )}
 
       {r.identities.length > 0 && (

@@ -25,6 +25,9 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     // only lists which keychain entries exist. Text ids are random (`acc_…`) so a keychain
     // entry can never be re-paired with a different account after a database reset.
     include_str!("migrations/v3_accounts.sql"),
+    // v4: `auth_method = 'imported_cli'` (tokens copied from gh / glab, PLAN 3B.1). Rebuilds
+    // `accounts`; needs foreign keys off (see `migrate`).
+    include_str!("migrations/v4_imported_cli.sql"),
 ];
 
 pub const LATEST_VERSION: u32 = MIGRATIONS.len() as u32;
@@ -45,15 +48,33 @@ pub(crate) fn migrate(conn: &mut Connection) -> Result<u32> {
     if current == LATEST_VERSION {
         return Ok(current);
     }
-    let tx = conn.transaction()?;
-    apply(&tx, current)?;
-    tx.commit()?;
+    // Table rebuilds (v4) drop and recreate a parent table: with foreign keys on, the DROP
+    // would run the children's ON DELETE actions. The pragma is a no-op inside a transaction,
+    // so it is switched around it and the references are checked before committing.
+    let fk_on: bool = conn.pragma_query_value(None, "foreign_keys", |row| row.get(0))?;
+    conn.pragma_update(None, "foreign_keys", false)?;
+    let result = (|| -> Result<()> {
+        let tx = conn.transaction()?;
+        apply(&tx, current)?;
+        tx.commit()?;
+        Ok(())
+    })();
+    conn.pragma_update(None, "foreign_keys", fk_on)?;
+    result?;
     Ok(LATEST_VERSION)
 }
 
 fn apply(tx: &Transaction<'_>, from: u32) -> Result<()> {
     for sql in &MIGRATIONS[from as usize..] {
         tx.execute_batch(sql)?;
+    }
+    let broken: i64 = tx.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+        r.get(0)
+    })?;
+    if broken > 0 {
+        return Err(crate::StorageError::Conflict(format!(
+            "migration left {broken} broken foreign key reference(s)"
+        )));
     }
     tx.pragma_update(None, "user_version", LATEST_VERSION)?;
     Ok(())

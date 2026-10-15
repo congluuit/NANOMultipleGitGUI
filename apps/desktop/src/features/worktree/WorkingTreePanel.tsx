@@ -58,7 +58,11 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
   const total = st ? st.staged.length + st.unstaged.length + st.conflicted.length : 0;
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col border-l bg-surface" aria-label={t("wip.title")}>
+    // On short windows the file list keeps a usable height and the whole panel scrolls instead.
+    <aside
+      className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-surface"
+      aria-label={t("wip.title")}
+    >
       <div className="flex h-8 shrink-0 items-center justify-between border-b px-3 text-xs font-semibold">
         <span>
           {t("wip.title")}
@@ -90,7 +94,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
         </div>
       )}
       {st && (
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-28 flex-1">
           {st.conflicted.length > 0 && (
             <FileSection
               kind="conflicted"

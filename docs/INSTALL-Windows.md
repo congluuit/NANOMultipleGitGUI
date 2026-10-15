@@ -45,6 +45,8 @@ Chạy bộ cài và làm theo hướng dẫn. Mặc định app được cài v
 - Log: `%LOCALAPPDATA%\io.github.nanomgg.nanomultiplegitgui\logs\`
 - Token đăng nhập: Windows Credential Manager (không bao giờ lưu dạng văn bản).
 
+**Cập nhật app thế nào?** App tự kiểm tra bản mới khi khởi động (tối đa một lần mỗi ngày) và hỏi bạn: **Cập nhật & khởi động lại** / **Để sau** / **Bỏ qua bản này**. Muốn kiểm tra ngay: Settings → **Cập nhật** → **Kiểm tra cập nhật** (hoặc gõ "cập nhật" trong command palette `Ctrl+K`). Khi cài, một cửa sổ tiến độ nhỏ của bộ cài hiện lên vài giây rồi app tự mở lại; dữ liệu và tài khoản được giữ nguyên. Nếu app báo "Bản build này chưa bật tự cập nhật", hãy tải bộ cài mới trên trang Releases và cài đè.
+
 **Gỡ cài đặt?** Settings → Apps → Installed apps → NANOMultipleGitGUI → Uninstall.
 
 ---
@@ -83,5 +85,7 @@ Run the installer and follow the steps. By default the app goes to `%LOCALAPPDAT
 **Do I need Git?** Yes — install [Git for Windows](https://git-scm.com/download/win), which includes Git LFS. If Git is missing the app offers to download portable MinGit.
 
 **Where are data and logs?** Settings DB: `%APPDATA%\io.github.nanomgg.nanomultiplegitgui\nanomgg.db`; logs: `%LOCALAPPDATA%\io.github.nanomgg.nanomultiplegitgui\logs\`; sign-in tokens: Windows Credential Manager (never stored as plain text).
+
+**How do I update?** The app checks for a new version at startup (at most once a day) and asks: **Update & restart** / **Later** / **Skip this version**. To check now: Settings → **Updates** → **Check for updates** (or type "update" in the command palette, `Ctrl+K`). While installing, the installer's small progress window shows for a few seconds and the app reopens; your data and accounts are kept. If the app says "Automatic updates are not enabled in this build", download the new installer from the Releases page and install it over the old one.
 
 **Uninstall?** Settings → Apps → Installed apps → NANOMultipleGitGUI → Uninstall.

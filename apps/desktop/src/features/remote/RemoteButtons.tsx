@@ -1,13 +1,5 @@
 import { useState } from "react";
-import type { LucideIcon } from "lucide-react";
-import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  ChevronDown,
-  GitBranchPlus,
-  LoaderCircle,
-  RefreshCw,
-} from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, GitBranchPlus, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -20,14 +12,11 @@ import {
   type OneShot,
 } from "@/features/accounts/switcher";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ToolButton } from "@/features/shell/ToolButton";
 import { conflictText } from "@/features/commits/outcome";
 import { useRefDialog } from "@/features/commits/store";
 import { useLfsStatus } from "@/features/lfs/queries";
@@ -39,56 +28,6 @@ import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runPushGuard } from "@/features/guards";
 import { pushPlan } from "./plan";
 import { startTransfer, useRepoTransfer } from "./transfers";
-
-const BUTTON =
-  "flex h-10 min-w-12 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:opacity-40 disabled:hover:bg-transparent";
-
-function Action({
-  icon: Icon,
-  label,
-  tooltip,
-  busy,
-  disabled,
-  onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  tooltip: string;
-  busy?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button type="button" className={BUTTON} disabled={disabled} onClick={onClick}>
-          {busy ? <LoaderCircle className="size-4 animate-spin" /> : <Icon className="size-4" />}
-          <span>{label}</span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function MoreMenu({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label={label}
-          className="-ml-1 flex h-10 w-4 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-2 hover:text-foreground"
-        >
-          <ChevronDown className="size-3" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64 text-xs">
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 const PULL_MODES: PullMode[] = ["merge", "rebase", "fastForwardOnly"];
 
@@ -214,7 +153,8 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
 
   return (
     <>
-      <Action
+      <ToolButton
+        id="fetch"
         icon={RefreshCw}
         label={t("toolbar.fetch")}
         tooltip={t("remote.fetchTip")}
@@ -222,27 +162,32 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         disabled={!hasRemote || busy}
         onClick={fetchAll}
       />
-      <Action
+      <ToolButton
+        id="pull"
         icon={ArrowDownToLine}
         label={t("toolbar.pull")}
         tooltip={t("remote.pullTip")}
         busy={running?.kind === "pull"}
         disabled={!hasRemote || busy || !!head?.detached}
         onClick={() => pull("merge")}
+        menuLabel={t("remote.pullOptions")}
+        menu={
+          <>
+            <DropdownMenuLabel>{t("remote.pullOptions")}</DropdownMenuLabel>
+            {PULL_MODES.map((m) => (
+              <DropdownMenuItem
+                key={m}
+                disabled={!hasRemote || busy || !!head?.detached}
+                onSelect={() => pull(m)}
+              >
+                {t(`remote.pullMode.${m}`)}
+              </DropdownMenuItem>
+            ))}
+          </>
+        }
       />
-      <MoreMenu label={t("remote.pullOptions")}>
-        <DropdownMenuLabel>{t("remote.pullOptions")}</DropdownMenuLabel>
-        {PULL_MODES.map((m) => (
-          <DropdownMenuItem
-            key={m}
-            disabled={!hasRemote || busy || !!head?.detached}
-            onSelect={() => pull(m)}
-          >
-            {t(`remote.pullMode.${m}`)}
-          </DropdownMenuItem>
-        ))}
-      </MoreMenu>
-      <Action
+      <ToolButton
+        id="push"
         icon={ArrowUpFromLine}
         label={t("toolbar.push")}
         tooltip={
@@ -255,22 +200,26 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
         busy={pushing}
         disabled={!plan || busy}
         onClick={() => void push(false)}
+        menuLabel={t("remote.pushOptions")}
+        menu={
+          <>
+            <DropdownMenuLabel>{t("remote.pushOptions")}</DropdownMenuLabel>
+            <DropdownMenuItem disabled={!plan || busy} onSelect={() => void push(false)}>
+              {t("remote.pushNormal")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={!plan || busy}
+              onSelect={() => setConfirmForce(true)}
+            >
+              {t("remote.forcePush")}
+            </DropdownMenuItem>
+          </>
+        }
       />
-      <MoreMenu label={t("remote.pushOptions")}>
-        <DropdownMenuLabel>{t("remote.pushOptions")}</DropdownMenuLabel>
-        <DropdownMenuItem disabled={!plan || busy} onSelect={() => void push(false)}>
-          {t("remote.pushNormal")}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          variant="destructive"
-          disabled={!plan || busy}
-          onSelect={() => setConfirmForce(true)}
-        >
-          {t("remote.forcePush")}
-        </DropdownMenuItem>
-      </MoreMenu>
-      <Action
+      <ToolButton
+        id="branch"
         icon={GitBranchPlus}
         label={t("toolbar.branch")}
         tooltip={t("remote.branchTip")}

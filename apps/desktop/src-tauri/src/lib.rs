@@ -1,6 +1,10 @@
 pub mod accounts;
+// Phase 3B.3: log / cache / app-data folders (Settings → Storage).
+mod app_paths;
 pub mod auth;
 mod branches;
+// Phase 3B.1: accounts signed in with the gh / glab CLI.
+mod cli_accounts;
 mod clone;
 mod commands;
 mod conflicts;
@@ -12,6 +16,8 @@ mod import;
 mod lfs;
 mod lfs_transfer;
 mod linked_worktrees;
+// Phase 3B.2: first-run setup (tool check / install, progress).
+mod onboarding;
 mod rebase;
 mod repos;
 mod settings;
@@ -22,6 +28,8 @@ mod state;
 mod submodules;
 mod terminal;
 mod undo;
+// Phase 3B.4: Check for Update (GitHub Releases).
+mod updater;
 mod worktree;
 
 use std::path::PathBuf;
@@ -188,6 +196,17 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             import::import_apply,
             import::onboarding_status,
             import::onboarding_set_import_done,
+            // Phase 3B.1: accounts signed in with the gh / glab CLI.
+            cli_accounts::cli_accounts_scan,
+            cli_accounts::cli_accounts_import,
+            cli_accounts::cli_accounts_dismiss,
+            // Phase 3B.2: first-run setup.
+            onboarding::setup_status,
+            onboarding::setup_save,
+            onboarding::setup_tools,
+            onboarding::setup_install,
+            onboarding::setup_install_cancel,
+            onboarding::setup_restart,
             clone::clone_repo_list,
             clone::clone_guess,
             clone::clone_destination,
@@ -226,13 +245,32 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             signing::signing_gpg_keys,
             signing::signing_test,
             signing::commit_signature,
+            // Phase 3B.4: Check for Update (GitHub Releases).
+            updater::updater_status,
+            updater::updater_check,
+            updater::updater_install,
+            updater::updater_skip_version,
+            updater::updater_set_channel,
+            // Phase 3B.3: Settings → Storage (log / cache / app-data folders).
+            app_paths::storage_overview,
+            app_paths::storage_status,
+            app_paths::storage_check_target,
+            app_paths::storage_change,
+            app_paths::storage_cancel_pending,
+            app_paths::storage_open,
+            app_paths::storage_clear_cache,
+            app_paths::storage_prune_logs,
+            app_paths::storage_restart,
         ])
         .events(collect_events![
             repos::RepoChanged,
             branches::TransferProgress,
             lfs_transfer::LfsTransferProgress,
             clone::CloneProgress,
-            clone::CloneListUpdated
+            clone::CloneListUpdated,
+            updater::UpdateProgress,
+            // Phase 3B.3: log/cache folder move progress.
+            app_paths::StorageMoveProgress
         ])
 }
 
@@ -253,21 +291,34 @@ pub fn run() {
         eprintln!("failed to export TypeScript bindings: {e}");
     }
 
+    let mut context = tauri::generate_context!();
+    // Phase 3B.4: the updater plugin needs a `plugins.updater` section (filled at runtime).
+    updater::ensure_plugin_config(context.config_mut());
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Phase 3B.4: no JS permission is granted; the app's own commands drive it.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
 
-            let log_dir = app.path().app_log_dir()?;
-            let guard = nanomgg_logging::init(&log_dir)?;
-            app.manage(guard);
+            // Phase 3B.3: folders from `locations.json`; logging first, then a data move
+            // scheduled last session, then the database.
+            let paths = app_paths::AppPaths::resolve(app.handle())?;
+            paths.init_logging()?;
+            let moved = paths.apply_pending_data();
+            let log_dir = paths.get(nanomgg_app_paths::StorageKind::Log);
+            let data_dir = paths.data_dir();
+            app.manage(paths);
 
-            let data_dir = app.path().app_data_dir()?;
             let storage = std::sync::Arc::new(nanomgg_storage::Storage::open(
                 &data_dir.join("nanomgg.db"),
             )?);
+            if let Some(moved) = &moved {
+                app_paths::after_data_move(&storage, moved);
+            }
             tracing::info!(
                 version = %app.package_info().version,
                 data_dir = %data_dir.display(),
@@ -304,7 +355,7 @@ pub fn run() {
                 terms.close_all();
             }
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running NANOMultipleGitGUI");
 }
 

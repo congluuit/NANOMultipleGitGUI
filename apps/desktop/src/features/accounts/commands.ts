@@ -11,6 +11,7 @@ import {
   FileInput,
   GitCommitHorizontal,
   Settings2,
+  Terminal,
   Unlink,
   UserPlus,
   UserRound,
@@ -26,6 +27,7 @@ import type { Account, Identity, Provider } from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
 import { useUi } from "@/stores/ui";
 import { useAccountDialogs } from "./dialogs";
+import { rescanCliAccounts } from "./cli-sync/queries";
 import { accountKeys } from "./queries";
 import { bindRepo, setAccountOnce, unbindRepo } from "./switcher/actions";
 import { cachedAccounts, cachedRepoAccount } from "./switcher/hooks";
@@ -207,6 +209,18 @@ export function accountCommands(c: PaletteContext): PaletteCommand[] {
       icon: FileInput,
       keywords: ["import", "gitconfig", "ssh config", "gh", "glab", "nhap cau hinh"],
       run: () => useAccountDialogs.getState().openImportWizard(),
+    },
+    {
+      // Phase 3B.1: the CLI panel sits at the top of the account manager's Accounts tab.
+      id: "accounts.importCli",
+      title: t("cliSync.cmd.import"),
+      group,
+      icon: Terminal,
+      keywords: ["gh", "glab", "github cli", "gitlab cli", "import", "nhap tai khoan", "cli"],
+      run: () => {
+        void rescanCliAccounts();
+        useAccountDialogs.getState().openManager();
+      },
     },
   ];
 }

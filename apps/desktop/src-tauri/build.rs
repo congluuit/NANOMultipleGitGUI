@@ -25,9 +25,13 @@ fn main() {
 /// Build-time settings that may come from `<workspace>/.env` (git-ignored) when they are not
 /// set in the environment, so local `pnpm dev` / `pnpm tauri build` embed the maintainer's
 /// OAuth client ids without exporting anything. A real environment variable (CI) wins.
-const DOTENV_KEYS: [&str; 2] = [
+/// `NANOMGG_GITHUB_REPO` is the project's `owner/repo` (About links, update checks);
+/// `NANOMGG_UPDATER_PUBKEY` is the minisign public key that update packages must be signed with.
+const DOTENV_KEYS: [&str; 4] = [
     "NANOMGG_GITHUB_OAUTH_CLIENT_ID",
     "NANOMGG_GITLAB_OAUTH_CLIENT_ID",
+    "NANOMGG_GITHUB_REPO",
+    "NANOMGG_UPDATER_PUBKEY",
 ];
 
 fn load_dotenv() {

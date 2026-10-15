@@ -18,7 +18,7 @@ import {
 import { useGraphStore, useSelection } from "@/stores/graph";
 import { useUi } from "@/stores/ui";
 import { runScrollBenchmark } from "./benchmark";
-import { graphWidth } from "./draw";
+import { graphWidth, sideColumns } from "./draw";
 import { GraphCanvas, type GraphCanvasHandle } from "./GraphCanvas";
 import { cycleMatch } from "./navigation";
 
@@ -52,6 +52,14 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
   const [view, setView] = useState<ViewState | null>(null);
   const [firstPaintMs, setFirstPaintMs] = useState<number | null>(null);
   const [bench, setBench] = useState<GraphBenchmark | null>(null);
+  // Column header follows the canvas: author / date give way in a narrow window.
+  const [headerWidth, setHeaderWidth] = useState(0);
+  const headerRef = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeaderWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState<SearchState>({ query: "", matches: [], current: -1 });
   const [menuRow, setMenuRow] = useState<GraphRow | null>(null);
@@ -217,6 +225,7 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
   }, [benchOnLoad, firstPaintMs, bench, running, runBenchmark]);
 
   const s = view?.summary;
+  const cols = sideColumns(headerWidth, s?.maxLanes ?? 1);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-background">
@@ -244,7 +253,7 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
             })}
           </span>
         )}
-        <div className="flex h-7 w-72 shrink-0 items-center gap-1 rounded-md border bg-surface px-2 focus-within:border-primary">
+        <div className="flex h-7 w-72 min-w-36 shrink items-center gap-1 rounded-md border bg-surface px-2 focus-within:border-primary">
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
           <input
             ref={searchInput}
@@ -323,7 +332,8 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
         </Button>
       </div>
       <div
-        className="flex h-7 shrink-0 items-center border-b text-[11px] font-semibold text-muted-foreground uppercase"
+        ref={headerRef}
+        className="flex h-7 shrink-0 items-center overflow-hidden border-b text-[11px] font-semibold whitespace-nowrap text-muted-foreground uppercase"
         style={{ paddingLeft: 10 }}
       >
         <span
@@ -332,9 +342,17 @@ export function GraphView({ repoId, name }: { repoId: number; name: string }) {
         >
           {t("graph.colGraph")}
         </span>
-        <span className="flex-1">{t("graph.colMessage")}</span>
-        <span className="w-[170px]">{t("graph.colAuthor")}</span>
-        <span className="w-[130px]">{t("graph.colDate")}</span>
+        <span className="min-w-0 flex-1 truncate">{t("graph.colMessage")}</span>
+        {cols.author > 0 && (
+          <span className="shrink-0 truncate" style={{ width: cols.author }}>
+            {t("graph.colAuthor")}
+          </span>
+        )}
+        {cols.date > 0 && (
+          <span className="shrink-0" style={{ width: cols.date }}>
+            {t("graph.colDate")}
+          </span>
+        )}
       </div>
       <WipRow repoId={repoId} />
       {!view && summary.isPending && (

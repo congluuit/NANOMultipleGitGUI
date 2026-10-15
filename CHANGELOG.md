@@ -57,11 +57,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Submodules and worktrees in the sidebar: status, add, update, sync, remove, open as a tab; network access uses the account of each submodule's host.
 - Git LFS manager: file list with download state, file locking (lock, unlock, force unlock, lock badges in the file list), lockable patterns, prune with a preview and integrity check.
 - Commit signing with GPG or SSH per identity, a "Test signing" button, and the signature status (verified, untrusted key, bad…) in commit details.
+- Accounts already signed in with GitHub CLI (`gh`, including several accounts per host) or GitLab CLI (`glab`) are found on start and can be added with one click: the token is read from the CLI only when you click Add, checked like a personal access token and stored in the OS keychain; the gh/glab configuration is never changed. Missing scopes come with the exact command to fix them.
+- Getting-started guide on first launch: welcome (language, theme), a tool check for git, Git LFS, OpenSSH, gh, glab and WebView2 with links to the official downloads and an "Install it for me" button (winget / Homebrew / Xcode tools), accounts, and a summary with Open / Clone. It can be run again from Settings.
+- Settings → Storage: size and location of the log, cache and app data folders, open / move (with progress) / back to default, clear cache and delete old logs; app data moves on the next start. Warning when the drive holding app data has less than 1 GB free.
+- Check for updates from published GitHub releases (on start at most once a day and from Settings or the command palette) with release notes, "Update & restart", "Later" and "Skip this version", plus a beta channel. Builds without a signing key or repository say that updates are not enabled.
+- Resizable sidebar and right panel (drag, keyboard, double-click to reset, remembered), collapsible to an icon rail (`Ctrl/Cmd+B`, `Ctrl/Cmd+Alt+B`), and a "⋯" menu for toolbar buttons that do not fit.
 
 ### Changed
 
 - The app icon now uses the project's artwork (`apps/desktop/src-tauri/icons/app-icon.png` is the source for all sizes).
 - The file watcher ignores changes to files matched by `.gitignore` (build output, `node_modules`...).
+- Dialogs scroll inside the window instead of overflowing it; the graph hides the Author and then the Date column on narrow windows.
+- The database schema moves to version 4 (new `imported_cli` sign-in method); existing data is kept.
 
 ### Fixed
 
@@ -71,3 +78,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Monaco editors no longer crash the window in the Light theme of release builds (short `#fff` colors from the minified CSS); a failing center view now shows an error with a Close button instead of a blank window.
 - The toolbar no longer duplicates the Fetch / Pull / Push / Branch buttons after switching repository tabs.
 - Backup refs made before history rewrites are no longer drawn in the commit graph.
+- Buttons no longer disappear when the window is made smaller, and the file list of the Changes panel keeps its space on short windows.

@@ -7,10 +7,19 @@ name: Release
 # SIGNPATH_ENABLED=true plus SIGNPATH_ORGANIZATION_ID / SIGNPATH_PROJECT_SLUG /
 # SIGNPATH_SIGNING_POLICY_SLUG variables and the SIGNPATH_API_TOKEN secret.
 # Until then the Windows installers are published unsigned (see docs/INSTALL-Windows.md).
+#
+# In-app updates (Check for Update) are opt-in too: set the TAURI_SIGNING_PRIVATE_KEY (+
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD) secret and the NANOMGG_UPDATER_PUBKEY variable. Builds
+# then also produce signed update packages (.sig) and a `latest.json` manifest. Without them
+# the release is built exactly as before and the app says "updates not enabled".
+# Publishing a *pre-release* copies its `latest.json` to the fixed `updater-beta` pre-release,
+# which the app's beta channel reads (see docs/RELEASING.md).
 
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -30,13 +39,22 @@ env:
   # Public OAuth client ids compiled into the app (repo Settings → Variables); empty = none.
   NANOMGG_GITHUB_OAUTH_CLIENT_ID: ${{ vars.NANOMGG_GITHUB_OAUTH_CLIENT_ID }}
   NANOMGG_GITLAB_OAUTH_CLIENT_ID: ${{ vars.NANOMGG_GITLAB_OAUTH_CLIENT_ID }}
+  # Compiled into the app: About links + where to look for updates, and the key updates must
+  # be signed with (public, not a secret).
+  NANOMGG_GITHUB_REPO: ${{ github.repository }}
+  NANOMGG_UPDATER_PUBKEY: ${{ vars.NANOMGG_UPDATER_PUBKEY }}
+  UPDATER_ENABLED: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && vars.NANOMGG_UPDATER_PUBKEY != '' }}
+  BETA_TAG: updater-beta
 
 jobs:
   create-release:
     name: Create draft release
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     outputs:
       release_id: ${{ steps.release.outputs.release_id }}
+      updater: ${{ env.UPDATER_ENABLED }}
+      notes: ${{ steps.notes.outputs.notes }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -51,6 +69,20 @@ jobs:
               --notes-file .github/release-notes.md
           fi
           echo "release_id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
+          if [ "$UPDATER_ENABLED" != true ]; then
+            echo "::notice::In-app updates disabled for this release (TAURI_SIGNING_PRIVATE_KEY secret or NANOMGG_UPDATER_PUBKEY variable missing)."
+          fi
+      # The update dialog shows `latest.json`'s notes: the CHANGELOG section of this version.
+      - id: notes
+        run: |
+          notes=$(awk -v head="## [${TAG#v}]" '
+            index($0, head) == 1 { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }' CHANGELOG.md)
+          if [ -z "${notes//[[:space:]]/}" ]; then
+            echo "::warning::CHANGELOG.md has no section for ${TAG#v}; the update dialog will show no release notes."
+          fi
+          { echo "notes<<NANOMGG_NOTES_EOF"; echo "$notes"; echo "NANOMGG_NOTES_EOF"; } >> "$GITHUB_OUTPUT"
 
   build:
     name: Build (${{ matrix.name }})
@@ -87,15 +119,28 @@ jobs:
           targets: ${{ matrix.rust-targets }}
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
+      - id: updater
+        name: Enable signed update packages
+        if: env.UPDATER_ENABLED == 'true'
+        shell: bash
+        run: |
+          conf="$RUNNER_TEMP/updater.conf.json"
+          jq -n --arg key "$NANOMGG_UPDATER_PUBKEY" \
+            '{bundle: {createUpdaterArtifacts: true}, plugins: {updater: {pubkey: $key}}}' > "$conf"
+          echo "args=--config $conf" >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           releaseId: ${{ needs.create-release.outputs.release_id }}
           releaseDraft: true
-          uploadUpdaterJson: false
-          args: ${{ matrix.args }}
+          uploadUpdaterJson: ${{ env.UPDATER_ENABLED == 'true' }}
+          # Only used for latest.json's `notes` (the draft keeps its own body).
+          releaseBody: ${{ needs.create-release.outputs.notes }}
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.args }}
 
   windows-unsigned:
     name: Build (Windows x64, unsigned)
@@ -114,18 +159,36 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
+      - id: updater
+        name: Enable signed update packages
+        if: env.UPDATER_ENABLED == 'true'
+        shell: bash
+        run: |
+          conf=$(cygpath -m "$RUNNER_TEMP/updater.conf.json")
+          jq -n --arg key "$NANOMGG_UPDATER_PUBKEY" \
+            '{bundle: {createUpdaterArtifacts: true}, plugins: {updater: {pubkey: $key}}}' > "$conf"
+          echo "args=--config $conf" >> "$GITHUB_OUTPUT"
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           releaseId: ${{ needs.create-release.outputs.release_id }}
           releaseDraft: true
-          uploadUpdaterJson: false
+          uploadUpdaterJson: ${{ env.UPDATER_ENABLED == 'true' }}
+          # Only used for latest.json's `notes` (the draft keeps its own body).
+          releaseBody: ${{ needs.create-release.outputs.notes }}
+          # The per-user NSIS installer is the main Windows download; updates use it too.
+          updaterJsonPreferNsis: true
+          args: ${{ steps.updater.outputs.args }}
 
   # SignPath Foundation only signs artifacts produced by a verified GitHub Actions run, so the
   # app exe and the installers are signed in two separate rounds:
   #   build exe -> sign exe -> bundle NSIS/MSI around the signed exe -> sign installers.
+  # SignPath changes the installer bytes, so the update signatures (.sig) are made afterwards
+  # from the final installers, and `windows-updater-json` adds them to `latest.json`.
   windows-signed:
     name: Build (Windows x64, SignPath)
     needs: create-release
@@ -143,9 +206,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
+      - id: updater
+        name: Embed the updater public key
+        if: env.UPDATER_ENABLED == 'true'
+        shell: bash
+        run: |
+          conf=$(cygpath -m "$RUNNER_TEMP/updater.conf.json")
+          jq -n --arg key "$NANOMGG_UPDATER_PUBKEY" '{plugins: {updater: {pubkey: $key}}}' > "$conf"
+          echo "args=--config $conf" >> "$GITHUB_OUTPUT"
 
       - name: Build app binary (no bundle)
-        run: pnpm tauri build --no-bundle
+        run: pnpm tauri build --no-bundle ${{ steps.updater.outputs.args }}
 
       - id: upload-exe
         uses: actions/upload-artifact@v7
@@ -169,7 +240,7 @@ jobs:
         run: Copy-Item signed-exe/nanomgg.exe target/release/nanomgg.exe -Force
 
       - name: Bundle installers around the signed binary
-        run: pnpm tauri bundle --bundles nsis,msi
+        run: pnpm tauri bundle --bundles nsis,msi ${{ steps.updater.outputs.args }}
 
       - id: upload-installers
         uses: actions/upload-artifact@v7
@@ -191,18 +262,66 @@ jobs:
           wait-for-completion: true
           output-artifact-directory: signed-installers
 
+      - name: Sign update packages (the final, SignPath-signed installers)
+        if: env.UPDATER_ENABLED == 'true'
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $files = Get-ChildItem signed-installers -Recurse -Include *.exe, *.msi
+          foreach ($f in $files) {
+            pnpm tauri signer sign $f.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
       - name: Upload signed installers to the draft release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s globstar nullglob
-          gh release upload "$TAG" --clobber signed-installers/**/*.exe signed-installers/**/*.msi
+          gh release upload "$TAG" --clobber signed-installers/**/*.exe signed-installers/**/*.msi signed-installers/**/*.sig
+
+  # tauri-action writes `latest.json` for macOS/Linux; the SignPath job does not use it, so its
+  # Windows entries are added here once every build has finished (no concurrent writers).
+  windows-updater-json:
+    name: Add Windows to latest.json
+    needs: [create-release, build, windows-signed]
+    if: ${{ !failure() && !cancelled() && vars.SIGNPATH_ENABLED == 'true' && needs.create-release.outputs.updater == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NOTES: ${{ needs.create-release.outputs.notes }}
+        run: |
+          mkdir manifest && cd manifest
+          gh release download "$TAG" --repo "$REPO" --pattern latest.json \
+            --pattern '*_x64-setup.exe.sig' --pattern '*_x64_*.msi.sig'
+          if [ ! -f latest.json ]; then
+            jq -n --arg v "${TAG#v}" --arg d "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg n "$NOTES" \
+              '{version: $v, notes: $n, pub_date: $d, platforms: {}}' > latest.json
+          fi
+          base="https://github.com/$REPO/releases/download/$TAG"
+          add() {
+            [ -n "$2" ] || return 0
+            jq --arg key "$1" --arg url "$base/${2%.sig}" --rawfile sig "$2" \
+              '.platforms[$key] = {signature: ($sig | gsub("\\s+$"; "")), url: $url}' \
+              latest.json > latest.tmp && mv latest.tmp latest.json
+          }
+          nsis=$(find . -maxdepth 1 -name '*_x64-setup.exe.sig' -printf '%f\n' | head -n 1)
+          msi=$(find . -maxdepth 1 -name '*_x64_*.msi.sig' -printf '%f\n' | head -n 1)
+          add windows-x86_64 "$nsis"
+          add windows-x86_64-nsis "$nsis"
+          add windows-x86_64-msi "$msi"
+          cat latest.json
+          gh release upload "$TAG" --repo "$REPO" --clobber latest.json
 
   checksums:
     name: SHA-256 checksums
-    needs: [create-release, build, windows-unsigned, windows-signed]
-    if: ${{ !failure() && !cancelled() }}
+    needs: [create-release, build, windows-unsigned, windows-signed, windows-updater-json]
+    if: ${{ github.event_name != 'release' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -215,3 +334,27 @@ jobs:
           sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
           gh release upload "$TAG" --repo "$REPO" --clobber SHA256SUMS.txt
+
+  # The beta channel reads `releases/download/updater-beta/latest.json`: when a pre-release is
+  # published, its manifest is copied there. Stable releases need nothing — `releases/latest`
+  # already points at them, and beta users check both manifests.
+  beta-channel:
+    name: Update beta channel manifest
+    if: github.event_name == 'release' && github.event.release.prerelease
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir manifest && cd manifest
+          if ! gh release download "$TAG" --repo "$REPO" --pattern latest.json; then
+            echo "::notice::$TAG has no latest.json (update signing not enabled); beta channel unchanged."
+            exit 0
+          fi
+          if ! gh release view "$BETA_TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$BETA_TAG" --repo "$REPO" --prerelease --latest=false \
+              --target "$GITHUB_SHA" --title "Beta channel (in-app updater)" \
+              --notes "Holds latest.json of the newest beta for the in-app updater's beta channel. Do not delete; download betas from their own release."
+          fi
+          gh release upload "$BETA_TAG" --repo "$REPO" --clobber latest.json

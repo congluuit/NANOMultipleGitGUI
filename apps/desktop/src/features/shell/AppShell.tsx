@@ -18,7 +18,12 @@ import { closeFileView, useFileView } from "@/stores/fileView";
 import { useSelection } from "@/stores/graph";
 import { useActiveRepo, useWorkspace } from "@/stores/workspace";
 import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
+import { LfsManagerHost } from "@/features/lfs/LfsManagerDialog";
 import { NoticeBar, ToolBanner } from "./Banners";
+import { useLayoutShortcuts } from "./layoutShortcuts";
+import { PanelRow, SidePanel } from "./PanelLayout";
+import { RightRail } from "./RightRail";
+import "./palette";
 import { Sidebar } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
 import { Toolbar } from "./Toolbar";
@@ -33,6 +38,7 @@ export function AppShell() {
   const diff = useOpenDiff(repo?.id);
   const fileView = useFileView(repo?.id);
   useAccountShortcuts();
+  useLayoutShortcuts();
 
   return (
     <div
@@ -48,8 +54,10 @@ export function AppShell() {
         <>
           <Toolbar />
           {!repo.missing && <OperationBanner key={`operationBanner-${repo.id}`} repoId={repo.id} />}
-          <div className="flex min-h-0 flex-1">
-            <Sidebar />
+          <PanelRow hasRight={!repo.missing}>
+            <SidePanel id="sidebar" rail={<Sidebar rail />}>
+              <Sidebar />
+            </SidePanel>
             {repo.missing ? (
               <MissingRepo tab={repo} />
             ) : (
@@ -77,14 +85,21 @@ export function AppShell() {
                     </ViewErrorBoundary>
                   )
                 )}
-                {selection ? (
-                  <CommitDetailsPanel key={selection.hash} repoId={repo.id} hash={selection.hash} />
-                ) : (
-                  <WorkingTreePanel key={`workingTreePanel-${repo.id}`} repoId={repo.id} />
-                )}
+                <SidePanel id="right" rail={<RightRail details={!!selection} />}>
+                  {selection ? (
+                    <CommitDetailsPanel
+                      key={selection.hash}
+                      repoId={repo.id}
+                      hash={selection.hash}
+                    />
+                  ) : (
+                    <WorkingTreePanel key={`workingTreePanel-${repo.id}`} repoId={repo.id} />
+                  )}
+                </SidePanel>
               </>
             )}
-          </div>
+          </PanelRow>
+          <LfsManagerHost />
         </>
       ) : (
         loaded && <WelcomeScreen />

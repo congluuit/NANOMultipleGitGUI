@@ -192,6 +192,11 @@ fn in_flight() -> MutexGuard<'static, HashSet<String>> {
     IN_FLIGHT.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// Forgets every cached repository list (Settings → Storage → "Clear cache").
+pub fn clear_list_cache() {
+    cache().clear();
+}
+
 /// Stores a fetch result; a failure keeps the previous repositories (with the error).
 fn store(account_id: &str, result: Result<(Vec<CloneRepo>, bool), ListError>) {
     let mut cache = cache();

@@ -134,10 +134,7 @@ export function CommitDetailsPanel({ repoId, hash }: { repoId: number; hash: str
     d && d.author.email === d.committer.email && d.author.name === d.committer.name;
 
   return (
-    <aside
-      className="flex w-96 shrink-0 flex-col border-l bg-surface"
-      aria-label={t("details.title")}
-    >
+    <aside className="flex min-w-0 flex-1 flex-col bg-surface" aria-label={t("details.title")}>
       <div className="flex h-8 shrink-0 items-center justify-between border-b px-3 text-xs font-semibold">
         {t("details.title")}
         <button

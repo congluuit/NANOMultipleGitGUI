@@ -365,6 +365,25 @@ export const commands = {
 	onboardingStatus: () => __TAURI_INVOKE<OnboardingStatus>("onboarding_status"),
 	/**  "Bỏ qua" / finish (`true`), or show the wizard again on next start (`false`). */
 	onboardingSetImportDone: (done: boolean) => __TAURI_INVOKE<OnboardingStatus>("onboarding_set_import_done", { done }),
+	/**  Lists gh / glab accounts on this machine (config files only, no token). Read-only. */
+	cliAccountsScan: () => __TAURI_INVOKE<CliAccountsScan>("cli_accounts_scan"),
+	/**
+	 *  Copies the tokens of the ticked accounts from gh / glab into the app (user consent given
+	 *  in the UI). Never modifies the CLI configuration.
+	 */
+	cliAccountsImport: (accounts: CliAccountRef[]) => __TAURI_INVOKE<CliImportItem[]>("cli_accounts_import", { accounts }),
+	/**  "Bỏ qua" in the startup notice: hide it until another CLI account appears. */
+	cliAccountsDismiss: (keys: string[]) => __TAURI_INVOKE<null>("cli_accounts_dismiss", { keys }),
+	setupStatus: () => __TAURI_INVOKE<SetupStatus>("setup_status"),
+	/**  Saves the whole progress object (finish, skip, steps done). */
+	setupSave: (progress: SetupProgress) => __TAURI_INVOKE<SetupStatus>("setup_save", { progress }),
+	setupTools: () => __TAURI_INVOKE<SetupToolsReport>("setup_tools"),
+	/**  Installs `tool` with the whitelisted package-manager command of this OS. */
+	setupInstall: (tool: SetupToolId) => __TAURI_INVOKE<SetupInstallResult>("setup_install", { tool }),
+	/**  Stops the running install, if any. */
+	setupInstallCancel: () => __TAURI_INVOKE<boolean>("setup_install_cancel"),
+	/**  Restarts the app so it picks up a `PATH` changed by an installer. */
+	setupRestart: () => __TAURI_INVOKE<null>("setup_restart"),
 	/**
 	 *  Repositories of `accountIds` (default: every account). Missing lists are fetched now;
 	 *  `refresh` refetches all of them; a stale cache is returned immediately and refreshed in
@@ -490,6 +509,45 @@ export const commands = {
 	 *  commits, see `CommitDetails.signature`).
 	 */
 	commitSignature: (repoId: number, oid: string) => __TAURI_INVOKE<CommitSignature>("commit_signature", { repoId, oid }),
+	updaterStatus: () => __TAURI_INVOKE<UpdaterStatus>("updater_status"),
+	/**
+	 *  Looks for a newer published release. `startup: true` honours the once-a-day limit; the
+	 *  caller decides what to do with a skipped version (`update.skipped`).
+	 */
+	updaterCheck: (startup: boolean) => __TAURI_INVOKE<UpdateCheck>("updater_check", { startup }),
+	/**
+	 *  Downloads, verifies and installs `version` (found by the last check), then restarts the
+	 *  app. Progress arrives as [`UpdateProgress`]. Only returns on failure: on Windows the
+	 *  installer closes the app and starts it again, elsewhere the app restarts itself.
+	 */
+	updaterInstall: (version: string) => __TAURI_INVOKE<null>("updater_install", { version }),
+	/**  "Bỏ qua bản này": the startup check stays quiet about `version` (`null` clears it). */
+	updaterSkipVersion: (version: string | null) => __TAURI_INVOKE<UpdaterStatus>("updater_skip_version", { version }),
+	updaterSetChannel: (channel: UpdateChannel) => __TAURI_INVOKE<UpdaterStatus>("updater_set_channel", { channel }),
+	/**  Every folder with its size (measured with a time limit), path and free space. */
+	storageOverview: () => __TAURI_INVOKE<StorageOverview>("storage_overview"),
+	/**  Free space of the data drive (low-space warning) and the startup warnings. */
+	storageStatus: () => __TAURI_INVOKE<StorageStatus>("storage_status"),
+	/**
+	 *  Checks a folder before moving there (`path: null` = the default location). Problems the
+	 *  user can fix are returned in `problem`, not as errors.
+	 */
+	storageCheckTarget: (kind: StorageKind, path: string | null) => __TAURI_INVOKE<StorageTargetCheck>("storage_check_target", { kind, path }),
+	/**
+	 *  Moves the log or cache folder now (with [`StorageMoveProgress`]), or schedules the data
+	 *  folder for the next start (`restartRequired`). `path: null` = back to the default.
+	 */
+	storageChange: (kind: StorageKind, path: string | null) => __TAURI_INVOKE<StorageChangeResult>("storage_change", { kind, path }),
+	/**  Drops the data move scheduled for the next start. */
+	storageCancelPending: () => __TAURI_INVOKE<StorageStatus>("storage_cancel_pending"),
+	/**  Opens the folder in the system file manager (created first if missing). */
+	storageOpen: (kind: StorageKind) => __TAURI_INVOKE<null>("storage_open", { kind }),
+	/**  Deletes everything in the cache folder and the in-memory repository lists. */
+	storageClearCache: () => __TAURI_INVOKE<CleanReport>("storage_clear_cache"),
+	/**  Deletes old log files, keeping the one being written today. */
+	storagePruneLogs: () => __TAURI_INVOKE<CleanReport>("storage_prune_logs"),
+	/**  Restarts the app (after the user confirmed, to apply a scheduled data move). */
+	storageRestart: () => __TAURI_INVOKE<void>("storage_restart"),
 };
 
 /** Events */
@@ -498,7 +556,9 @@ export const events = {
 	cloneProgress: makeEvent<CloneProgress>("clone-progress"),
 	lfsTransferProgress: makeEvent<LfsTransferProgress>("lfs-transfer-progress"),
 	repoChanged: makeEvent<RepoChanged>("repo-changed"),
+	storageMoveProgress: makeEvent<StorageMoveProgress>("storage-move-progress"),
 	transferProgress: makeEvent<TransferProgress>("transfer-progress"),
+	updateProgress: makeEvent<UpdateProgress>("update-progress"),
 };
 
 /* Types */
@@ -667,6 +727,8 @@ export type AppInfo = {
 	version: string,
 	os: string,
 	arch: string,
+	/**  `https://github.com/<owner>/<repo>` of the project, when the build embedded one. */
+	repositoryUrl: string | null,
 };
 
 /**  User preferences persisted in SQLite. `language: None` means "follow the OS locale". */
@@ -752,7 +814,23 @@ export type AuthError =
 
 export type AuthMethod = "oauth" | "pat" | 
 /**  No HTTPS token: the account is only used over SSH (e.g. imported from `~/.ssh/config`). */
-"sshOnly";
+"sshOnly" | 
+/**
+ *  Token copied from the `gh` / `glab` CLI (PLAN 3B.1). Treated like a PAT: validated and
+ *  re-validated, never refreshed by the app; the CLI's own config is never modified.
+ */
+"importedCli";
+
+export type AvailableUpdate = {
+	version: string,
+	/**  Unix seconds, from the manifest's `pub_date`. */
+	date: number | null,
+	/**  Plain text (Markdown source) — never rendered as HTML. */
+	notes: string | null,
+	/**  The user chose "Bỏ qua bản này" for this version. */
+	skipped: boolean,
+	releaseUrl: string | null,
+};
 
 /**  A backup ref made before a rewrite. */
 export type BackupRef = {
@@ -873,7 +951,107 @@ export type ChangedFile = {
 	deletions: number | null,
 };
 
+/**  Outcome of a cleanup. */
+export type CleanReport = {
+	removedFiles: number,
+	removedBytes: number,
+	/**  Entries that could not be deleted (in use by another program?). */
+	failed: number,
+};
+
+/**  One account found in a CLI config. */
+export type CliAccountEntry = {
+	/**  Stable id `tool|host|user` (lower case) used for selection and "dismiss". */
+	key: string,
+	tool: CliTool,
+	provider: ImportProviderKind,
+	host: string,
+	/**  glab `api_host` when it differs from `host`. */
+	apiHost: string | null,
+	/**  `None` when the config does not record the user (the CLI's active account is used). */
+	username: string | null,
+	/**  The CLI's active account for this host. */
+	active: boolean,
+	tokenStorage: TokenStorage,
+	/**  App account with the same provider host + user name. */
+	existingAccountId: string | null,
+	/**
+	 *  The existing account was itself imported from the CLI: importing again copies the
+	 *  CLI's current token (after `gh auth refresh -s …`).
+	 */
+	canUpdate: boolean,
+	/**  Provider row whose host matches (`None` → created on import). */
+	providerId: string | null,
+};
+
+/**  An account the user ticked. */
+export type CliAccountRef = {
+	tool: CliTool,
+	host: string,
+	username?: string | null,
+};
+
+export type CliAccountsScan = {
+	accounts: CliAccountEntry[],
+	tools: CliToolStatus[],
+	warnings: ImportWarning[],
+	/**  Number of accounts not in the app yet. */
+	newCount: number,
+	/**  Some new account is outside the dismissed set: show the startup notice. */
+	shouldNotify: boolean,
+};
+
+/**  Result of one ticked account. */
+export type CliImportItem = {
+	key: string,
+	tool: CliTool,
+	host: string,
+	/**  User name from the CLI config, or the token owner once known. */
+	username: string | null,
+	status: CliImportStatus,
+	/**  Created / existing account. */
+	accountId: string | null,
+	/**  Scope names to add (one per missing feature). */
+	missingScopes: string[],
+	/**  Command that adds the missing scopes (gh only). */
+	fixCommand: string | null,
+	/**  Owner of the token for [`CliImportStatus::WrongUser`]. */
+	actualUsername: string | null,
+	/**  Technical detail (English, redacted). */
+	message: string | null,
+};
+
+export type CliImportStatus = 
+/**  Added with every checked scope. */
+"added" | 
+/**  Added, but some scopes are missing (`missingScopes`, `fixCommand`). */
+"missingScopes" | 
+/**  The provider rejected the token (revoked / expired): sign in to the CLI again. */
+"invalidToken" | 
+/**  The token belongs to another user than the CLI config says. */
+"wrongUser" | 
+/**  The CLI did not give a token (signed out, old gh with several accounts, timeout). */
+"noToken" | 
+/**  gh / glab is not installed: its token cannot be read. */
+"cliMissing" | 
+/**  Already in the app (signed in another way); nothing changed. */
+"alreadyExists" | 
+/**  The account is no longer in the CLI config (scan again). */
+"notFound" | 
+/**  Network / storage error (`message`). */
+"failed";
+
 export type CliTool = "gh" | "glab";
+
+/**  Whether a CLI is installed (its token can only be read through the executable). */
+export type CliToolStatus = {
+	tool: CliTool,
+	installed: boolean,
+	/**  Executable found. */
+	path: string | null,
+	/**  Config file that was read. */
+	configFile: string | null,
+};
 
 export type CloneCandidate = {
 	accountId: string,
@@ -2044,6 +2222,9 @@ export type MissingScope = {
 	anyOf: string[],
 };
 
+/**  Stage of a move, for progress events. */
+export type MovePhase = "copying" | "verifying" | "cleaning";
+
 export type OnboardingStatus = {
 	importDone: boolean,
 	accountCount: number,
@@ -2592,6 +2773,78 @@ export type SettingsPatch = {
 	language?: Language | null,
 };
 
+/**  How much the app needs the tool: git blocks, git-lfs / OpenSSH warn, gh / glab are info only. */
+export type SetupImportance = "required" | "recommended" | "optional";
+
+export type SetupInstallOutcome = "installed" | "alreadyInstalled" | 
+/**  `xcode-select --install` opened the system installer; the user continues there. */
+"started" | 
+/**  Cancelled from the app. */
+"cancelled" | 
+/**  The user said no to the administrator (UAC) prompt or closed the installer. */
+"userCancelled" | "needsAdmin" | "managerMissing" | "network" | "packageNotFound" | "timedOut" | "failed";
+
+export type SetupInstallResult = {
+	tool: SetupToolId,
+	outcome: SetupInstallOutcome,
+	manager: SetupPackageManager | null,
+	/**  The command that ran, for the technical details. */
+	command: string | null,
+	exitCode: number | null,
+	/**  Cleaned, shortened output (progress bars dropped). */
+	output: string,
+};
+
+export type SetupPackageManager = "winget" | "brew" | "xcodeSelect";
+
+/**  Stored under [`KEY_SETUP`]. */
+export type SetupProgress = {
+	completed: boolean,
+	skipped: boolean,
+	stepsDone: SetupStep[],
+};
+
+export type SetupStatus = {
+	progress: SetupProgress,
+	accountCount: number,
+	importDone: boolean,
+	/**  Brand-new user: open the setup on start. */
+	shouldAutoOpen: boolean,
+};
+
+export type SetupStep = "welcome" | "tools" | "accounts" | "finish";
+
+export type SetupTool = {
+	id: SetupToolId,
+	importance: SetupImportance,
+	state: SetupToolState,
+	version: string | null,
+	minimum: string | null,
+	path: string | null,
+	/**  First line of the tool's own version output. */
+	raw: string | null,
+	downloadUrl: string,
+	/**  "Cài giúp tôi" is possible with this manager. */
+	installer: SetupPackageManager | null,
+};
+
+export type SetupToolId = "git" | "gitLfs" | "ssh" | "gh" | "glab" | "webview2";
+
+export type SetupToolState = "ok" | "outdated" | "missing" | 
+/**  Installed in its default folder but not on the app's `PATH` (restart the app). */
+"outsidePath";
+
+export type SetupToolsReport = {
+	tools: SetupTool[],
+	/**  git is usable: the next step may be opened. */
+	canContinue: boolean,
+	/**  Something was found outside `PATH`: the app must restart to use it. */
+	restartNeeded: boolean,
+	/**  Package manager this OS installs with (`None` on Linux). */
+	packageManager: SetupPackageManager | null,
+	packageManagerFound: boolean,
+};
+
 /**  Result of [`test_signing`]. */
 export type SignTestResult = {
 	ok: boolean,
@@ -2837,6 +3090,81 @@ export type StatusEntry = {
 	size: number | null,
 };
 
+export type StorageChangeResult = {
+	target: string,
+	/**  Data folder: scheduled, applied on restart. */
+	restartRequired: boolean,
+	/**  Old files that could not be deleted after a successful move. */
+	oldFilesLeft: number,
+	/**  Set instead of moving when the folder cannot be used. */
+	problem: TargetProblem | null,
+};
+
+/**  One kind of folder the user can relocate. */
+export type StorageKind = "log" | "cache" | "data";
+
+export type StorageLocation = {
+	kind: StorageKind,
+	path: string,
+	defaultPath: string,
+	isDefault: boolean,
+	usedBytes: number,
+	fileCount: number,
+	/**  `false` when measuring took too long: `usedBytes` is a lower bound. */
+	usageComplete: boolean,
+	freeBytes: number | null,
+	/**  Data folder scheduled for the next start. */
+	pendingPath: string | null,
+};
+
+/**  Progress of a log/cache move, at most ~10 per second (phase changes always sent). */
+export type StorageMoveProgress = {
+	kind: StorageKind,
+	phase: MovePhase,
+	doneBytes: number,
+	totalBytes: number,
+	doneFiles: number,
+	totalFiles: number,
+};
+
+export type StorageOverview = {
+	locations: StorageLocation[],
+	/**  A move is running. */
+	busy: boolean,
+};
+
+/**  Light status polled for the low-space warning and startup notices. */
+export type StorageStatus = {
+	dataDir: string,
+	dataFreeBytes: number | null,
+	lowSpace: boolean,
+	warnings: StorageWarning[],
+	pendingData: string | null,
+};
+
+export type StorageTargetCheck = {
+	/**  Folder that would be used (`<chosen>/nanomgg-…` when the chosen one is not empty). */
+	target: string,
+	createsSubfolder: boolean,
+	isDefault: boolean,
+	neededBytes: number,
+	freeBytes: number | null,
+	problem: TargetProblem | null,
+};
+
+/**  Something the user should know about the storage folders (shown once after start). */
+export type StorageWarning = 
+/**  `locations.json` could not be read; every folder uses its default. */
+{ kind: "pointerUnreadable"; path: string; message: string } | 
+/**  A custom folder is gone (removable drive not plugged in?); the default is used for now. */
+{ kind: "missingFolder"; storage: StorageKind; path: string; fallback: string } | 
+/**  The scheduled data-folder move finished. */
+{ kind: "dataMoved"; from: string; to: string } | 
+/**  The scheduled data-folder move failed; the old folder is still in use, untouched. */
+{ kind: "dataMoveFailed"; from: string; to: string; message: string } | 
+/**  The move succeeded but some old files could not be deleted. */
+{ kind: "oldFilesLeft"; storage: StorageKind; path: string; count: number };
+
 export type Submodule = {
 	/**  Name in `.gitmodules` (usually equal to the path); `None` for a gitlink without entry. */
 	name: string | null,
@@ -3005,6 +3333,19 @@ export type Tag = {
 	/**  Commit the tag points to (peeled for annotated tags). */
 	oid: string,
 };
+
+/**  Why a folder cannot be used. */
+export type TargetProblem = 
+/**  Not a full path, or contains `..`. */
+{ kind: "invalidPath" } | 
+/**  A file, not a folder. */
+{ kind: "notAFolder" } | { kind: "sameAsCurrent" } | 
+/**  Inside the folder being moved (or another app folder). */
+{ kind: "insideAppFolder" } | 
+/**  Contains an app folder (would mix the user's files with ours). */
+{ kind: "containsAppFolder" } | 
+/**  The `nanomgg-…` subfolder already exists and is not empty. */
+{ kind: "notEmpty"; path: string } | { kind: "notWritable"; message: string } | { kind: "notEnoughSpace"; needed: number; free: number };
 
 /**  Streamed to the UI through a [`Channel`]. */
 export type TerminalEvent = 
@@ -3175,6 +3516,61 @@ export type UnpushedCommit = {
 	 *  such a commit must not be rewritten.
 	 */
 	shared: boolean,
+};
+
+export type UpdateChannel = "stable" | "beta";
+
+export type UpdateCheck = {
+	status: UpdateCheckStatus,
+	currentVersion: string,
+	releasesUrl: string | null,
+	update: AvailableUpdate | null,
+};
+
+export type UpdateCheckStatus = "notConfigured" | 
+/**  Startup check skipped: the last one was less than a day ago. */
+"notDue" | "upToDate" | "available";
+
+/**
+ *  Failure of a check or an install, serialized as `{ kind, message }`; `message` is the
+ *  technical detail (for "Chi tiết" / logs), the UI explains each kind in plain words.
+ */
+export type UpdateError = 
+/**  No connection to GitHub (offline, DNS, proxy, timeout). */
+{ kind: "offline"; message: string } | 
+/**  No published release carries a `latest.json` yet (404). */
+{ kind: "noRelease"; message: string } | 
+/**  The release has no update package for this OS / CPU. */
+{ kind: "noBuildForPlatform"; message: string } | { kind: "badManifest"; message: string } | 
+/**  The package is not signed with the key built into the app. */
+{ kind: "badSignature"; message: string } | { kind: "downloadFailed"; message: string } | { kind: "notConfigured"; message: string } | 
+/**  `updater_install` without a matching successful check (or after a channel change). */
+{ kind: "noPendingUpdate"; message: string } | 
+/**  An install is already running. */
+{ kind: "busy"; message: string } | 
+/**  The OS password prompt (Linux packages) was dismissed. */
+{ kind: "cancelled"; message: string } | { kind: "failed"; message: string };
+
+export type UpdatePhase = "downloading" | "installing" | "restarting";
+
+/**  Progress of `updater_install`, at most ~7 per second (phase changes always sent). */
+export type UpdateProgress = {
+	phase: UpdatePhase,
+	downloaded: number,
+	total: number | null,
+	percent: number | null,
+};
+
+export type UpdaterStatus = {
+	/**  The build embeds a repository and a public key. */
+	configured: boolean,
+	currentVersion: string,
+	channel: UpdateChannel,
+	/**  Unix seconds of the last check (startup or manual). */
+	lastCheck: number | null,
+	skippedVersion: string | null,
+	/**  `https://github.com/<owner>/<repo>/releases` when the build knows its repository. */
+	releasesUrl: string | null,
 };
 
 export type UrlScheme = "https" | "http" | "ssh" | "git" | "local";

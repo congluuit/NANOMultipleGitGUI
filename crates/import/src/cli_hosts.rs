@@ -6,7 +6,7 @@
 
 use std::path::{Path, PathBuf};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use yaml_rust2::{Yaml, YamlLoader};
 use zeroize::Zeroize;
 
@@ -14,7 +14,7 @@ use crate::{ImportWarning, ProviderKind, ScanEnv, SourceRef, SuggestionNote, War
 
 const REDACTED: &str = "\"<redacted>\"";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub enum CliTool {

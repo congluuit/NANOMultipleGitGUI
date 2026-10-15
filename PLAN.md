@@ -34,7 +34,13 @@
 | 3.2 | Conflict editor 3-way (gồm binary/LFS), file history, blame, xem file tại commit, image diff | ✅ Xong (2026-10-15) |
 | 3.3 | Submodule, worktree, LFS nâng cao (lock, danh sách file, prune/fsck), signing GPG/SSH + Verified | ✅ Xong (2026-10-15) — lock LFS chưa thử với GitHub/GitLab thật |
 | 3.4 | Tích hợp + kiểm chứng end-to-end trên bản release, sửa lỗi phát hiện khi kiểm chứng | ✅ Xong (2026-10-15) |
-| 3B.x | Phase 3B — Trải nghiệm cho người mới (đồng bộ tài khoản CLI, onboarding, thư mục dữ liệu, check update, layout co giãn) | ⏭️ Tiếp theo |
+| 3B.1 | Tự quét & thêm tài khoản từ `gh` / `glab` CLI (lấy token khi người dùng bấm Thêm) | ✅ Xong (2026-10-15) |
+| 3B.2 | Onboarding 4 bước lần đầu chạy (giới thiệu, kiểm tra + cài công cụ, tài khoản, hoàn tất) | ✅ Xong (2026-10-15) |
+| 3B.3 | Thư mục log / cache / dữ liệu tùy chỉnh, di chuyển có tiến độ, dọn dẹp, cảnh báo ổ đầy | ✅ Xong (2026-10-15) |
+| 3B.4 | Check for Update theo GitHub Releases (stable/beta) | ✅ Xong (2026-10-15) — chờ repo GitHub + khóa ký minisign (việc của người dùng) |
+| 3B.5 | Layout co giãn: kéo chia panel, thu gọn về icon, toolbar "⋯", dialog cuộn | ✅ Xong (2026-10-15) |
+| 3B.6 | Tích hợp + kiểm chứng trên bản release | ✅ Xong (2026-10-15) |
+| 4.x | Phase 4 — Tích hợp provider (PR/MR, issues, CI, fork & clone) | ⏭️ Tiếp theo |
 
 Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 
@@ -42,7 +48,8 @@ Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 1. Tạo tài khoản/tổ chức GitHub cho dự án (gợi ý: org `nanomgg` — đang còn trống, khớp bundle identifier tạm) và push code; sau đó CI/Release chạy thật được.
 2. Điền kênh liên hệ trong `CODE_OF_CONDUCT.md` (`[INSERT CONTACT METHOD]`) và thay `OWNER/REPO` trong `.github/release-notes.md`.
 3. Nộp hồ sơ SignPath Foundation khi có bản release đầu tiên; cấu hình biến/secret theo hướng dẫn đầu file `release.yml`.
-4. (Tùy chọn) Chạy thử prototype với 2 tài khoản GitHub thật — đã kiểm chứng đầy đủ bằng server cục bộ (mục 10, bước 0.6).
+4. Bật tự cập nhật (3B.4): `pnpm tauri signer generate -w ~/.tauri/nanomgg-updater.key` → secret `TAURI_SIGNING_PRIVATE_KEY` (+ `_PASSWORD`), variable `NANOMGG_UPDATER_PUBKEY`; build cục bộ thêm `NANOMGG_GITHUB_REPO=owner/repo` (+ pubkey) vào `.env`. Chi tiết trong `docs/RELEASING.md`.
+5. (Tùy chọn) Chạy thử prototype với 2 tài khoản GitHub thật — đã kiểm chứng đầy đủ bằng server cục bộ (mục 10, bước 0.6).
 
 ---
 
@@ -863,6 +870,46 @@ App nhắm tới cả dev mới học git: mọi chỗ phải nói rõ "chuyện
 - Lỗi hiện tại: thu nhỏ cửa sổ thì một số nút bị che/mất, không chỉnh được bề rộng các panel.
 - Làm: sidebar / graph / panel phải **kéo chia được** (resizable panels, nhớ kích thước theo cửa sổ), có thể thu gọn sidebar và panel phải về dạng icon; toolbar tự dồn nút thừa vào menu "⋯" khi hẹp; dialog có thanh cuộn thay vì tràn; kiểm tra tại kích thước tối thiểu 960×600 và ở 125–150% scale của Windows.
 - Test: snapshot ở 3 kích thước (960×600, 1280×800, 1920×1080) bảo đảm mọi nút chính đều nhìn thấy và bấm được.
+
+#### Nhật ký Phase 3B (5 sub-agent song song + điều phối; báo cáo chi tiết ở `.agent/phase3b/3B.x.md`)
+**Nền chung:** `build.rs` nhúng thêm `NANOMGG_GITHUB_REPO` (`owner/repo`) và `NANOMGG_UPDATER_PUBKEY` từ env hoặc `.env`; `AppInfo.repositoryUrl` (null khi build không có repo → UI ẩn link, không hard-code owner).
+
+**3B.1 — Tài khoản từ gh / glab ✅ (2026-10-15)**
+- Quét `hosts.yml` của gh (gồm `users:` nhiều tài khoản/host) và config glab; so với tài khoản đã có (host + username, không phân biệt hoa thường). Command `cli_accounts_scan` / `cli_accounts_import` / `cli_accounts_dismiss`.
+- Token chỉ lấy khi bấm Thêm: gọi thẳng `gh auth token --hostname H --user U` (gh cũ không có `--user` thì chỉ thử lại khi host có đúng 1 tài khoản) / `glab config get token --host H`, không qua shell, có timeout, xóa `GH_TOKEN`/`GITLAB_TOKEN`… khỏi env, token trong `Zeroizing`. Kiểm như PAT (username phải khớp, scope, hạn); host mới thì tạo provider GHE / GitLab self-hosted sau khi token hợp lệ. Không ghi gì vào cấu hình gh/glab (có test so từng byte).
+- `AuthMethod::ImportedCli` (`imported_cli`); **SQLite v4** (dựng lại bảng `accounts` vì CHECK constraint, tắt foreign key quanh transaction để giữ identity/rule/binding, kiểm tham chiếu trước commit; test nâng cấp v3→v4).
+- Kết quả từng tài khoản (đã thêm / thiếu scope / token sai / sai user / CLI không trả token / chưa cài / đã có / lỗi mạng) kèm lệnh sửa sao chép được (`gh auth refresh -h H -s workflow`, `gh auth switch`…) và nút đăng nhập lại bằng device flow.
+- UI `CliAccountsPanel` ở đầu Quản lý tài khoản, trong ImportWizard và bước Tài khoản của onboarding; thẻ tài khoản ghi "Nhập từ gh CLI"; lệnh palette. Notice nhẹ khi khởi động (không hiện trong phiên onboarding tự mở, khi wizard đang mở hoặc đang có notice khác); "Bỏ qua" nhớ theo đúng tập tài khoản (`cliSync.dismissed`).
+
+**3B.2 — Onboarding ✅ (2026-10-15)**
+- 4 bước: Chào mừng (logo, open-source Apache-2.0 do NANO Pret phát triển, link repo nếu có, ngôn ngữ + theme đổi ngay) → Kiểm tra công cụ (git bắt buộc, git-lfs/OpenSSH khuyến nghị, gh/glab tùy chọn, WebView2; ✅/⚠️/❌ + phiên bản + đường dẫn) → Tài khoản → Hoàn tất (tóm tắt, Mở repo / Clone / Đóng).
+- "Cài giúp tôi": whitelist cố định trong Rust (frontend chỉ gửi id): `winget install --id Git.Git|GitHub.GitLFS|GitHub.cli|GLab.GLab -e --source winget …`, macOS `xcode-select --install` / `brew install`; chạy nền, hủy được, timeout 30 phút, lỗi dịch dễ hiểu (UAC từ chối, cần admin, mạng, không có winget). Không thấy trên PATH thì tìm ở thư mục cài mặc định và báo cần khởi động lại (nút khởi động lại).
+- Tiến độ lưu ở `onboarding.setup`; chỉ tự mở với người dùng mới (chưa tài khoản, chưa `importDone`, chưa hoàn tất/bỏ qua) — thay cho việc ImportWizard tự mở. Settings có mục "Hướng dẫn ban đầu" (nhắc bước chưa xong + chạy lại), lệnh palette.
+
+**3B.3 — Thư mục dữ liệu ✅ (2026-10-15)**
+- Crate mới `nanomgg-app-paths`; file trỏ `%LOCALAPPDATA%\<id>\locations.json` (tự xóa khi mọi thứ về mặc định). File hỏng / thư mục mất → dùng mặc định + notice, không chặn app mở; thư mục data mất thì không tạo DB rỗng.
+- Log đổi ngay (logging giữ dòng mới trong RAM lúc copy rồi ghi tiếp ở chỗ mới); data chỉ đổi khi khởi động lại (`pendingData`, chuyển trước khi mở SQLite, áp lại ACL cho SSH key và sửa đường dẫn key trong DB). Di chuyển = copy → so từng byte → chuyển → xóa bản cũ; lỗi giữa chừng giữ nguyên bản cũ. Thư mục đã có file thì dùng thư mục con riêng; cấm chọn trong/chứa thư mục của app.
+- Settings → Lưu trữ: dung lượng, đường dẫn, ổ trống, Mở / Đổi… / Về mặc định, Xóa toàn bộ cache, Xóa log cũ (giữ file hôm nay), cảnh báo ổ data < 1 GB (lúc mở + mỗi 30 phút). Không liệt kê `EBWebView` (bị khóa khi cửa sổ chạy và chứa localStorage). Hiện chưa có cache nào ghi xuống đĩa; "Xóa cache" xóa cả cache danh sách repo clone trong RAM.
+
+**3B.4 — Check for Update ✅ (2026-10-15, chờ repo + khóa ký)**
+- `tauri-plugin-updater` cấu hình lúc chạy (pubkey + endpoint `https://github.com/<repo>/releases/latest/download/latest.json`); thiếu repo hoặc pubkey → "Bản build này chưa bật tự cập nhật", không gọi mạng (`ensure_plugin_config` chèn `plugins.updater` rỗng để plugin không làm app sập). Kênh beta đọc thêm pre-release cố định `updater-beta` và lấy bản cao hơn.
+- Kiểm tra khi khởi động tối đa 1 lần/ngày (sau 5 giây, chờ dialog khác đóng), Settings → Cập nhật, lệnh palette; hộp thoại có ghi chú phát hành (chữ thường, không HTML), tiến độ, [Cập nhật & khởi động lại] / [Để sau] / [Bỏ qua bản này]. Restart từ Rust, không cấp quyền updater cho JS.
+- `release.yml`: bật `createUpdaterArtifacts` + `uploadUpdaterJson` chỉ khi có secret `TAURI_SIGNING_PRIVATE_KEY` và variable `NANOMGG_UPDATER_PUBKEY`; luồng SignPath tạo lại `.sig` từ installer đã ký; job `beta-channel` khi publish pre-release. `docs/RELEASING.md` viết lại. Đoạn `jq` gộp `latest.json` chưa chạy thử (máy dev không có jq).
+
+**3B.5 — Layout co giãn ✅ (2026-10-15)**
+- Tay nắm kéo chia tự viết bằng pointer events (min/max, ←/→, Home/End, double-click về mặc định), kích thước lưu localStorage (đọc trước lần vẽ đầu). Cửa sổ hẹp: panel co về tối thiểu rồi tự thu sidebar, sau đó panel phải về dạng icon (graph giữ ≥ 440 px); `Ctrl/Cmd+B`, `Ctrl/Cmd+Alt+B`, popover theo mục ở dạng icon; nội dung panel thu gọn vẫn giữ (bản nháp commit không mất).
+- Toolbar dồn nút thừa vào "⋯" (không nhân đôi DOM, Pull/Push giữ menu con); TopBar tab co/cuộn ngang; StatusBar ẩn dần; `dialog.tsx` cuộn trong cửa sổ cho mọi dialog; graph ẩn cột Tác giả rồi Ngày khi hẹp.
+- Kiểm bằng Edge headless trên bản web dev với mock `?mock=shell` (chỉ có trong dev, đã kiểm `dist` không chứa): 13 nút chính thấy và bấm được ở 960×600, 1280×800, 1920×1080, 150 %, 853×533, 640×520. `minWidth/minHeight` 960×600 là kích thước logic; màn 1280×800 ở 150 % (≈ 853×533) nhỏ hơn mức tối thiểu — layout vẫn chạy ở đó, có thể hạ min (vd. 800×500) nếu muốn.
+
+**3B.6 — Tích hợp & kiểm chứng ✅ (2026-10-15)** (bản release, Windows 10, CDP; dữ liệu thật sao lưu ở `.agent/backup/pre-3b/` và đã khôi phục, so khớp từng byte)
+- Nối `CliAccountsPanel` vào bước Tài khoản; notice gh/glab dùng cùng cờ tự mở của onboarding.
+- Người dùng mới: onboarding tự mở → công cụ (Git 2.47, LFS 3.5.1, OpenSSH 9.9p1, gh 2.96, glab thiếu, WebView2 155) → bước Tài khoản liệt kê 2 tài khoản gh thật (không lấy token) → Hoàn tất lưu `completed`. Updater báo chưa cấu hình. Lưu trữ: đổi log sang thư mục khác rồi về mặc định (tức thì); chọn thư mục trong thư mục app bị chặn; đổi data → khởi động lại → DB ở chỗ mới, notice "Đã chuyển…", tiến độ onboarding còn nguyên → về mặc định → khởi động lại, file trỏ tự xóa.
+- Người dùng cũ (bản sao DB thật, schema v3, qua chính file trỏ của 3B.3): migrate lên v4, tài khoản còn nguyên, onboarding không tự mở, notice "Tìm thấy 1 tài khoản" (tài khoản gh đã có trong app được nhận ra).
+- Layout trên bản release 960×600 / 1280×800 / 1920×1080: các nút chính thấy, không tràn ngang; Settings và Lưu trữ cuộn trong cửa sổ.
+- **Sửa khi kiểm chứng:** ở 960×600 khi có 2 banner (notice gh + "chưa gắn tài khoản") danh sách file của panel "Thay đổi" bị ép còn 0 px → danh sách giữ tối thiểu ~7rem, cả panel cuộn tới nút Commit. Lỗi lint (đọc ref trong render) ở phần nối notice.
+- **Test cuối:** Rust toàn workspace qua (app 118, git-engine 163, app-paths 22, import 30, storage 17, accounts 31, auth 34, lfs 44, logging 10…), clippy `-D warnings`, rustfmt; frontend 567 test / 81 file, typecheck, eslint, prettier sạch. Bộ cài: `NANOMultipleGitGUI_0.0.1_x64-setup.exe` (6,9 MB), `…msi` (10,5 MB).
+- **Chưa kiểm chứng trên app thật:** bấm "Thêm" tài khoản gh (sẽ chép token thật vào keychain — để người dùng tự thử), "Cài giúp tôi" (cài thật), luồng cập nhật thật (cần repo + khóa ký), kéo tay nắm / `Ctrl+B` trên cửa sổ thật (đã thử trên bản web dev), scale 125–150 % thật của Windows.
+- Hạn chế: hủy cài đặt chỉ dừng winget/brew (trình cài đã nâng quyền UAC có thể chạy tiếp); lỗi winget nhận diện qua chữ tiếng Anh; macOS mở từ Finder có PATH tối thiểu nên công cụ cài bằng brew có thể không được thấy; chuyển data lúc khởi động không có thanh tiến độ; độ rộng panel lưu chung cho mọi repo.
 
 ### Phase 4 — Tích hợp provider (4–6 tuần)
 - PR/MR: danh sách, tạo, review, comment, checkout, merge.

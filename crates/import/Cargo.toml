@@ -19,6 +19,7 @@ serde = { workspace = true }
 # Pure-Rust YAML 1.2 parser for gh `hosts.yml` / glab `config.yml` (no `encoding` feature:
 # the files are UTF-8).
 yaml-rust2 = { version = "0.13", default-features = false }
+thiserror = { workspace = true }
 zeroize = "1"
 
 [dev-dependencies]

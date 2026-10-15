@@ -425,6 +425,35 @@ pub async fn update_token(
     .await
 }
 
+/// Saves a token copied from the gh / glab CLI (PLAN 3B.1) that the caller already validated
+/// with [`validate_token`] against `provider` (and checked the user name of). Same upsert as a
+/// PAT, recorded as [`AuthMethod::ImportedCli`].
+pub async fn save_imported(
+    st: &AppState,
+    rt: &AuthRuntime,
+    provider: &Provider,
+    info: &TokenInfo,
+    token: &SecretToken,
+) -> AuthResult<Account> {
+    let endpoint = endpoint_for(provider)?;
+    save_login(
+        st,
+        rt,
+        provider,
+        &endpoint,
+        info,
+        Login {
+            method: AuthMethod::ImportedCli,
+            access: token,
+            refresh: None,
+            expires_at: info.expires_at,
+            scopes: info.scopes.clone(),
+            label: None,
+        },
+    )
+    .await
+}
+
 struct Login<'a> {
     method: AuthMethod,
     access: &'a SecretToken,
@@ -722,7 +751,9 @@ async fn revalidate(
     let mut updated = acc.clone();
     updated.scopes = info.scopes.clone().unwrap_or_default();
     // OAuth tokens without expiry info keep what the token endpoint said.
-    if info.expires_at.is_some() || acc.auth_method == AuthMethod::Pat {
+    if info.expires_at.is_some()
+        || matches!(acc.auth_method, AuthMethod::Pat | AuthMethod::ImportedCli)
+    {
         updated.token_expires_at = info.expires_at.map(|s| s * 1000);
     }
     if info.user.display_name.is_some() {
