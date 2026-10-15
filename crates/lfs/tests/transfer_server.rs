@@ -287,9 +287,18 @@ fn cancel_mid_upload_then_rerun_uploads_only_the_rest() {
         .expect("cancelled mid-way");
     assert!(at.bytes_done < at.bytes_total, "{at:?}");
 
-    // Give the server a moment to notice the aborted request.
-    std::thread::sleep(std::time::Duration::from_millis(500));
-    let first = h.uploads();
+    // The request that was cut off may still complete on the server (its bytes were already in
+    // the socket buffers): wait until the server's log stops changing.
+    let settle_by = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let mut first = h.uploads();
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        let now = h.uploads();
+        if now == first || std::time::Instant::now() > settle_by {
+            break;
+        }
+        first = now;
+    }
     assert!(
         !first.is_empty() && first.len() < oids.len(),
         "partial upload: {first:?}"
