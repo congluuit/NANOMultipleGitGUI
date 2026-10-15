@@ -331,7 +331,7 @@ pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 // ----- commands ------------------------------------------------------------------------------
 
 /// Starts a device flow (GitHub, GitHub Enterprise, GitLab where enabled). `scopes = None` →
-/// the defaults (`repo read:user user:email` / `read_user read_api read_repository
+/// the defaults (`repo workflow read:user user:email` / `read_user read_api read_repository
 /// write_repository`).
 #[tauri::command]
 #[specta::specta]

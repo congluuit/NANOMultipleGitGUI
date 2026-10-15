@@ -28,12 +28,18 @@ pub mod gitlab {
 }
 
 /// Scopes requested at login when the caller does not choose:
-/// GitHub `repo read:user user:email`; GitLab `read_user read_api read_repository
-/// write_repository`. Add `admin:public_key`/`workflow` (GitHub) or `api` (GitLab) to enable
-/// SSH key upload / workflow edits.
+/// GitHub `repo workflow read:user user:email`; GitLab `read_user read_api read_repository
+/// write_repository`. Add `admin:public_key` (GitHub) or `api` (GitLab) to enable SSH key
+/// upload. `workflow` is included because without it GitHub refuses every push that touches
+/// `.github/workflows/`.
 pub fn default_scopes(family: ProviderFamily) -> Vec<String> {
     let list: &[&str] = match family {
-        ProviderFamily::Github => &[github::REPO, github::READ_USER, github::USER_EMAIL],
+        ProviderFamily::Github => &[
+            github::REPO,
+            github::WORKFLOW,
+            github::READ_USER,
+            github::USER_EMAIL,
+        ],
         ProviderFamily::Gitlab => &[
             gitlab::READ_USER,
             gitlab::READ_API,
@@ -273,7 +279,7 @@ mod tests {
     fn defaults() {
         assert_eq!(
             default_scopes(ProviderFamily::Github),
-            ["repo", "read:user", "user:email"]
+            ["repo", "workflow", "read:user", "user:email"]
         );
         assert!(default_scopes(ProviderFamily::Gitlab).contains(&"write_repository".to_owned()));
     }

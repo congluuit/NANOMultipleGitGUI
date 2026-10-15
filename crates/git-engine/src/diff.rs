@@ -7,6 +7,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::blob::{self, BlobPreview};
 use crate::commit::is_valid_oid;
 use crate::{AccountContext, GitError, GitRunner};
 
@@ -510,6 +511,60 @@ fn blob(git: &GitRunner, root: &Path, spec: &str) -> Option<Vec<u8>> {
         .map(|o| o.stdout)
 }
 
+/// Where one side of a diff request is read from.
+enum Side {
+    /// Object name (`HEAD:path`, `:path`, `<oid>^1:path`).
+    Object(String),
+    Worktree,
+    Missing,
+}
+
+/// The old and new side of a request (call after [`check_request`]).
+fn request_sides(req: &DiffRequest) -> (Side, Side) {
+    let old_path = req.old_path.as_deref().unwrap_or(&req.path);
+    match req.side {
+        DiffSide::Unstaged => (Side::Object(format!(":{}", req.path)), Side::Worktree),
+        DiffSide::Untracked => (Side::Missing, Side::Worktree),
+        DiffSide::Staged => (
+            Side::Object(format!("HEAD:{old_path}")),
+            Side::Object(format!(":{}", req.path)),
+        ),
+        DiffSide::Commit => {
+            let c = req.commit.as_deref().unwrap_or_default();
+            (
+                Side::Object(format!("{c}^1:{old_path}")),
+                Side::Object(format!("{c}:{}", req.path)),
+            )
+        }
+    }
+}
+
+/// Old and new version of an image file of a diff, for the image diff view.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+pub struct ImagePair {
+    /// `None` when the file does not exist on that side (added / deleted).
+    pub original: Option<BlobPreview>,
+    pub modified: Option<BlobPreview>,
+}
+
+/// Both sides of a diff request as previews (LFS pointers resolved from the local store).
+pub fn image_pair(git: &GitRunner, root: &Path, req: &DiffRequest) -> Result<ImagePair, GitError> {
+    check_request(req)?;
+    let (old, new) = request_sides(req);
+    let load = |side: Side, path: &str| match side {
+        Side::Object(name) => blob::preview_object(git, root, &name, path),
+        Side::Worktree => blob::preview_worktree(git, root, &req.path),
+        Side::Missing => None,
+    };
+    let old_path = req.old_path.as_deref().unwrap_or(&req.path);
+    Ok(ImagePair {
+        original: load(old, old_path),
+        modified: load(new, &req.path),
+    })
+}
+
 /// Full old/new contents of a file for the side-by-side editor.
 pub fn file_contents(
     git: &GitRunner,
@@ -517,23 +572,13 @@ pub fn file_contents(
     req: &DiffRequest,
 ) -> Result<FileContents, GitError> {
     check_request(req)?;
-    let old_path = req.old_path.as_deref().unwrap_or(&req.path);
-    let worktree = || std::fs::read(root.join(&req.path)).ok();
-    let (original, modified) = match req.side {
-        DiffSide::Unstaged => (blob(git, root, &format!(":{}", req.path)), worktree()),
-        DiffSide::Untracked => (None, worktree()),
-        DiffSide::Staged => (
-            blob(git, root, &format!("HEAD:{old_path}")),
-            blob(git, root, &format!(":{}", req.path)),
-        ),
-        DiffSide::Commit => {
-            let c = req.commit.as_deref().unwrap_or_default();
-            (
-                blob(git, root, &format!("{c}^1:{old_path}")),
-                blob(git, root, &format!("{c}:{}", req.path)),
-            )
-        }
+    let read = |side: Side| match side {
+        Side::Object(name) => blob(git, root, &name),
+        Side::Worktree => std::fs::read(root.join(&req.path)).ok(),
+        Side::Missing => None,
     };
+    let (old, new) = request_sides(req);
+    let (original, modified) = (read(old), read(new));
     let mut out = FileContents::default();
     for side in [&original, &modified].into_iter().flatten() {
         out.binary |= looks_binary(side);
@@ -1012,6 +1057,48 @@ mod tests {
         .unwrap();
         assert_eq!(c.original.as_deref(), Some("a\nB\n"));
         assert_eq!(c.modified.as_deref(), Some("worktree\n"));
+    }
+
+    #[test]
+    fn image_pairs_for_every_side() {
+        let r = Repo::new();
+        std::fs::write(r.p().join("i.png"), [1u8, 0, 1]).unwrap();
+        r.run(&["add", "."]);
+        r.run(&["commit", "-q", "-m", "one"]);
+        let first = r.run(&["rev-parse", "HEAD"]);
+        std::fs::write(r.p().join("i.png"), [2u8, 0, 2, 2]).unwrap();
+        r.run(&["commit", "-qam", "two"]);
+        let second = r.run(&["rev-parse", "HEAD"]);
+        std::fs::write(r.p().join("i.png"), [3u8, 0]).unwrap();
+        let req = |side, commit: Option<&String>| DiffRequest {
+            side,
+            path: "i.png".into(),
+            old_path: None,
+            commit: commit.cloned(),
+        };
+        let size = |p: &Option<BlobPreview>| p.as_ref().map(|b| b.size);
+        let pair = image_pair(&r.git, r.p(), &req(DiffSide::Commit, Some(&second))).unwrap();
+        assert_eq!(
+            (size(&pair.original), size(&pair.modified)),
+            (Some(3), Some(4))
+        );
+        assert_eq!(pair.modified.unwrap().mime, "image/png");
+        let pair = image_pair(&r.git, r.p(), &req(DiffSide::Commit, Some(&first))).unwrap();
+        assert_eq!(
+            (size(&pair.original), size(&pair.modified)),
+            (None, Some(3))
+        );
+        let pair = image_pair(&r.git, r.p(), &req(DiffSide::Unstaged, None)).unwrap();
+        assert_eq!(
+            (size(&pair.original), size(&pair.modified)),
+            (Some(4), Some(2))
+        );
+        r.run(&["add", "."]);
+        let pair = image_pair(&r.git, r.p(), &req(DiffSide::Staged, None)).unwrap();
+        assert_eq!(
+            (size(&pair.original), size(&pair.modified)),
+            (Some(4), Some(2))
+        );
     }
 
     #[test]

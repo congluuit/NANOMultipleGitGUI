@@ -28,7 +28,9 @@ async fn mount_device_code(server: &MockServer, interval: u64, expires_in: u64) 
     Mock::given(method("POST"))
         .and(path("/login/device/code"))
         .and(body_string_contains("client_id=Iv1.test"))
-        .and(body_string_contains("scope=repo+read%3Auser+user%3Aemail"))
+        .and(body_string_contains(
+            "scope=repo+workflow+read%3Auser+user%3Aemail",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!({
             "device_code": "dev-secret-123", "user_code": "WDJB-MJHT",
             "verification_uri": "https://github.com/login/device",

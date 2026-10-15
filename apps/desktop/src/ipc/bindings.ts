@@ -63,6 +63,43 @@ export const commands = {
 	commitIdentity: (repoId: number) => __TAURI_INVOKE<GitIdentity>("commit_identity", { repoId }),
 	/**  Message of the last commit, to prefill "amend". */
 	headMessage: (repoId: number) => __TAURI_INVOKE<string | null>("head_message", { repoId }),
+	/**  Operation in progress and the commits behind "ours" / "theirs". */
+	conflictContext: (repoId: number) => __TAURI_INVOKE<ConflictContext>("conflict_context", { repoId }),
+	/**  Stages and working-tree text of one conflicted file. */
+	conflictFile: (repoId: number, path: string) => __TAURI_INVOKE<ConflictFile>("conflict_file", { repoId, path }),
+	/**  Preview of a file from a commit, an index stage or the working tree (images, LFS objects). */
+	blobPreview: (repoId: number, source: BlobSource, path: string) => __TAURI_INVOKE<{
+	/**  Size of the real content (of the LFS object for a pointer). */
+	size: number,
+	/**  MIME type guessed from the file extension. */
+	mime: string,
+	/**  Base64 content; `None` when too large or the LFS object is not downloaded. */
+	data: string | null,
+	/**  Set when the stored file is an LFS pointer. */
+	lfs: LfsPointer | null,
+	/**  LFS pointer whose object is not in the local LFS store (needs a download). */
+	lfsMissing: boolean,
+	tooLarge: boolean,
+	/**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
+	binary: boolean,
+} | null>("blob_preview", { repoId, source, path }),
+	/**  Writes the edited result (keeping line endings and BOM) and marks the file resolved. */
+	conflictResolveContent: (repoId: number, path: string, content: string) => __TAURI_INVOKE<Outcome<null>>("conflict_resolve_content", { repoId, path, content }),
+	/**
+	 *  Keeps one side of a conflicted file as a whole (`checkout --ours/--theirs` + add, or `rm`
+	 *  when that side deleted it).
+	 */
+	conflictTakeSide: (repoId: number, path: string, side: ConflictSide) => __TAURI_INVOKE<Outcome<null>>("conflict_take_side", { repoId, path, side }),
+	/**  Resolves a conflicted file by deleting it (`git rm`). */
+	conflictDeleteFile: (repoId: number, path: string) => __TAURI_INVOKE<Outcome<null>>("conflict_delete_file", { repoId, path }),
+	/**  One page of the commits that changed `path` (`git log --follow`), newest first. */
+	fileHistory: (repoId: number, path: string, rev: string | null, skip: number, limit: number) => __TAURI_INVOKE<FileHistoryPage>("file_history", { repoId, path, rev, skip, limit }),
+	/**  `git blame` of `path` at `rev` (hex id or `HEAD`), or of the working tree when `None`. */
+	blameFile: (repoId: number, path: string, rev: string | null) => __TAURI_INVOKE<BlameResult>("blame_file", { repoId, path, rev }),
+	/**  The file as of one commit (read-only viewer). */
+	fileAtCommit: (repoId: number, commit: string, path: string) => __TAURI_INVOKE<FileAtCommit>("file_at_commit", { repoId, commit, path }),
+	/**  Old and new version of an image for the image diff (LFS objects from the local store). */
+	diffImages: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<ImagePair>("diff_images", { repoId, request }),
 	/**  `git stash push`. `created: false` means there was nothing to stash. */
 	stashCreate: (repoId: number, options: StashOptions) => __TAURI_INVOKE<StashCreated>("stash_create", { repoId, options }),
 	/**
@@ -147,6 +184,27 @@ export const commands = {
 	remoteDeleteBranch: (repoId: number, opId: string, remote: string, branch: string) => __TAURI_INVOKE<Outcome<PushSummary>>("remote_delete_branch", { repoId, opId, remote, branch }),
 	/**  Asks a running fetch / pull / push to stop. Returns `false` if no such operation runs. */
 	transferCancel: (opId: string) => __TAURI_INVOKE<boolean>("transfer_cancel", { opId }),
+	/**  What `git rebase <onto>` would rewrite for `branch` (default: the current branch). */
+	rebasePreview: (repoId: number, onto: string, branch: string | null) => __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_preview", { repoId, onto, branch }),
+	/**  Rows of the interactive rebase dialog: commits of the current branch after `base`. */
+	rebaseTodo: (repoId: number, base: string) => __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_todo", { repoId, base }),
+	/**  Plain rebase (backup ref first; pushed commits need `allowPushed`). */
+	rebaseStart: (repoId: number, request: RebaseRequest) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_start", { repoId, request }),
+	/**  Interactive rebase with the plan from the dialog; never opens an editor. */
+	rebaseInteractive: (repoId: number, request: InteractiveRebaseRequest) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_interactive", { repoId, request }),
+	rebaseContinue: (repoId: number) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_continue", { repoId }),
+	/**  Drops the commit the rebase stopped at and goes on. */
+	rebaseSkip: (repoId: number) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_skip", { repoId }),
+	/**  How `source` relates to `target` (for the branch drop menu). */
+	branchRelation: (repoId: number, source: string, target: string) => __TAURI_INVOKE<Outcome<BranchRelation>>("branch_relation", { repoId, source, target }),
+	/**  Fast-forwards local branch `target` to `source` (recorded for Undo). Returns the new tip. */
+	branchFastForward: (repoId: number, target: string, source: string) => __TAURI_INVOKE<Outcome<string>>("branch_fast_forward", { repoId, target, source }),
+	/**  What the Undo / Redo buttons would do now. */
+	undoState: (repoId: number) => __TAURI_INVOKE<UndoState>("undo_state", { repoId }),
+	/**  Undoes the most recent operation (never discards uncommitted changes). */
+	undoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("undo_run", { repoId }),
+	/**  Redoes the operation undone last, if the repository did not change since. */
+	redoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("redo_run", { repoId }),
 	/**
 	 *  What `git lfs push <remote> <branch>` would upload (an upper bound: objects the server
 	 *  already has are only skipped during the real push).
@@ -243,7 +301,7 @@ export const commands = {
 	accountSettingsUpdate: (patch: AccountSettingsPatch) => __TAURI_INVOKE<AccountSettings>("account_settings_update", { patch }),
 	/**
 	 *  Starts a device flow (GitHub, GitHub Enterprise, GitLab where enabled). `scopes = None` →
-	 *  the defaults (`repo read:user user:email` / `read_user read_api read_repository
+	 *  the defaults (`repo workflow read:user user:email` / `read_user read_api read_repository
 	 *  write_repository`).
 	 */
 	authDeviceStart: (providerId: string, scopes: string[] | null) => __TAURI_INVOKE<DeviceStart>("auth_device_start", { providerId, scopes }),
@@ -354,6 +412,84 @@ export const commands = {
 	guardBackups: (repoId: number) => __TAURI_INVOKE<BackupRef[]>("guard_backups", { repoId }),
 	/**  Deletes one backup ref. */
 	guardBackupDelete: (repoId: number, backupRef: string) => __TAURI_INVOKE<Outcome<null>>("guard_backup_delete", { repoId, backupRef }),
+	/**  Every submodule (nested ones too) with its state and the account it will use. */
+	submoduleList: (repoId: number) => __TAURI_INVOKE<SubmoduleInfo[]>("submodule_list", { repoId }),
+	/**
+	 *  `git submodule update [--init] [--recursive]` for `paths` (empty = every submodule), each
+	 *  group of submodules as its own account.
+	 */
+	submoduleUpdate: (repoId: number, opId: string, paths: string[], init: boolean, recursive: boolean) => __TAURI_INVOKE<Outcome<SubmoduleUpdateSummary>>("submodule_update", { repoId, opId, paths, init, recursive }),
+	/**
+	 *  `git submodule add [-b branch] -- <url> <path>`; the clone runs as the account the URL
+	 *  resolves to.
+	 */
+	submoduleAdd: (repoId: number, opId: string, url: string, path: string, branch: string | null) => __TAURI_INVOKE<Outcome<Submodule>>("submodule_add", { repoId, opId, url, path, branch }),
+	/**  Account a submodule URL would use (for the "Add submodule" dialog). */
+	submoduleUrlAccount: (repoId: number, url: string) => __TAURI_INVOKE<SubmoduleAccount>("submodule_url_account", { repoId, url }),
+	/**  `git submodule sync [--recursive]` (copy URLs from `.gitmodules` to the config). */
+	submoduleSync: (repoId: number, paths: string[], recursive: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_sync", { repoId, paths, recursive }),
+	/**
+	 *  `git submodule deinit [-f]`: empties the folder, keeps `.gitmodules`. Local changes come
+	 *  back as `dirtyWorktree` (ask, then retry with `force`).
+	 */
+	submoduleDeinit: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_deinit", { repoId, path, force }),
+	/**  Removes the submodule from the repository (deinit + `git rm`); commit afterwards. */
+	submoduleRemove: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_remove", { repoId, path, force }),
+	/**  Worktrees of the repository (main first; `isCurrent` marks the open one). */
+	linkedWorktreeList: (repoId: number) => __TAURI_INVOKE<Worktree[]>("linked_worktree_list", { repoId }),
+	/**  `git worktree add` at the absolute folder `path` (missing or empty) for `target`. */
+	linkedWorktreeAdd: (repoId: number, path: string, target: WorktreeTarget) => __TAURI_INVOKE<Outcome<Worktree>>("linked_worktree_add", { repoId, path, target }),
+	/**  `git worktree remove [--force]`; changes inside come back as `dirtyWorktree`. */
+	linkedWorktreeRemove: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("linked_worktree_remove", { repoId, path, force }),
+	/**  `git worktree prune -v` (`dryRun`: only list what would be pruned). */
+	linkedWorktreePrune: (repoId: number, dryRun: boolean) => __TAURI_INVOKE<Outcome<string[]>>("linked_worktree_prune", { repoId, dryRun }),
+	/**  `git worktree lock [--reason]` / `unlock`. */
+	linkedWorktreeLock: (repoId: number, path: string, locked: boolean, reason: string | null) => __TAURI_INVOKE<Outcome<null>>("linked_worktree_lock", { repoId, path, locked, reason }),
+	/**  `git lfs locks --verify --json` (falls back to the plain list): who holds which file. */
+	lfsLocks: (repoId: number) => __TAURI_INVOKE<LockOutcome<LockList>>("lfs_locks", { repoId }),
+	/**  `git lfs lock <path>` as the repo's account. */
+	lfsLock: (repoId: number, path: string) => __TAURI_INVOKE<LockOutcome<LfsLock>>("lfs_lock", { repoId, path }),
+	/**  `git lfs unlock [--force]` by path (or lock id when the file is gone). */
+	lfsUnlock: (repoId: number, path: string | null, id: string | null, force: boolean) => __TAURI_INVOKE<LockOutcome<null>>("lfs_unlock", { repoId, path, id, force }),
+	/**  Marks / unmarks an LFS pattern `lockable`; `true` when `.gitattributes` changed. */
+	lfsSetLockable: (repoId: number, pattern: string, lockable: boolean) => __TAURI_INVOKE<boolean>("lfs_set_lockable", { repoId, pattern, lockable }),
+	/**  LFS files of the checkout: size, downloaded / pointer, lockable. */
+	lfsFiles: (repoId: number) => __TAURI_INVOKE<LfsFile[]>("lfs_files", { repoId }),
+	/**  Size of the local LFS object store. */
+	lfsStorage: (repoId: number) => __TAURI_INVOKE<LfsStorage>("lfs_storage", { repoId }),
+	/**  `git lfs prune --dry-run`: what would be deleted and how much it frees. */
+	lfsPrunePreview: (repoId: number, verifyRemote: boolean) => __TAURI_INVOKE<PruneReport>("lfs_prune_preview", { repoId, verifyRemote }),
+	/**  `git lfs prune` (after the user confirmed the preview). */
+	lfsPrune: (repoId: number, verifyRemote: boolean) => __TAURI_INVOKE<PruneReport>("lfs_prune", { repoId, verifyRemote }),
+	/**  `git lfs fsck --dry-run` (objects and/or pointers), read-only. */
+	lfsFsck: (repoId: number, objects: boolean, pointers: boolean) => __TAURI_INVOKE<FsckReport>("lfs_fsck", { repoId, objects, pointers }),
+	/**
+	 *  `git lfs pull --include=<a>,<b>,…`: downloads the selected pointer files in one transfer
+	 *  ("Tải các file đã chọn" in the LFS panel).
+	 */
+	lfsPullFiles: (repoId: number, opId: string, paths: string[], ignoreDiskSpace: boolean, options: {
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
+} | null) => __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_pull_files", { repoId, opId, paths, ignoreDiskSpace, options }),
+	/**
+	 *  GPG secret keys usable for signing, listed with the `gpg` git would run (`gpg.program`, the
+	 *  one bundled with Git for Windows, or `gpg` on PATH). `notInstalled` when it cannot start.
+	 */
+	signingGpgKeys: () => __TAURI_INVOKE<GpgKeyList>("signing_gpg_keys"),
+	/**
+	 *  "Thử ký": signs a throw-away commit with the given key (GPG: gpg-agent may ask for the
+	 *  passphrase in its own window) and verifies it.
+	 */
+	signingTest: (probe: SigningProbe) => __TAURI_INVOKE<SignTestResult>("signing_test", { probe }),
+	/**
+	 *  Verification status of a commit's signature (lazy: the details panel asks only for signed
+	 *  commits, see `CommitDetails.signature`).
+	 */
+	commitSignature: (repoId: number, oid: string) => __TAURI_INVOKE<CommitSignature>("commit_signature", { repoId, oid }),
 };
 
 /** Events */
@@ -653,6 +789,78 @@ export type BindingSource =
 /**  Created when the repo was cloned through the app. */
 "clone";
 
+export type BlameCommit = {
+	oid: string,
+	author: string,
+	email: string,
+	/**  Author time, seconds since the Unix epoch. */
+	time: number,
+	summary: string,
+	/**  Path of the file in this commit (differs after a rename). */
+	filename: string,
+	/**  Parent commit and the file's path there, to blame "before this change". */
+	previous: string | null,
+	previousPath: string | null,
+	/**  Root / boundary commit: there is nothing older to blame. */
+	boundary: boolean,
+	/**  Lines changed in the working tree that are not committed yet. */
+	uncommitted: boolean,
+};
+
+export type BlameResult = {
+	path: string,
+	/**  Revision blamed; `None` = working tree. */
+	rev: string | null,
+	/**  Text of each line (without line ending). */
+	lines: string[],
+	/**  For each line: index into `commits`. */
+	lineCommits: number[],
+	/**  For each line: its line number in that commit's version of the file. */
+	origLines: number[],
+	commits: BlameCommit[],
+	tooLarge: boolean,
+	binary: boolean,
+};
+
+/**  Preview of one side of a file. */
+export type BlobPreview = {
+	/**  Size of the real content (of the LFS object for a pointer). */
+	size: number,
+	/**  MIME type guessed from the file extension. */
+	mime: string,
+	/**  Base64 content; `None` when too large or the LFS object is not downloaded. */
+	data: string | null,
+	/**  Set when the stored file is an LFS pointer. */
+	lfs: LfsPointer | null,
+	/**  LFS pointer whose object is not in the local LFS store (needs a download). */
+	lfsMissing: boolean,
+	tooLarge: boolean,
+	/**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
+	binary: boolean,
+};
+
+/**  Where a file's bytes come from. */
+export type BlobSource = 
+/**  The file as of a commit. */
+{ kind: "commit"; oid: string } | 
+/**  The index: stage 0 normally, 1 (base) / 2 (ours) / 3 (theirs) during a conflict. */
+{ kind: "index"; stage: number } | 
+/**  The file on disk. */
+{ kind: "worktree" };
+
+/**  How two local branches relate (for the drop menu). */
+export type BranchRelation = {
+	source: string,
+	target: string,
+	/**  Commits on `source` that `target` lacks. */
+	ahead: number,
+	/**  Commits on `target` that `source` lacks. */
+	behind: number,
+	/**  `target` can be fast-forwarded to `source` (it is an ancestor and they differ). */
+	canFastForward: boolean,
+	current: string | null,
+};
+
 export type ChangeKind = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "untracked" | "conflicted";
 
 export type ChangedFile = {
@@ -809,6 +1017,11 @@ export type CommitDetails = {
 	deletions: number,
 	/**  For merge commits, files are listed against this (first) parent. */
 	comparedTo: string | null,
+	/**
+	 *  Kind of signature the commit carries (not verified: see
+	 *  [`signature::commit_signature`](crate::signature::commit_signature)).
+	 */
+	signature: SignatureKind,
 };
 
 export type CommitFinding = { kind: "emailMismatch"; email: string; reason: MismatchReason; expectedEmail: string | null; expectedAccountId: string | null; suggestions: AccountSuggestion[] } | 
@@ -842,6 +1055,112 @@ export type CommitOptions = {
 export type CommitResult = {
 	hash: string,
 	summary: string,
+};
+
+/**  Signature details of one commit. */
+export type CommitSignature = {
+	status: SignatureStatus,
+	kind: SignatureKind,
+	/**  `%GS`: signer (GPG user id, or the principal/email for SSH). */
+	signer: string | null,
+	/**  `%GK`: key id used to sign (SSH: key fingerprint). */
+	key: string | null,
+	/**  `%GF`: fingerprint of the signing key. */
+	fingerprint: string | null,
+	/**  `%GT`: trust level (`ultimate`, `fully`, `marginal`, `undefined`, `never`). */
+	trust: string | null,
+	/**  Verification messages printed by gpg / ssh-keygen / git (e.g. allowedSignersFile missing). */
+	message: string | null,
+};
+
+export type ConflictCommit = {
+	oid: string,
+	summary: string,
+	/**  Local / remote branches pointing at it. */
+	refs: string[],
+};
+
+export type ConflictContext = {
+	origin: ConflictOrigin,
+	/**  Branch checked out (`None` when HEAD is detached, e.g. during a rebase). */
+	currentBranch: string | null,
+	/**  HEAD (git's "ours"). */
+	ours: ConflictCommit | null,
+	/**  The commit merged / replayed / reverted (git's "theirs"). */
+	theirs: ConflictCommit | null,
+	/**  Merge: the branch name from `MERGE_MSG`. */
+	theirsName: string | null,
+	/**  Rebase: the user's branch being rebased (`refs/heads/` stripped). */
+	rebaseBranch: string | null,
+	/**  Rebase: branches pointing at the commit rebased onto. */
+	rebaseOnto: string[],
+	conflicts: string[],
+};
+
+/**  Everything the conflict editor needs for one file. */
+export type ConflictFile = {
+	path: string,
+	/**  No unmerged entry any more (resolved meanwhile). */
+	resolved: boolean,
+	kind: ConflictKind,
+	/**  Stage 1 (common ancestor). */
+	base: ConflictStage | null,
+	/**  Stage 2 (HEAD's version). */
+	ours: ConflictStage | null,
+	/**  Stage 3 (the version being merged in / replayed). */
+	theirs: ConflictStage | null,
+	/**  Working tree file exists. */
+	workingExists: boolean,
+	workingSize: number | null,
+	/**  Working-tree text (with conflict markers), without BOM. */
+	working: string | null,
+	/**  Some side is binary or an LFS pointer: resolve by picking a whole side. */
+	binary: boolean,
+	/**  Some side is too large to edit. */
+	tooLarge: boolean,
+	/**  The result can be edited as text. */
+	editable: boolean,
+	/**  The file uses CRLF line endings (kept when saving). */
+	crlf: boolean,
+	/**  The file starts with a UTF-8 BOM (kept when saving). */
+	bom: boolean,
+	/**  Conflict blocks (`<<<<<<<` … `>>>>>>>`) left in the working file. */
+	blocks: number,
+	image: boolean,
+};
+
+/**  What happened to the file on each side (porcelain `UU`, `AA`, `DU`…). */
+export type ConflictKind = "bothModified" | "bothAdded" | 
+/**  Deleted on our side, modified on theirs. */
+"deletedByUs" | 
+/**  Modified on our side, deleted on theirs. */
+"deletedByThem" | "addedByUs" | "addedByThem" | "bothDeleted";
+
+/**  What kind of operation produced the conflicts (for the explanation of ours/theirs). */
+export type ConflictOrigin = "merge" | 
+/**  `merge --squash` (no merge state, only `SQUASH_MSG`). */
+"mergeSquash" | "rebase" | "cherryPick" | "revert" | 
+/**  `stash apply` / `stash pop`. */
+"stash" | "applyMailbox" | "unknown";
+
+/**  Which side to keep for a whole file. */
+export type ConflictSide = 
+/**  Stage 2 (git's `--ours`). */
+"ours" | 
+/**  Stage 3 (git's `--theirs`). */
+"theirs";
+
+/**  One index stage of a conflicted file. */
+export type ConflictStage = {
+	/**  Blob id. */
+	oid: string,
+	mode: string,
+	/**  Size of the stored blob (of the pointer file for LFS). */
+	size: number,
+	binary: boolean,
+	lfs: LfsPointer | null,
+	/**  UTF-8 text without BOM; `None` for binary, LFS, non-UTF-8 or too large content. */
+	text: string | null,
 };
 
 /**  Where a resolved account came from, for the account pill and banner. */
@@ -913,6 +1232,11 @@ export type DownloadRequest = {
 	remote?: string | null,
 	/**  Single repository path (or `lfs.fetchinclude`-style pattern) for `git lfs pull`. */
 	include?: string | null,
+	/**
+	 *  Several repository paths ("Tải các file đã chọn"); combined with `include`. Paths
+	 *  containing a comma are refused (git-lfs splits include lists on commas).
+	 */
+	paths?: string[],
 	/**  `git lfs fetch --all`: every object of every ref, without checkout. */
 	all?: boolean,
 	/**  Start even when the estimate says the disk is too small. */
@@ -954,7 +1278,36 @@ export type FailureKind =
 /**  The operation needs a branch but HEAD is detached. */
 "detachedHead" | 
 /**  Signed in, but the account may not read/write this repository (HTTP 403). */
-"permissionDenied";
+"permissionDenied" | 
+/**
+ *  GitHub refused a change under `.github/workflows/` because the token lacks the
+ *  `workflow` scope.
+ */
+"workflowScope" | 
+/**  The branch is protected (no direct / force push, required reviews, rulesets). */
+"protectedBranch" | 
+/**  GitHub "Block command line pushes that expose my email" (GH007). */
+"emailPrivacy" | 
+/**  Push protection found a secret (token, key) in the pushed commits. */
+"secretDetected" | 
+/**  A pushed file exceeds the server's size limit (GitHub GH001: 100 MB). */
+"fileTooLarge" | 
+/**
+ *  The branch is checked out in another (linked) worktree, so it cannot be checked out
+ *  here too.
+ */
+"checkedOutElsewhere" | 
+/**  The worktree / submodule folder still has modified or untracked files (needs force). */
+"dirtyWorktree" | 
+/**  The linked worktree is locked (`git worktree lock`); unlock it first. */
+"worktreeLocked" | 
+/**  GPG / SSH signing failed (missing key, gpg not installed, passphrase refused…). */
+"signingFailed" | 
+/**
+ *  A rebase / history rewrite would change commits that are already on a remote; the
+ *  user has to confirm explicitly (only local history changes).
+ */
+"pushedCommits";
 
 /**  App features that need specific scopes. */
 export type Feature = 
@@ -972,6 +1325,19 @@ export type Feature =
 export type FetchSummary = {
 	/**  Ref updates git reported (new, updated, pruned branches and tags). */
 	updatedRefs: number,
+};
+
+/**  A file as of one commit, for the read-only viewer. */
+export type FileAtCommit = {
+	exists: boolean,
+	size: number,
+	/**  UTF-8 (lossy) text; `None` for binary or too large files. */
+	text: string | null,
+	binary: boolean,
+	tooLarge: boolean,
+	/**  Stored as a Git LFS pointer (the text is the pointer). */
+	lfs: LfsPointer | null,
+	image: boolean,
 };
 
 export type FileContents = {
@@ -1001,6 +1367,24 @@ export type FileDiff = {
 	fingerprint: string,
 };
 
+export type FileHistoryEntry = {
+	oid: string,
+	parents: string[],
+	author: Person,
+	summary: string,
+	status: FileStatus,
+	/**  The file's path in this commit. */
+	path: string,
+	/**  Previous path when this commit renamed / copied the file. */
+	oldPath: string | null,
+};
+
+export type FileHistoryPage = {
+	entries: FileHistoryEntry[],
+	/**  More commits after this page. */
+	hasMore: boolean,
+};
+
 export type FileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "unknown";
 
 export type FixAuthorMode = 
@@ -1009,11 +1393,61 @@ export type FixAuthorMode =
 /**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
 "rewriteUnpushed";
 
+export type FsckProblem = {
+	kind: FsckProblemKind,
+	path: string | null,
+	oid: string | null,
+	/**  The line git-lfs printed. */
+	detail: string,
+};
+
+export type FsckProblemKind = 
+/**  The object is missing from the local store (not downloaded, or deleted). */
+"missing" | 
+/**  The object's content does not match its hash. */
+"corrupt" | 
+/**  A pointer file is not in canonical form. */
+"nonCanonicalPointer" | 
+/**
+ *  A file that should be an LFS pointer (matches an LFS pattern) was committed as a
+ *  normal git file.
+ */
+"notAPointer" | "other";
+
+export type FsckReport = {
+	ok: boolean,
+	problems: FsckProblem[],
+};
+
 /**  The identity git will record, as configured for this repository. */
 export type GitIdentity = {
 	name: string | null,
 	email: string | null,
 };
+
+/**  A GPG secret key usable for signing (`gpg --list-secret-keys --with-colons`). */
+export type GpgKey = {
+	/**  Long key id (16 hex digits). */
+	keyId: string,
+	fingerprint: string | null,
+	/**  User ids (`Name <email>`). */
+	uids: string[],
+	/**  Creation time (Unix seconds). */
+	created: number | null,
+	/**  Expiry time (Unix seconds), `None` = never. */
+	expires: number | null,
+	/**  The key (or one of its subkeys) can sign and is not expired / revoked. */
+	canSign: boolean,
+	/**  Revoked (`r`) or expired (`e`). */
+	invalid: boolean,
+};
+
+/**  Outcome of listing GPG secret keys. */
+export type GpgKeyList = 
+/**  gpg ran; `keys` may be empty (no secret key yet). */
+{ status: "found"; program: string; keys: GpgKey[] } | 
+/**  gpg could not be started (not installed / `gpg.program` wrong). */
+{ status: "notInstalled"; program: string; message: string };
 
 export type GraphBenchmark = {
 	totalRows: number,
@@ -1205,6 +1639,13 @@ export type IdentitySource =
 /**  The repo is unbound (or the account has no identity): git's own `user.email`. */
 "gitConfig";
 
+/**  Old and new version of an image file of a diff, for the image diff view. */
+export type ImagePair = {
+	/**  `None` when the file does not exist on that side (added / deleted). */
+	original: BlobPreview | null,
+	modified: BlobPreview | null,
+};
+
 export type ImportApplyResult = {
 	items: ApplyItem[],
 	/**  gh/glab accounts to add through the sign-in flow (never created automatically). */
@@ -1284,6 +1725,15 @@ export type ImportWarning = {
 	message: string,
 };
 
+export type InteractiveRebaseRequest = {
+	/**  Exclusive base: the rows are the commits after it. */
+	base: string,
+	/**  Every commit of `base..HEAD` exactly once, in the new order (oldest first). */
+	steps: TodoStep[],
+	autostash?: boolean,
+	allowPushed?: boolean,
+};
+
 export type KeyChoice = {
 	/**  Private key file (`IdentityFile`), copied into the app key store. */
 	path: string,
@@ -1339,6 +1789,21 @@ export type LfsFailureKind =
 /**  Not enough free space on the local disk. */
 "insufficientDiskSpace" | "other";
 
+/**  One LFS-tracked file of HEAD. */
+export type LfsFile = {
+	/**  Repository-relative path. */
+	path: string,
+	oid: string,
+	/**  Size of the real content in bytes. */
+	size: number,
+	/**  The object is in the local LFS store. */
+	downloaded: boolean,
+	/**  The working-tree file holds the real content (not the small pointer text). */
+	checkedOut: boolean,
+	/**  Matches a `lockable` pattern (read-only until locked). */
+	lockable: boolean,
+};
+
 /**  Progress of one file being transferred. */
 export type LfsFileProgress = {
 	name: string,
@@ -1355,6 +1820,19 @@ export type LfsHook = {
 	 *  makes `git lfs install` refuse to overwrite it.
 	 */
 	lfs: boolean,
+};
+
+/**  One lock on the server. */
+export type LfsLock = {
+	id: string,
+	/**  Repository-relative path. */
+	path: string,
+	/**  Name of the user holding the lock as the server reports it. */
+	owner: string | null,
+	/**  RFC 3339 timestamp. */
+	lockedAt: string | null,
+	/**  Held by the account the command ran as. */
+	ours: boolean,
 };
 
 /**  How LFS files are downloaded by a clone. */
@@ -1400,6 +1878,14 @@ export type LfsPattern = {
 	lockable: boolean,
 };
 
+/**  A Git LFS pointer (`oid sha256:…`, `size …`). */
+export type LfsPointer = {
+	/**  SHA-256 of the real content (64 hex digits). */
+	oid: string,
+	/**  Size of the real content in bytes. */
+	size: number,
+};
+
 export type LfsStatus = {
 	gitLfs: ToolInfo,
 	/**
@@ -1421,6 +1907,14 @@ export type LfsStatus = {
 	 *  `git lfs install --local`.
 	 */
 	needsInstall: boolean,
+};
+
+/**  The local LFS object store. */
+export type LfsStorage = {
+	/**  `LocalMediaDir` of `git lfs env` (honours `lfs.storage`). */
+	mediaDir: string | null,
+	objects: number,
+	bytes: number,
 };
 
 /**  Progress of a running LFS transfer, at most ~10 per second per operation. */
@@ -1469,6 +1963,41 @@ export type LocalBranch = {
 	upstreamGone: boolean,
 	isHead: boolean,
 };
+
+export type LockFailure = {
+	kind: LockFailureKind,
+	/**  git-lfs output (redacted by the app). */
+	message: string,
+};
+
+export type LockFailureKind = 
+/**  Somebody (maybe you, from another clone) already holds the lock. */
+"alreadyLocked" | 
+/**  The lock belongs to another user: only a force unlock (with permission) removes it. */
+"notOwner" | 
+/**  The account may not lock / force-unlock (needs write / maintainer access). */
+"noPermission" | 
+/**  Sign-in required or rejected. */
+"authRequired" | 
+/**  The server (or a local / file remote) has no LFS lock API. */
+"unsupported" | 
+/**  No such lock / file. */
+"notFound" | "network" | "other";
+
+/**  Locks of a repository. */
+export type LockList = {
+	locks: LfsLock[],
+	/**
+	 *  The server confirmed which locks are ours (`--verify`). When `false`, `ours` was guessed
+	 *  by comparing the owner with the account's user name.
+	 */
+	verified: boolean,
+};
+
+/**  Result of a lock command. */
+export type LockOutcome<T> = { status: "done"; value: T } | 
+/**  git-lfs refused; `failure.kind` says why (already locked, not owner, no permission…). */
+{ status: "failed"; failure: LockFailure };
 
 export type MergeMode = 
 /**  Only fast-forward; refuse when a merge commit would be needed. */
@@ -1675,6 +2204,30 @@ export type ProviderInput = {
 
 export type ProviderKind = "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted";
 
+/**  One object `git lfs prune` would delete. */
+export type PruneObject = {
+	oid: string,
+	size: number,
+};
+
+/**  What `git lfs prune` would do (or did). */
+export type PruneReport = {
+	localObjects: number,
+	/**  Objects kept (recent, unpushed, referenced by the checkout / stashes). */
+	retained: number,
+	/**  Objects to delete (dry run) or deleted. */
+	objects: PruneObject[],
+	/**  Bytes freed by deleting `objects`. */
+	bytes: number,
+	/**  Objects confirmed present on the remote (`--verify-remote`). */
+	verified: number | null,
+	/**
+	 *  `objects` / `bytes` are an upper bound: git-lfs did not say exactly which objects go
+	 *  (its verbose list is incomplete), so every local object not in the checkout is counted.
+	 */
+	approximate: boolean,
+};
+
 export type PullMode = 
 /**  Fetch then merge (`--no-rebase`; fast-forwards when possible). */
 "merge" | 
@@ -1745,6 +2298,88 @@ export type PushSummary = {
 	/**  Nothing had to be sent. */
 	upToDate: boolean,
 };
+
+/**  One commit that a rebase would rewrite. */
+export type RebaseCommit = {
+	oid: string,
+	shortOid: string,
+	subject: string,
+	/**  Full message (subject, blank line, body), trailing whitespace trimmed. */
+	message: string,
+	authorName: string,
+	/**  Author time, Unix seconds. */
+	time: number,
+	/**  Reachable from a remote-tracking ref (already pushed somewhere). */
+	pushed: boolean,
+	isMerge: boolean,
+};
+
+export type RebaseOutcome = {
+	status: RebaseStatus,
+	conflicts: string[],
+	/**  Progress when stopped (1-based step / total). */
+	step: number | null,
+	totalSteps: number | null,
+	/**  Backup of the branch tip taken before the rebase (`None` for continue / skip). */
+	backupRef: string | null,
+	head: string | null,
+	/**  Rebased branch, when known. */
+	branch: string | null,
+	/**  `--autostash` could not re-apply the stashed changes cleanly; they stay in the stash. */
+	autostashConflict: boolean,
+	/**  git's own explanation when it stopped without conflicts. */
+	message: string | null,
+};
+
+/**  What a rebase of `branch` onto `onto` would do. */
+export type RebasePreview = {
+	/**  Branch being rebased; `None` when HEAD is detached. */
+	branch: string | null,
+	/**  The branch is the checked-out one (otherwise git checks it out first). */
+	isCurrent: boolean,
+	/**  Tip of the branch. */
+	head: string,
+	/**  Full id of the new base (plain rebase) or of the exclusive base (interactive). */
+	onto: string,
+	/**  Commits to rewrite, oldest first (at most [`MAX_LISTED`]). */
+	commits: RebaseCommit[],
+	total: number,
+	/**  How many of them are already on a remote-tracking ref. */
+	pushed: number,
+	/**  Merge commits in the range (a plain rebase flattens them; interactive refuses). */
+	merges: number,
+	/**  Staged or unstaged changes to tracked files. */
+	dirty: boolean,
+	/**  Nothing to do: `onto` is already in the branch. */
+	upToDate: boolean,
+	/**  The branch is behind `onto` only: the rebase is a fast-forward (nothing rewritten). */
+	fastForward: boolean,
+};
+
+/**  Plain rebase request. */
+export type RebaseRequest = {
+	/**  New base: branch, remote branch, tag or commit id. */
+	onto: string,
+	/**  Branch to rebase; `None` = the checked-out branch. Another branch is checked out first. */
+	branch?: string | null,
+	/**  Stash uncommitted changes first and re-apply them afterwards. */
+	autostash?: boolean,
+	/**  The user confirmed rewriting commits that are already on a remote. */
+	allowPushed?: boolean,
+};
+
+export type RebaseStatus = 
+/**  Finished; the branch points at the rewritten commits. */
+"completed" | 
+/**  Nothing to do. */
+"upToDate" | 
+/**  Stopped on conflicts: resolve, stage, then continue / skip / abort. */
+"conflicts" | 
+/**
+ *  Stopped without conflicts (an `edit` step, or a step git could not apply on its own):
+ *  amend if you like, then continue.
+ */
+"stopped";
 
 export type RecentRepo = {
 	id: number,
@@ -1957,11 +2592,52 @@ export type SettingsPatch = {
 	language?: Language | null,
 };
 
+/**  Result of [`test_signing`]. */
+export type SignTestResult = {
+	ok: boolean,
+	/**  gpg / ssh-keygen / git output when it failed (or verification notes). */
+	message: string | null,
+	/**  Verification of the test signature (when signing worked). */
+	signature: CommitSignature | null,
+};
+
+/**  Kind of signature found in the commit object. */
+export type SignatureKind = "gpg" | "ssh" | "x509" | "none";
+
+/**  Verification result of a signed commit, from git's `%G?`. */
+export type SignatureStatus = 
+/**  `G`: good signature from a trusted key / an allowed SSH signer. */
+"verified" | 
+/**  `U`: good signature, but the key is not trusted (unknown validity). */
+"untrusted" | 
+/**  `X`: good signature that has expired. */
+"expired" | 
+/**  `Y`: good signature made by a key that has expired since. */
+"expiredKey" | 
+/**  `R`: good signature made by a revoked key. */
+"revoked" | 
+/**  `E`: cannot be checked (public key missing, SSH signer not in `allowed_signers`…). */
+"unknownKey" | 
+/**  `B`: the signature does not match the commit. */
+"bad" | 
+/**  `N`: not signed. */
+"unsigned";
+
 export type SigningFormat = 
 /**  `gpg.format = openpgp` (git's default). */
 "gpg" | "ssh" | "x509";
 
 export type SigningMethod = "none" | "gpg" | "ssh";
+
+/**  What to try in "Thử ký". */
+export type SigningProbe = {
+	/**  Account whose identity / SSH passphrase prompt is used (optional). */
+	accountId?: string | null,
+	signing: SigningMethod,
+	signingKeyRef: string,
+	/**  Email the signature is for (SSH: checked against the key in a temporary allowed list). */
+	email?: string | null,
+};
 
 export type SigningSuggestion = {
 	format: SigningFormat,
@@ -2161,6 +2837,77 @@ export type StatusEntry = {
 	size: number | null,
 };
 
+export type Submodule = {
+	/**  Name in `.gitmodules` (usually equal to the path); `None` for a gitlink without entry. */
+	name: string | null,
+	/**  Path relative to the repository the list was made for, with `/`. */
+	path: string,
+	/**  Path of the submodule containing this one (`None` = direct submodule). */
+	parent: string | null,
+	/**  Nesting depth (0 = direct submodule). */
+	depth: number,
+	/**  URL from `.gitmodules`, credentials removed. */
+	url: string | null,
+	/**  `submodule.<name>.branch`. */
+	branch: string | null,
+	/**  Commit recorded by the parent (index); `None` if the parent does not track it. */
+	recorded: string | null,
+	/**  Commit checked out in the submodule; `None` when not initialised. */
+	head: string | null,
+	/**  Branch checked out in the submodule (`None` = detached, the usual state). */
+	headBranch: string | null,
+	state: SubmoduleState,
+	/**  Modified tracked files inside. */
+	modified: boolean,
+	/**  Untracked files inside. */
+	untracked: boolean,
+};
+
+export type SubmoduleAccount = {
+	accountId: string | null,
+	source: SubmoduleAccountSource,
+	/**
+	 *  The account's provider is on another host than the submodule URL: the app cannot give
+	 *  git a credential for it (public submodules still work).
+	 */
+	hostMismatch: boolean,
+};
+
+/**  Where a submodule's account comes from. */
+export type SubmoduleAccountSource = 
+/**  Relative URL: same server as the parent, parent's account. */
+"parent" | 
+/**  A rule or one of the parent's bindings matches the URL. */
+"rule" | 
+/**  The only / best account on the URL's host. */
+"host" | 
+/**  Nothing matched: the parent's default account is used (see `host_mismatch`). */
+"fallback" | 
+/**  No account at all (unbound parent): git's own credentials. */
+"none";
+
+/**  A submodule with the account its network access will use. */
+export type SubmoduleInfo = {
+	submodule: Submodule,
+	account: SubmoduleAccount,
+};
+
+export type SubmoduleState = 
+/**  Not initialised / not checked out yet (`git submodule update --init` needed). */
+"uninitialized" | 
+/**  Checked out at exactly the commit recorded by the parent. */
+"upToDate" | 
+/**  Checked out at another commit than the recorded one. */
+"outOfDate" | 
+/**  The gitlink is in conflict in the parent (merge / rebase). */
+"conflicted";
+
+/**  Summary of an update. */
+export type SubmoduleUpdateSummary = {
+	/**  `Submodule path 'x': checked out '<oid>'` lines. */
+	checkedOut: string[],
+};
+
 /**  A commit identity found in the config (PLAN.md 4.1 `Identity`). */
 export type SuggestedIdentity = {
 	name: string | null,
@@ -2274,6 +3021,24 @@ export type TerminalInfo = {
 
 export type ThemeMode = "light" | "dark" | "system";
 
+/**  Action of one todo row. */
+export type TodoAction = "pick" | 
+/**  Keep the change, replace the message. */
+"reword" | 
+/**  Meld into the previous commit; `message` is the combined message (default: git's). */
+"squash" | 
+/**  Meld into the previous commit, keeping the previous message. */
+"fixup" | "drop" | 
+/**  Stop after applying it so it can be amended. */
+"edit";
+
+export type TodoStep = {
+	oid: string,
+	action: TodoAction,
+	/**  New message for `reword` (required), `squash` (combined message) or `edit`. */
+	message?: string | null,
+};
+
 /**  What kind of credential a token is. */
 export type TokenKind = 
 /**  `ghp_…` or legacy 40-hex token with `X-OAuth-Scopes`. */
@@ -2354,6 +3119,46 @@ export type TransferSummary = {
 
 export type Transport = "https" | "ssh";
 
+/**  Why the next undo / redo cannot run right now. */
+export type UndoBlock = 
+/**  The repository changed since (another branch moved, HEAD elsewhere…). */
+"stateChanged" | 
+/**  A merge / rebase / cherry-pick… is in progress. */
+"operationInProgress" | 
+/**  Nothing to go back to (e.g. the very first commit). */
+"unsupported";
+
+/**  What an entry did, for the tooltip ("Undo: commit 'abc'"). */
+export type UndoKind = { kind: "commit"; subject: string } | { kind: "amend"; subject: string } | { kind: "reset"; target: string } | { kind: "checkout"; from: string; to: string } | { kind: "merge"; rev: string } | { kind: "rebase"; branch: string } | { kind: "cherryPick"; subject: string } | { kind: "revert"; subject: string } | { kind: "pull"; detail: string } | { kind: "createBranch"; name: string } | { kind: "deleteBranch"; name: string } | { kind: "renameBranch"; from: string; to: string } | { kind: "fastForward"; branch: string; source: string } | { kind: "other"; message: string };
+
+/**  Result of an undo / redo. */
+export type UndoOutcome = {
+	/**  The step that was undone / redone. */
+	step: UndoStep,
+	head: string | null,
+	/**  What the toolbar offers next. */
+	state: UndoState,
+};
+
+export type UndoState = {
+	undo: UndoStep | null,
+	redo: UndoStep | null,
+};
+
+export type UndoStep = {
+	id: number,
+	/**  What the step does. */
+	op: UndoKind,
+	/**  Unix seconds of the original operation. */
+	time: number,
+	/**
+	 *  Undo would take away commits that are already on a remote: only the local branch
+	 *  changes, the remote keeps them.
+	 */
+	pushed: boolean,
+	blocked: UndoBlock | null,
+};
+
 /**  One commit the push would send. */
 export type UnpushedCommit = {
 	oid: string,
@@ -2411,6 +3216,35 @@ export type WorkspaceState = {
 	tabs: RepoTab[],
 	activeId: number | null,
 };
+
+export type Worktree = {
+	/**  Absolute path as git prints it (`/` separators). */
+	path: string,
+	/**  Checked-out commit (`None` for a bare main repository). */
+	head: string | null,
+	/**  Checked-out branch (short name); `None` when detached. */
+	branch: string | null,
+	detached: boolean,
+	bare: boolean,
+	/**  The main worktree (first entry): cannot be removed, locked or pruned. */
+	isMain: boolean,
+	/**  The worktree the list was requested from. */
+	isCurrent: boolean,
+	locked: boolean,
+	lockReason: string | null,
+	/**  Its folder is gone: `git worktree prune` will drop it. */
+	prunable: boolean,
+	prunableReason: string | null,
+};
+
+/**  Which branch a new worktree checks out. */
+export type WorktreeTarget = 
+/**  An existing local branch (must not be checked out elsewhere). */
+{ kind: "branch"; name: string } | 
+/**  A new branch `name` created at `start` (branch, tag, commit…; `None` = HEAD). */
+{ kind: "newBranch"; name: string; start: string | null } | 
+/**  Detached HEAD at a commit-ish. */
+{ kind: "detached"; rev: string };
 
 /* Tauri Specta runtime */
 type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;

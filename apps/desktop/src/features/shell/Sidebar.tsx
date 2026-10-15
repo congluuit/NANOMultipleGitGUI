@@ -21,11 +21,17 @@ import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commit
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRepoRefs } from "@/features/repos/queries";
 import { headState, matchesFilter, shortOid } from "@/features/repos/refsView";
+import { startBranchDrag, useDnd } from "@/features/dnd/store";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "@/stores/graph";
 import { useActiveRepo } from "@/stores/workspace";
 import { LfsPanel } from "@/features/lfs/LfsPanel";
+import { LfsManagerHost } from "@/features/lfs/LfsManagerDialog";
 import { StashList } from "@/features/stash/StashList";
+import { useLinkedWorktrees } from "@/features/linked-worktrees/queries";
+import { WorktreeList } from "@/features/linked-worktrees/WorktreeList";
+import { useSubmodules } from "@/features/submodules/queries";
+import { SubmoduleList } from "@/features/submodules/SubmoduleList";
 
 function Section({
   icon: Icon,
@@ -67,6 +73,7 @@ function Item({
   title,
   onClick,
   menu,
+  drag,
 }: {
   children: ReactNode;
   active?: boolean;
@@ -75,14 +82,20 @@ function Item({
   onClick?: () => void;
   /** Context menu content (items) for the row. */
   menu?: ReactNode;
+  /** Local branch row: drag it onto another branch to merge / rebase (step 3.1). */
+  drag?: { repoId: number; branch: string };
 }) {
+  const dropOver = useDnd((s) => !!drag && s.drag?.over === drag.branch);
   const className = cn(
     "flex h-6 w-full items-center gap-2 truncate pr-2 text-left text-xs hover:bg-surface-2",
     active && "bg-surface-2 font-semibold",
+    dropOver && "ring-1 ring-primary ring-inset",
   );
   const row = onClick ? (
     <button
       type="button"
+      data-drop-branch={drag?.branch}
+      onPointerDown={drag && ((e) => startBranchDrag(e, drag.repoId, drag.branch))}
       onClick={onClick}
       style={{ paddingLeft: indent * 4 }}
       className={className}
@@ -132,6 +145,8 @@ export function Sidebar() {
   const { t } = useTranslation();
   const repo = useActiveRepo();
   const refs = useRepoRefs(repo?.id ?? null, !repo?.missing);
+  const submodules = useSubmodules(repo?.id ?? -1, !!repo && !repo.missing);
+  const worktrees = useLinkedWorktrees(repo?.id ?? -1, !!repo && !repo.missing);
   const [filter, setFilter] = useState("");
   const requestJump = useGraphStore((s) => s.requestJump);
   const jumpTo = (oid: string | null | undefined) => () => {
@@ -184,6 +199,7 @@ export function Sidebar() {
                   key={b.name}
                   active={b.isHead}
                   onClick={jumpTo(b.oid)}
+                  drag={repo ? { repoId: repo.id, branch: b.name } : undefined}
                   menu={
                     repo && (
                       <LocalBranchItems
@@ -280,15 +296,20 @@ export function Sidebar() {
             <Section icon={Package} title={t("sidebar.lfs")}>
               {repo && <LfsPanel repoId={repo.id} />}
             </Section>
-            <Section icon={Layers} title={t("sidebar.submodules")}>
-              <Empty>{t("sidebar.comingSoon")}</Empty>
+            <Section icon={Layers} title={t("sidebar.submodules")} count={submodules.data?.length}>
+              {repo && <SubmoduleList repoId={repo.id} root={repo.path} filter={filter} />}
             </Section>
-            <Section icon={FolderTree} title={t("sidebar.worktrees")}>
-              <Empty>{t("sidebar.comingSoon")}</Empty>
+            <Section
+              icon={FolderTree}
+              title={t("sidebar.worktrees")}
+              count={worktrees.data?.length}
+            >
+              {repo && <WorktreeList repoId={repo.id} filter={filter} />}
             </Section>
           </>
         )}
       </ScrollArea>
+      <LfsManagerHost />
     </aside>
   );
 }

@@ -13,6 +13,7 @@ import { splitPath } from "@/features/commit/format";
 import type { StatusEntry } from "@/ipc";
 import { formatBytes, LARGE_FILE_WARN_BYTES } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { LfsLockBadge } from "@/features/lfs/LfsLockBadge";
 import { clickSelect, KIND_CLASS, kindLetter } from "./format";
 
 const MAX_ROWS = 2000;
@@ -29,6 +30,8 @@ interface Props {
   onPrimary: (entries: StatusEntry[]) => void;
   onPrimaryAll: () => void;
   onDiscard?: (entries: StatusEntry[]) => void;
+  /** Extra context-menu items for the right-clicked files (file history, blame…). */
+  menuExtra?: (entries: StatusEntry[]) => React.ReactNode;
 }
 
 export function FileSection({
@@ -39,6 +42,7 @@ export function FileSection({
   onPrimary,
   onPrimaryAll,
   onDiscard,
+  menuExtra,
 }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
@@ -173,6 +177,12 @@ export function FileSection({
               <Copy />
               {t("wip.copyPath")}
             </ContextMenuItem>
+            {menuExtra && (
+              <>
+                <ContextMenuSeparator />
+                {menuExtra(menuTarget)}
+              </>
+            )}
           </ContextMenuContent>
         </ContextMenu>
       )}
@@ -229,6 +239,7 @@ function FileRow({
         <span className="text-muted-foreground">{dir}</span>
         {name}
       </span>
+      <LfsLockBadge path={entry.path} />
       {large && (
         <span
           className="shrink-0 rounded bg-warning/15 px-1 text-[10px] font-semibold text-warning"

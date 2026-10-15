@@ -18,6 +18,8 @@ import {
 } from "@/ipc";
 import { useWorktreeStore, type DiffMode } from "@/stores/worktree";
 import { HunkList } from "./HunkList";
+import { ImageDiff } from "./ImageDiff";
+import { isImagePath } from "./imageModes";
 import { countSelected, EMPTY_SEL, toSelections, type LineSel } from "./selection";
 
 const MonacoDiff = lazy(() => import("./MonacoDiff"));
@@ -27,7 +29,14 @@ interface PendingDiscard {
   selection: LineSelection[];
 }
 
-export function DiffView({ repoId, request }: { repoId: number; request: DiffRequest }) {
+interface DiffViewProps {
+  repoId: number;
+  request: DiffRequest;
+  /** Embedded use (file history): replaces closing the repository's open diff. */
+  onClose?: () => void;
+}
+
+export function DiffView({ repoId, request, onClose }: DiffViewProps) {
   const { t } = useTranslation();
   const mode = useWorktreeStore((s) => s.diffMode);
   const setMode = useWorktreeStore((s) => s.setDiffMode);
@@ -41,16 +50,20 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
   });
   const [pending, setPending] = useState<PendingDiscard | null>(null);
   const [busy, setBusy] = useState(false);
+  // Images open as pictures; the text views stay one click away (SVG is text too).
+  const image = isImagePath(request.path);
+  const [textView, setTextView] = useState(false);
+  const showImage = image && !textView;
 
   const diff = useQuery({
     queryKey: worktreeKeys.diff(repoId, request),
     queryFn: () => commands.fileDiff(repoId, request),
-    enabled: isTauri() && mode === "hunk",
+    enabled: isTauri() && mode === "hunk" && !showImage,
   });
   const contents = useQuery({
     queryKey: worktreeKeys.contents(repoId, request),
     queryFn: () => commands.fileContents(repoId, request),
-    enabled: isTauri() && mode !== "hunk",
+    enabled: isTauri() && mode !== "hunk" && !showImage,
   });
 
   const d = diff.data;
@@ -63,7 +76,7 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
     root.current?.focus({ preventScroll: true });
   }, [request]);
 
-  const close = () => openDiff(repoId, null);
+  const close = onClose ?? (() => openDiff(repoId, null));
   const { dir, name } = splitPath(request.path);
   const side = request.side;
   const editable = side === "unstaged" || side === "staged";
@@ -163,10 +176,19 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
           type="single"
           size="sm"
           variant="outline"
-          value={mode}
-          onValueChange={(v) => v && setMode(v as DiffMode)}
+          value={showImage ? "image" : mode}
+          onValueChange={(v) => {
+            if (!v) return;
+            setTextView(v !== "image");
+            if (v !== "image") setMode(v as DiffMode);
+          }}
           className="shrink-0"
         >
+          {image && (
+            <ToggleGroupItem value="image" className="h-6 px-2 text-[11px]">
+              {t("imageDiff.modeImage")}
+            </ToggleGroupItem>
+          )}
           <ToggleGroupItem value="hunk" className="h-6 px-2 text-[11px]">
             {t("diff.modeHunk")}
           </ToggleGroupItem>
@@ -177,7 +199,7 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
             {t("diff.modeSplit")}
           </ToggleGroupItem>
         </ToggleGroup>
-        {mode !== "hunk" && (
+        {mode !== "hunk" && !showImage && (
           <label className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
             <input
               type="checkbox"
@@ -199,7 +221,9 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
         </button>
       </div>
 
-      {mode === "hunk" ? (
+      {showImage ? (
+        <ImageDiff repoId={repoId} request={request} />
+      ) : mode === "hunk" ? (
         <HunkBody
           query={diff}
           canLines={canLines}
@@ -221,7 +245,7 @@ export function DiffView({ repoId, request }: { repoId: number; request: DiffReq
         />
       )}
 
-      {mode === "hunk" && canLines && selectedCount > 0 && (
+      {mode === "hunk" && !showImage && canLines && selectedCount > 0 && (
         <div className="flex shrink-0 items-center gap-2 border-t bg-surface px-3 py-2 text-xs">
           <span className="text-muted-foreground">
             {t("diff.linesSelected", { count: selectedCount })}

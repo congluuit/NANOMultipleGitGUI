@@ -6,11 +6,18 @@
 //! - [`setup`]: `git lfs install --local`, `track` / `untrack`, re-staging files as pointers;
 //! - [`guard`]: the Large File Guard run before a commit (PLAN §6.2);
 //! - [`transfer`]: upload/download with estimate, progress, cancel/resume and translated
-//!   errors (PLAN §6.4, §6.5).
+//!   errors (PLAN §6.4, §6.5);
+//! - [`locks`]: file locking — list (mine / others), lock, unlock, force unlock, `lockable`
+//!   patterns (PLAN §6.6);
+//! - [`files`]: LFS files of the checkout with size and downloaded / pointer state (§6.7);
+//! - [`maintenance`]: local storage size, `prune` with a preview, `fsck` (§6.7).
 
 pub mod attributes;
 pub mod detect;
+pub mod files;
 pub mod guard;
+pub mod locks;
+pub mod maintenance;
 pub mod setup;
 pub mod transfer;
 

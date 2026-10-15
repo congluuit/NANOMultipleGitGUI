@@ -39,13 +39,15 @@ use std::time::SystemTime;
 
 use nanomgg_accounts::{
     AccountDirectory as Directory, AuthMethod, MatchOptions, ProviderKind, RemoteInfo, RemoteUrl,
-    Resolution, RuleSet,
+    Resolution, RuleSet, SigningMethod,
 };
 use nanomgg_credentials::{
     AccountDirectory, AccountRef, CredentialServer, KeychainSource, MemorySecretStore, SecretStore,
     SshKeyRef,
 };
-use nanomgg_git_engine::{AccountContext, GitRunner, HttpsAuth, Identity, SshAskpass, SshAuth};
+use nanomgg_git_engine::{
+    AccountContext, GitRunner, HttpsAuth, Identity, Signing, SigningFormat, SshAskpass, SshAuth,
+};
 use nanomgg_ssh_keys::{HostKeyPolicy, SshCommandOptions, git_ssh_command};
 use nanomgg_storage::{Storage, StorageError};
 
@@ -76,6 +78,9 @@ pub struct AccountsRuntime {
     /// App-owned `known_hosts` (`<app data>/known_hosts`, seeded with the pinned github.com /
     /// gitlab.com keys) used with `StrictHostKeyChecking=accept-new`; `None` → ssh defaults.
     pub known_hosts: Option<PathBuf>,
+    /// App data directory (`allowed_signers` for SSH signature verification lives there);
+    /// `None` in tests → a temp-dir fallback.
+    pub data_dir: Option<PathBuf>,
     remotes: Mutex<HashMap<PathBuf, (Stamp, Vec<RemoteInfo>)>>,
 }
 
@@ -96,6 +101,7 @@ impl AccountsRuntime {
             sidecar,
             secrets,
             known_hosts: None,
+            data_dir: None,
             remotes: Mutex::default(),
         }
     }
@@ -125,6 +131,7 @@ impl AccountsRuntime {
         }
         let mut rt = Self::new(server, sidecar, secrets);
         rt.known_hosts = Some(known_hosts);
+        rt.data_dir = Some(data_dir.to_owned());
         rt
     }
 
@@ -420,12 +427,12 @@ pub fn context_for_account(
         providers: &[],
         identities: &identities,
     };
-    let identity = dir
-        .identity_for(&account.id, identity_id)
-        .map(|i| Identity {
-            name: i.name.clone(),
-            email: i.email.clone(),
-        });
+    let chosen = dir.identity_for(&account.id, identity_id);
+    let identity = chosen.map(|i| Identity {
+        name: i.name.clone(),
+        email: i.email.clone(),
+    });
+    let signing = chosen.and_then(identity_signing);
 
     let rt = &st.accounts;
     let session_env = match (&rt.credential_server, &rt.sidecar) {
@@ -448,7 +455,19 @@ pub fn context_for_account(
         identity,
         https,
         ssh,
+        signing,
     })
+}
+
+/// Commit signing configured on an identity (`commit.gpgsign`, `gpg.format`,
+/// `user.signingkey`); `None` when the identity does not sign.
+pub fn identity_signing(identity: &nanomgg_accounts::Identity) -> Option<Signing> {
+    let format = match identity.signing {
+        SigningMethod::None => return None,
+        SigningMethod::Gpg => SigningFormat::OpenPgp,
+        SigningMethod::Ssh => SigningFormat::Ssh,
+    };
+    nanomgg_git_engine::signature::signing_for(format, identity.signing_key_ref.as_deref()?)
 }
 
 /// The account's default SSH key (setting `ssh.defaultKey.<account>`, see [`crate::ssh_keys`]),

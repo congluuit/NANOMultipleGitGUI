@@ -343,6 +343,40 @@ pub async fn lfs_pull(
     .await
 }
 
+/// `git lfs pull --include=<a>,<b>,…`: downloads the selected pointer files in one transfer
+/// ("Tải các file đã chọn" in the LFS panel).
+#[tauri::command]
+#[specta::specta]
+pub async fn lfs_pull_files(
+    app: AppHandle,
+    repo_id: i64,
+    op_id: String,
+    paths: Vec<String>,
+    ignore_disk_space: bool,
+    options: Option<TransferOptions>,
+) -> AppResult<LfsOutcome<TransferSummary>> {
+    if paths.is_empty() {
+        return Err(AppError::InvalidInput("no file selected".into()));
+    }
+    let opts = options.unwrap_or_default();
+    let request = DownloadRequest {
+        paths,
+        ignore_disk_space,
+        ..Default::default()
+    };
+    run_transfer(
+        app,
+        repo_id,
+        op_id,
+        LfsDirection::Download,
+        (None, None),
+        move |st, repo, ctx, cancel, sink| {
+            transfer::download(&st.git, repo, ctx, &request, &opts, cancel, sink)
+        },
+    )
+    .await
+}
+
 /// `git lfs fetch --all`: every LFS object of every ref into the local store.
 #[tauri::command]
 #[specta::specta]

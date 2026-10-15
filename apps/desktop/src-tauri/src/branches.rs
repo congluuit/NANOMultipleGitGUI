@@ -19,6 +19,7 @@ use nanomgg_git_engine::progress::{CancelToken, Progress, ProgressPhase};
 use nanomgg_git_engine::remote::{
     self, FetchOptions, FetchSummary, PullMode, PullOptions, PushOptions, PushSummary,
 };
+use nanomgg_git_engine::undo::{self, UndoKind};
 use nanomgg_git_engine::{AccountContext, GitRunner, branch};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -69,7 +70,7 @@ fn outcome<T>(result: Result<T, OpError>) -> AppResult<Outcome<T>> {
 /// Runs a local write operation (checkout, merge, cherry-pick, revert, reset, tag…) on a
 /// blocking thread, as the repo's default account (its identity is what merge / revert /
 /// cherry-pick / annotated tags record). Unbound repos use git's own configuration.
-async fn run_op<T: Send + 'static>(
+pub(crate) async fn run_op<T: Send + 'static>(
     app: AppHandle,
     repo_id: i64,
     f: impl FnOnce(&GitRunner, &Path, &AccountContext) -> Result<T, OpError> + Send + 'static,
@@ -526,7 +527,11 @@ pub async fn branch_create(
     checkout: bool,
 ) -> AppResult<Outcome<()>> {
     run_op(app, repo_id, move |git, repo, ctx| {
-        branch::create_branch(git, repo, ctx, &name, &start, checkout)
+        // Recorded for Undo (step 3.1).
+        let kind = UndoKind::CreateBranch { name: name.clone() };
+        undo::record(git, repo, kind, &[&name], || {
+            branch::create_branch(git, repo, ctx, &name, &start, checkout)
+        })
     })
     .await
 }
@@ -551,7 +556,11 @@ pub async fn branch_checkout_remote(
     local_name: Option<String>,
 ) -> AppResult<Outcome<String>> {
     run_op(app, repo_id, move |git, repo, ctx| {
-        branch::checkout_remote_branch(git, repo, ctx, &remote, &branch, local_name.as_deref())
+        let name = local_name.clone().unwrap_or_else(|| branch.clone());
+        let kind = UndoKind::CreateBranch { name: name.clone() };
+        undo::record(git, repo, kind, &[&name], || {
+            branch::checkout_remote_branch(git, repo, ctx, &remote, &branch, local_name.as_deref())
+        })
     })
     .await
 }
@@ -575,7 +584,13 @@ pub async fn branch_rename(
     new_name: String,
 ) -> AppResult<Outcome<()>> {
     run_op(app, repo_id, move |git, repo, ctx| {
-        branch::rename_branch(git, repo, ctx, &old_name, &new_name)
+        let kind = UndoKind::RenameBranch {
+            from: old_name.clone(),
+            to: new_name.clone(),
+        };
+        undo::record(git, repo, kind, &[], || {
+            branch::rename_branch(git, repo, ctx, &old_name, &new_name)
+        })
     })
     .await
 }
@@ -590,7 +605,11 @@ pub async fn branch_delete(
     force: bool,
 ) -> AppResult<Outcome<()>> {
     run_op(app, repo_id, move |git, repo, ctx| {
-        branch::delete_branch(git, repo, ctx, &name, force)
+        // The SHA (and upstream) is kept in the undo journal so the branch can come back.
+        let kind = UndoKind::DeleteBranch { name: name.clone() };
+        undo::record(git, repo, kind, &[&name], || {
+            branch::delete_branch(git, repo, ctx, &name, force)
+        })
     })
     .await
 }

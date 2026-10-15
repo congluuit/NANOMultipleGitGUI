@@ -6,7 +6,8 @@ import { CommitAs, asAccountOf, settleOneShot, takeOneShot } from "@/features/ac
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
 import { useLargeFileGuard } from "@/features/lfs/useLargeFileGuard";
-import { commands, errorMessage } from "@/ipc";
+import { commitErrorNotice } from "@/features/signing/commitError";
+import { commands } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
 import { useDraft, useWorktreeStore } from "@/stores/worktree";
@@ -102,7 +103,7 @@ export function CommitBox({
       });
     } catch (e) {
       settleOneShot(repoId, shot, false);
-      useUi.getState().showNotice({ kind: "error", message: errorMessage(e) });
+      useUi.getState().showNotice(commitErrorNotice(e, repoId));
     } finally {
       setBusy(false);
       invalidateRepo(repoId);

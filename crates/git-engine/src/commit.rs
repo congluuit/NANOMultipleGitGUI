@@ -73,6 +73,9 @@ pub struct CommitDetails {
     pub deletions: u32,
     /// For merge commits, files are listed against this (first) parent.
     pub compared_to: Option<String>,
+    /// Kind of signature the commit carries (not verified: see
+    /// [`signature::commit_signature`](crate::signature::commit_signature)).
+    pub signature: crate::signature::SignatureKind,
 }
 
 /// Full or abbreviated object id. Rejects anything else so user input can never become a git
@@ -207,7 +210,9 @@ pub fn commit_details(git: &GitRunner, repo: &Path, oid: &str) -> Result<CommitD
         })
         .collect();
 
+    let signature = crate::signature::signature_kind(git, repo, &hash)?;
     Ok(CommitDetails {
+        signature,
         compared_to: (parents.len() > 1).then(|| parents[0].clone()),
         hash,
         parents,
@@ -308,6 +313,7 @@ mod tests {
         let bin = d.files.iter().find(|f| f.path == "bin.dat").unwrap();
         assert_eq!((bin.additions, bin.deletions), (None, None), "binary");
         assert_eq!((d.additions, d.deletions), (3, 0));
+        assert_eq!(d.signature, crate::signature::SignatureKind::None);
 
         let d = commit_details(&git, p, &second[..10]).unwrap();
         assert_eq!(d.hash, second);

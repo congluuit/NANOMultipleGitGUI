@@ -55,6 +55,29 @@ pub enum FailureKind {
     DetachedHead,
     /// Signed in, but the account may not read/write this repository (HTTP 403).
     PermissionDenied,
+    /// GitHub refused a change under `.github/workflows/` because the token lacks the
+    /// `workflow` scope.
+    WorkflowScope,
+    /// The branch is protected (no direct / force push, required reviews, rulesets).
+    ProtectedBranch,
+    /// GitHub "Block command line pushes that expose my email" (GH007).
+    EmailPrivacy,
+    /// Push protection found a secret (token, key) in the pushed commits.
+    SecretDetected,
+    /// A pushed file exceeds the server's size limit (GitHub GH001: 100 MB).
+    FileTooLarge,
+    /// The branch is checked out in another (linked) worktree, so it cannot be checked out
+    /// here too.
+    CheckedOutElsewhere,
+    /// The worktree / submodule folder still has modified or untracked files (needs force).
+    DirtyWorktree,
+    /// The linked worktree is locked (`git worktree lock`); unlock it first.
+    WorktreeLocked,
+    /// GPG / SSH signing failed (missing key, gpg not installed, passphrase refused…).
+    SigningFailed,
+    /// A rebase / history rewrite would change commits that are already on a remote; the
+    /// user has to confirm explicitly (only local history changes).
+    PushedCommits,
 }
 
 /// Error of a write operation.
@@ -96,6 +119,47 @@ pub fn failure_kind(stderr: &str) -> Option<FailureKind> {
     let any = |ps: &[&str]| ps.iter().any(|p| s.contains(p));
     Some(if has("(stale info)") {
         StaleLease
+    } else if any(&[
+        "failed to sign the data",
+        "signing failed",
+        "couldn't load public key",
+        "ssh-keygen -y sign is needed",
+    ]) {
+        SigningFailed
+    } else if any(&["is already used by worktree", "is already checked out at"]) {
+        CheckedOutElsewhere
+    } else if any(&[
+        "contains modified or untracked files",
+        "contains local modifications",
+    ]) {
+        DirtyWorktree
+    } else if has("locked working tree") {
+        WorktreeLocked
+    } else if has("workflow") && any(&["without `workflow` scope", "without 'workflow' scope"]) {
+        WorkflowScope
+    } else if any(&[
+        "gh001: large files detected",
+        "exceeds github's file size limit",
+    ]) {
+        FileTooLarge
+    } else if any(&[
+        "push cannot contain secrets",
+        "gh013: secret",
+        "secret scanning",
+        "push protection",
+    ]) {
+        SecretDetected
+    } else if any(&["gh007", "push declined due to email privacy"]) {
+        EmailPrivacy
+    } else if any(&[
+        "gh006: protected branch",
+        "protected branch hook declined",
+        "not allowed to push code to protected branches",
+        "not allowed to force push code to a protected branch",
+        "gh013: repository rule violations",
+        "cannot force-push to this branch",
+    ]) {
+        ProtectedBranch
     } else if has("[remote rejected]") {
         RemoteRejected
     } else if any(&[
@@ -531,8 +595,10 @@ pub fn create_tag(
                 "an annotated tag needs a message",
             ));
         }
-        // `-m` always consumes the next argument, even one starting with `-`.
-        args.extend(["-a", "-m", message]);
+        // `-m` always consumes the next argument, even one starting with `-`. Identities with
+        // signing sign their annotated tags too (`-s` uses the injected `user.signingkey`).
+        let annotate = if ctx.signing.is_some() { "-s" } else { "-a" };
+        args.extend([annotate, "-m", message]);
     }
     args.extend(["--end-of-options", name, &full]);
     run(git, repo, ctx, &args).map(|_| ())
@@ -763,6 +829,30 @@ mod tests {
                 FailureKind::RemoteRejected,
             ),
             (
+                "To https://github.com/o/r.git\n ! [remote rejected] main -> main (refusing to allow an OAuth App to create or update workflow `.github/workflows/ci.yml` without `workflow` scope)\nerror: failed to push some refs",
+                FailureKind::WorkflowScope,
+            ),
+            (
+                "remote: error: GH001: Large files detected. You may want to try Git Large File Storage\nremote: error: File big.bin is 120.00 MB; this exceeds GitHub's file size limit of 100.00 MB\n ! [remote rejected] main -> main (pre-receive hook declined)",
+                FailureKind::FileTooLarge,
+            ),
+            (
+                "remote: error: GH013: Repository rule violations found for refs/heads/main.\nremote: - GITHUB PUSH PROTECTION\nremote:   Push cannot contain secrets\n ! [remote rejected] main -> main (push declined due to repository rule violations)",
+                FailureKind::SecretDetected,
+            ),
+            (
+                "remote: error: GH007: Your push would publish a private email address.\n ! [remote rejected] main -> main (push declined due to email privacy restrictions)",
+                FailureKind::EmailPrivacy,
+            ),
+            (
+                "remote: error: GH006: Protected branch update failed for refs/heads/main.\n ! [remote rejected] main -> main (protected branch hook declined)",
+                FailureKind::ProtectedBranch,
+            ),
+            (
+                "remote: GitLab: You are not allowed to push code to protected branches on this project.\n ! [remote rejected] main -> main (pre-receive hook declined)",
+                FailureKind::ProtectedBranch,
+            ),
+            (
                 "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
                 FailureKind::AuthFailed,
             ),
@@ -793,6 +883,26 @@ mod tests {
             (
                 "fatal: There is no merge to abort (MERGE_HEAD missing).",
                 FailureKind::NoOperation,
+            ),
+            (
+                "fatal: 'topic' is already used by worktree at 'C:/Temp/wt1b'",
+                FailureKind::CheckedOutElsewhere,
+            ),
+            (
+                "fatal: '../wt' contains modified or untracked files, use --force to delete it",
+                FailureKind::DirtyWorktree,
+            ),
+            (
+                "fatal: cannot remove a locked working tree, lock reason: usb\nuse 'remove -f -f' to override or unlock first",
+                FailureKind::WorktreeLocked,
+            ),
+            (
+                "error: gpg failed to sign the data:\ngpg: signing failed: No secret key\n\nfatal: failed to write commit object",
+                FailureKind::SigningFailed,
+            ),
+            (
+                "error: Couldn't load public key C:/k/nokey: No such file or directory?\n\nfatal: failed to write commit object",
+                FailureKind::SigningFailed,
             ),
             (
                 "error: Committing is not possible because you have unmerged files.",

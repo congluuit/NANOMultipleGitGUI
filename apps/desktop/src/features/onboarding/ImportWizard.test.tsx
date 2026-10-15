@@ -98,7 +98,11 @@ describe("ImportWizard", () => {
     expect(screen.getByRole("button", { name: "Áp dụng (1)" })).toBeEnabled();
     const accounts = screen.getByText("Tài khoản gh / glab").closest("section")!;
     await user.click(within(accounts).getByRole("button", { name: /Đăng nhập lại/ }));
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: true });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: true,
+      reauth: false,
+    });
   });
 
   it("Bỏ qua closes the wizard", async () => {

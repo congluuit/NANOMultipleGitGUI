@@ -338,7 +338,7 @@ mod tests {
             "https://ghe.acme.com/login/oauth/access_token"
         );
         assert_eq!(c.client_id, "Iv1.abc");
-        assert_eq!(c.scopes, ["repo", "read:user", "user:email"]);
+        assert_eq!(c.scopes, ["repo", "workflow", "read:user", "user:email"]);
         let gl = DeviceFlowConfig::for_endpoint(&ProviderEndpoint::gitlab(), "id", None).unwrap();
         assert_eq!(
             gl.device_code_url.as_str(),

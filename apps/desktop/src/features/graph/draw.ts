@@ -65,6 +65,37 @@ export function parseRefs(refs: string[]): RefLabel[] {
   });
 }
 
+/** Font of the ref labels (also used to measure them for hit-testing). */
+export const labelFont = (palette: Pick<Palette, "font">) => `600 11px ${palette.font}`;
+
+/** Left edge of the message column (labels start there). */
+export const textColumnX = (maxLanes: number) => graphWidth(maxLanes) + 8;
+
+export interface LabelBox {
+  label: RefLabel;
+  x: number;
+  width: number;
+}
+
+/** Horizontal layout of a row's ref labels, as drawn (`measure` = text width in px). */
+export function refLabelBoxes(
+  labels: RefLabel[],
+  startX: number,
+  measure: (text: string) => number,
+): LabelBox[] {
+  let x = startX;
+  return labels.map((label) => {
+    const width = measure(label.text) + 12;
+    const box = { label, x, width };
+    x += width + 4;
+    return box;
+  });
+}
+
+/** The label under `x`, if any. */
+export const labelAt = (boxes: LabelBox[], x: number) =>
+  boxes.find((b) => x >= b.x && x <= b.x + b.width)?.label ?? null;
+
 export function formatDate(seconds: number, locale: string): string {
   return new Date(seconds * 1000).toLocaleString(locale, {
     year: "numeric",
@@ -90,6 +121,8 @@ export interface DrawParams {
   /** Search highlighting: "current" for the active match, "match" for the others. */
   highlight?: (index: number) => "match" | "current" | null;
   locale: string;
+  /** Branch label outlined while another branch is dragged over it. */
+  dropTarget?: { index: number; branch: string } | null;
 }
 
 function curve(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number) {
@@ -174,9 +207,21 @@ export function drawGraph(p: DrawParams): number {
     ctx.rect(textX, y0, authorX - textX - 12, ROW_HEIGHT);
     ctx.clip();
     let x = textX;
-    ctx.font = `600 11px ${palette.font}`;
-    for (const ref of parseRefs(row.refs)) {
-      const w = ctx.measureText(ref.text).width + 12;
+    ctx.font = labelFont(palette);
+    const dragOver = p.dropTarget?.index === i ? p.dropTarget.branch : null;
+    for (const { label: ref, x: bx, width: w } of refLabelBoxes(
+      parseRefs(row.refs),
+      textX,
+      (text) => ctx.measureText(text).width,
+    )) {
+      x = bx;
+      if (dragOver === ref.text && ref.kind !== "remote" && ref.kind !== "tag") {
+        ctx.strokeStyle = palette.primary;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - 2, cy - 11, w + 4, 22, 11);
+        ctx.stroke();
+      }
       ctx.fillStyle = laneColor;
       ctx.globalAlpha = ref.kind === "remote" ? 0.12 : 0.2;
       ctx.beginPath();

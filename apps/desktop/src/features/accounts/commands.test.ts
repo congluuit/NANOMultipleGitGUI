@@ -198,9 +198,17 @@ describe("accounts palette commands", () => {
     void byId(list, "accounts.import").run!(c);
     expect(useAccountDialogs.getState().importWizard).toBe(true);
     void byId(list, "accounts.add").run!(c);
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: true });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: true,
+      reauth: false,
+    });
     void byId(list, "accounts.manage").run!(c);
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: false });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: false,
+      reauth: false,
+    });
     expect(byId(list, "accounts.unbind").when?.(c)).toBe(false);
 
     queryClient.setQueryData(["accounts", "repoContext", 1], makeContext());

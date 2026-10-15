@@ -1,6 +1,7 @@
 import { Copy, GitBranchPlus, GitMerge, LogIn, PencilLine, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { RebaseBranchItems } from "@/features/rebase/MenuItems";
 import { commands } from "@/ipc";
 import { runOutcome } from "./outcome";
 import { useRefDialog } from "./store";
@@ -43,6 +44,7 @@ export function LocalBranchItems({
         <GitMerge />
         {t("menu.mergeInto", { branch: current ?? "HEAD" })}
       </ContextMenuItem>
+      <RebaseBranchItems repoId={repoId} name={name} current={current} />
       {oid && (
         <ContextMenuItem
           onSelect={() => open({ kind: "createBranch", repoId, start: oid, label: name })}
@@ -100,6 +102,7 @@ export function RemoteBranchItems({ repoId, current, full }: Common & { full: st
         <GitMerge />
         {t("menu.mergeInto", { branch: current ?? "HEAD" })}
       </ContextMenuItem>
+      <RebaseBranchItems repoId={repoId} name={full} current={current} />
       <ContextMenuSeparator />
       <ContextMenuItem onSelect={() => void navigator.clipboard.writeText(full)}>
         <Copy />

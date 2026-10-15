@@ -5,15 +5,18 @@ import { create } from "zustand";
  * welcome screen, sidebar) can open them without importing their components.
  */
 interface AccountDialogs {
-  /** Account manager, optionally focused on one account or opened on the "add" flow. */
-  manager: { accountId: string | null; add: boolean } | null;
+  /**
+   * Account manager, optionally focused on one account, opened on the "add" flow, or straight
+   * on the sign-in-again flow of `accountId` (`reauth`).
+   */
+  manager: { accountId: string | null; add: boolean; reauth: boolean } | null;
   /** Clone dialog, optionally preset to an account or a URL. */
   clone: { accountId: string | null; url: string | null } | null;
   /** SSH keys of an account. */
   sshKeys: { accountId: string } | null;
   /** First-run import of existing git/ssh/gh/glab configuration. */
   importWizard: boolean;
-  openManager: (opts?: { accountId?: string | null; add?: boolean }) => void;
+  openManager: (opts?: { accountId?: string | null; add?: boolean; reauth?: boolean }) => void;
   openClone: (opts?: { accountId?: string | null; url?: string | null }) => void;
   openSshKeys: (accountId: string) => void;
   openImportWizard: () => void;
@@ -26,7 +29,13 @@ export const useAccountDialogs = create<AccountDialogs>()((set) => ({
   sshKeys: null,
   importWizard: false,
   openManager: (opts) =>
-    set({ manager: { accountId: opts?.accountId ?? null, add: opts?.add ?? false } }),
+    set({
+      manager: {
+        accountId: opts?.accountId ?? null,
+        add: opts?.add ?? false,
+        reauth: Boolean(opts?.reauth && opts.accountId),
+      },
+    }),
   openClone: (opts) =>
     set({ clone: { accountId: opts?.accountId ?? null, url: opts?.url ?? null } }),
   openSshKeys: (accountId) => set({ sshKeys: { accountId } }),

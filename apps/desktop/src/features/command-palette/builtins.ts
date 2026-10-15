@@ -61,6 +61,8 @@ import {
   SHA_PATTERN,
 } from "./actions";
 import { modKey, registerCommands, type PaletteCommand, type PaletteContext } from "./registry";
+// Step 3.3 (submodules, worktrees, LFS manager) registers "core.advanced" on import.
+import "@/features/submodules/palette";
 
 const hasRepo = (c: PaletteContext) => c.repo !== null;
 const hasRemote = (c: PaletteContext) => !!c.refs && c.refs.remotes.length > 0;

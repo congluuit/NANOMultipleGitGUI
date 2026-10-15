@@ -56,12 +56,42 @@ pub struct SshAskpass {
     pub env: Vec<(String, String)>,
 }
 
+/// Signature format of [`Signing`] (`gpg.format`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SigningFormat {
+    /// `gpg.format=openpgp`: `user.signingkey` is a GPG key id / fingerprint.
+    OpenPgp,
+    /// `gpg.format=ssh`: `user.signingkey` is a key file path or `key::ssh-ed25519 …`.
+    Ssh,
+}
+
+impl SigningFormat {
+    pub fn as_config(self) -> &'static str {
+        match self {
+            Self::OpenPgp => "openpgp",
+            Self::Ssh => "ssh",
+        }
+    }
+}
+
+/// Commit signing of the identity (PLAN §4.4): `commit.gpgsign=true`, `gpg.format`,
+/// `user.signingkey`. Annotated tags created by the app are signed with `-s` (see
+/// [`crate::ops::create_tag`]); `tag.gpgSign` is deliberately *not* injected because it would
+/// turn every lightweight tag (also in the integrated terminal) into an annotated one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signing {
+    pub format: SigningFormat,
+    pub key: String,
+}
+
 /// Everything that decides "as whom" a git command runs.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AccountContext {
     pub identity: Option<Identity>,
     pub https: Option<HttpsAuth>,
     pub ssh: Option<SshAuth>,
+    /// Sign commits as this identity; `None` leaves git's own signing config alone.
+    pub signing: Option<Signing>,
 }
 
 /// Forward slashes work for Git for Windows' bundled `sh` and for `ssh -i`.
@@ -113,6 +143,11 @@ impl AccountContext {
             ));
             entries.push(("credential.useHttpPath".into(), "true".into()));
         }
+        if let Some(signing) = &self.signing {
+            entries.push(("commit.gpgsign".into(), "true".into()));
+            entries.push(("gpg.format".into(), signing.format.as_config().into()));
+            entries.push(("user.signingkey".into(), signing.key.clone()));
+        }
         entries
     }
 
@@ -162,6 +197,7 @@ mod tests {
                 env: vec![("NANOMGG_ACCOUNT".into(), "acc-1".into())],
             }),
             ssh: None,
+            signing: None,
         }
     }
 
@@ -197,6 +233,29 @@ mod tests {
         assert_eq!(get("GIT_CONFIG_KEY_4"), Some("credential.useHttpPath"));
         assert_eq!(get("NANOMGG_ACCOUNT"), Some("acc-1"));
         assert_eq!(get("GIT_TERMINAL_PROMPT"), Some("0"));
+    }
+
+    #[test]
+    fn signing_injects_gpgsign_format_and_key() {
+        let ctx = AccountContext {
+            signing: Some(Signing {
+                format: SigningFormat::Ssh,
+                key: "C:/keys/id_ed25519".into(),
+            }),
+            ..Default::default()
+        };
+        assert_eq!(
+            ctx.config_entries(),
+            vec![
+                ("commit.gpgsign".to_owned(), "true".to_owned()),
+                ("gpg.format".to_owned(), "ssh".to_owned()),
+                (
+                    "user.signingkey".to_owned(),
+                    "C:/keys/id_ed25519".to_owned()
+                ),
+            ]
+        );
+        assert_eq!(SigningFormat::OpenPgp.as_config(), "openpgp");
     }
 
     #[test]

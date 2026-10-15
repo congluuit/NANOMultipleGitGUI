@@ -10,6 +10,7 @@ import {
   type ProviderEmail,
   type SigningMethod,
 } from "@/ipc";
+import { SigningKeyPicker } from "@/features/signing/SigningKeyPicker";
 import { useIdentities } from "../queries";
 import {
   emptyIdentity,
@@ -66,6 +67,7 @@ export function IdentitiesSection({
           editing !== "new" && editing?.id === i.id ? (
             <li key={i.id}>
               <IdentityFormView
+                accountId={accountId}
                 initial={identityToForm(i)}
                 others={list.filter((o) => o.id !== i.id)}
                 emails={emails.data ?? []}
@@ -124,6 +126,7 @@ export function IdentitiesSection({
       </ul>
       {editing === "new" && (
         <IdentityFormView
+          accountId={accountId}
           initial={emptyIdentity(list.length === 0)}
           others={list}
           emails={emails.data ?? []}
@@ -169,12 +172,15 @@ const SIGNING: SigningMethod[] = ["none", "gpg", "ssh"];
 
 /** Add/edit form of an identity, with verified provider emails as suggestions. */
 export function IdentityFormView({
+  accountId,
   initial,
   others,
   emails,
   onSubmit,
   onCancel,
 }: {
+  /** Owner account: its SSH keys are offered for SSH signing and "Thử ký" runs as it. */
+  accountId?: string;
   initial: IdentityForm;
   others: readonly Identity[];
   emails: readonly ProviderEmail[];
@@ -290,6 +296,13 @@ export function IdentityFormView({
           </Field>
         )}
       </div>
+      <SigningKeyPicker
+        accountId={accountId}
+        signing={form.signing}
+        keyRef={form.signingKeyRef}
+        email={form.email}
+        onPick={(ref) => set({ signingKeyRef: ref })}
+      />
       <label className="flex items-center gap-2 text-xs">
         <input
           type="checkbox"

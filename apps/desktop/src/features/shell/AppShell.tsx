@@ -2,6 +2,7 @@ import { CommitDetailsPanel } from "@/features/commit/CommitDetailsPanel";
 import { OperationBanner } from "@/features/commits/OperationBanner";
 import { RefDialogs } from "@/features/commits/RefDialogs";
 import { DiffView } from "@/features/diff/DiffView";
+import { FileViewHost } from "@/features/file-history/FileViewHost";
 import { GraphView } from "@/features/graph/GraphView";
 import { MissingRepo } from "@/features/repos/MissingRepo";
 import { WelcomeScreen } from "@/features/repos/WelcomeScreen";
@@ -12,9 +13,11 @@ import {
   useAccountShortcuts,
   useActiveRepoAccount,
 } from "@/features/accounts/switcher";
+import { ViewErrorBoundary } from "@/components/ViewErrorBoundary";
+import { closeFileView, useFileView } from "@/stores/fileView";
 import { useSelection } from "@/stores/graph";
 import { useActiveRepo, useWorkspace } from "@/stores/workspace";
-import { useOpenDiff } from "@/stores/worktree";
+import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
 import { NoticeBar, ToolBanner } from "./Banners";
 import { Sidebar } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
@@ -28,6 +31,7 @@ export function AppShell() {
   const { color } = useActiveRepoAccount();
   const selection = useSelection(repo?.id);
   const diff = useOpenDiff(repo?.id);
+  const fileView = useFileView(repo?.id);
   useAccountShortcuts();
 
   return (
@@ -39,11 +43,11 @@ export function AppShell() {
       <TopBar />
       <ToolBanner />
       <NoticeBar />
-      {repo && !repo.missing && <UnboundBanner key={repo.id} repoId={repo.id} />}
+      {repo && !repo.missing && <UnboundBanner key={`unboundBanner-${repo.id}`} repoId={repo.id} />}
       {repo ? (
         <>
           <Toolbar />
-          {!repo.missing && <OperationBanner key={repo.id} repoId={repo.id} />}
+          {!repo.missing && <OperationBanner key={`operationBanner-${repo.id}`} repoId={repo.id} />}
           <div className="flex min-h-0 flex-1">
             <Sidebar />
             {repo.missing ? (
@@ -51,14 +55,32 @@ export function AppShell() {
             ) : (
               <>
                 {/* The graph stays mounted under an open diff so its scroll position survives. */}
-                <div className={diff ? "hidden" : "flex min-w-0 flex-1"}>
-                  <GraphView key={repo.id} repoId={repo.id} name={repo.name} />
+                <div className={diff || fileView ? "hidden" : "flex min-w-0 flex-1"}>
+                  <GraphView key={`graphView-${repo.id}`} repoId={repo.id} name={repo.name} />
                 </div>
-                {diff && <DiffView key={repo.id} repoId={repo.id} request={diff} />}
+                {fileView ? (
+                  <ViewErrorBoundary
+                    key={`fileViewHost-${repo.id}`}
+                    onClose={() => closeFileView(repo.id)}
+                    resetKey={JSON.stringify(fileView)}
+                  >
+                    <FileViewHost repoId={repo.id} view={fileView} />
+                  </ViewErrorBoundary>
+                ) : (
+                  diff && (
+                    <ViewErrorBoundary
+                      key={`diffView-${repo.id}`}
+                      onClose={() => useWorktreeStore.getState().openDiff(repo.id, null)}
+                      resetKey={JSON.stringify(diff)}
+                    >
+                      <DiffView repoId={repo.id} request={diff} />
+                    </ViewErrorBoundary>
+                  )
+                )}
                 {selection ? (
                   <CommitDetailsPanel key={selection.hash} repoId={repo.id} hash={selection.hash} />
                 ) : (
-                  <WorkingTreePanel key={repo.id} repoId={repo.id} />
+                  <WorkingTreePanel key={`workingTreePanel-${repo.id}`} repoId={repo.id} />
                 )}
               </>
             )}

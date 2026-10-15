@@ -368,6 +368,7 @@ fn helper_ctx(dir: &Path, token: &str) -> AccountContext {
             env: Vec::new(),
         }),
         ssh: None,
+        signing: None,
     }
 }
 

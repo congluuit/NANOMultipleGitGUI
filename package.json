@@ -22,6 +22,7 @@
     "rust:test": "cargo test --workspace",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm rust:check && pnpm rust:test",
     "test": "pnpm -r test",
+    "release:version": "node scripts/bump-version.mjs",
     "fixture:graph": "node scripts/gen-history-fixture.mjs",
     "bench:graph": "cargo run --release -p nanomgg-git-engine --example graph_bench --",
     "test:lfs-200mb": "cargo test -p nanomgg-credential-helper --test multi_account -- --ignored --nocapture"

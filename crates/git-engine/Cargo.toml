@@ -16,6 +16,8 @@ specta = ["dep:specta"]
 specta = { version = "=2.0.0-rc.25", features = ["derive"], optional = true }
 notify-debouncer-mini = "0.7"
 serde = { workspace = true }
+# Undo journal (`.git/nanomgg/undo.json`, see src/undo.rs).
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 # Kill-on-close Job Object so cancelling a command also stops its descendants (see src/job.rs).

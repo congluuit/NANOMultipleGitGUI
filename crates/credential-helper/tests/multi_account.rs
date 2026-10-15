@@ -85,6 +85,7 @@ impl Harness {
                 env: self.creds.env_for(account),
             }),
             ssh: None,
+            signing: None,
         }
     }
 

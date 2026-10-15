@@ -36,9 +36,10 @@ export function AccountManagerHost() {
         {state && (
           <AccountManager
             // A fresh view (and wizard) each time the dialog is opened.
-            key={`${state.accountId ?? ""}:${state.add}`}
+            key={`${state.accountId ?? ""}:${state.add}:${state.reauth}`}
             focusAccountId={state.accountId}
             startWithAdd={state.add}
+            startWithReauth={state.reauth}
           />
         )}
       </DialogContent>
@@ -51,9 +52,11 @@ const TABS: Tab[] = ["accounts", "rules", "providers", "settings"];
 export function AccountManager({
   focusAccountId,
   startWithAdd,
+  startWithReauth = false,
 }: {
   focusAccountId: string | null;
   startWithAdd: boolean;
+  startWithReauth?: boolean;
 }) {
   const { t } = useTranslation();
   const accounts = useAccounts();
@@ -62,9 +65,19 @@ export function AccountManager({
   const identities = useIdentities(null);
   const health = useAccountHealth();
   const [tab, setTab] = useState<Tab>("accounts");
-  const [wizard, setWizard] = useState<{ reauth: Account | null } | null>(
+  const [wizardState, setWizard] = useState<{ reauth: Account | null } | null>(
     startWithAdd ? { reauth: null } : null,
   );
+  const [reauthPending, setReauthPending] = useState(startWithReauth);
+  const reauthTarget = reauthPending
+    ? (accounts.data?.find((a) => a.id === focusAccountId) ?? null)
+    : null;
+  // Opened from an error ("sign in again"): show that account's wizard once the list loads.
+  const wizard = wizardState ?? (reauthTarget ? { reauth: reauthTarget } : null);
+  const closeWizard = () => {
+    setReauthPending(false);
+    setWizard(null);
+  };
   const [focus, setFocus] = useState<string | null>(focusAccountId);
   const [providerFocus, setProviderFocus] = useState<string | null>(null);
 
@@ -94,13 +107,13 @@ export function AccountManager({
             <AddAccountWizard
               providers={providers.data ?? []}
               reauth={wizard.reauth}
-              onCancel={() => setWizard(null)}
+              onCancel={closeWizard}
               onDone={(account) => {
-                setWizard(null);
+                closeWizard();
                 setFocus(account.id);
               }}
               onEditProvider={(id) => {
-                setWizard(null);
+                closeWizard();
                 setProviderFocus(id);
                 setTab("providers");
               }}
@@ -112,7 +125,10 @@ export function AccountManager({
               providers={providers.data ?? []}
               health={health.data ?? []}
               focusId={focus}
-              onAdd={() => setWizard({ reauth: null })}
+              onAdd={() => {
+                setReauthPending(false);
+                setWizard({ reauth: null });
+              }}
               onReauth={(account) => setWizard({ reauth: account })}
             />
           )}

@@ -239,9 +239,9 @@ async fn device_flow_requires_client_id_and_can_be_cancelled() {
             ..
         } => {
             assert!(pat_url.ends_with(
-                "/settings/tokens/new?scopes=repo,read:user,user:email&description=NANOMultipleGitGUI"
+                "/settings/tokens/new?scopes=repo,workflow,read:user,user:email&description=NANOMultipleGitGUI"
             ));
-            assert_eq!(pat_scopes, &["repo", "read:user", "user:email"]);
+            assert_eq!(pat_scopes, &["repo", "workflow", "read:user", "user:email"]);
         }
         other => panic!("unexpected {other:?}"),
     }

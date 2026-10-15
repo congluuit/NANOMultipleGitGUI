@@ -82,9 +82,17 @@ describe("UnboundBanner", () => {
     seedAccounts(queryClient, { accounts: [], identities: [], contexts: [unboundContext(1)] });
     wrap(<UnboundBanner repoId={1} />);
     await user.click(screen.getByRole("button", { name: "Thêm tài khoản…" }));
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: true });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: true,
+      reauth: false,
+    });
     await user.click(screen.getByRole("button", { name: "Tạo rule cho thư mục/host này…" }));
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: false });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: false,
+      reauth: false,
+    });
   });
 });
 

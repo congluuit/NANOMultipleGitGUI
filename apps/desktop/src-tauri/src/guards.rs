@@ -582,7 +582,14 @@ pub(crate) fn commit_facts(st: &AppState, repo_id: i64) -> AppResult<CommitFacts
     let dir = Directory::from_snapshot(&snap);
     let bound = resolution.default.clone();
     let identity = effective_identity(st, &root, &dir, bound.as_ref());
-    let ctx = identity_ctx(identity.as_ref());
+    let mut sign_ctx = identity_ctx(identity.as_ref());
+    sign_ctx.signing = bound
+        .as_ref()
+        .and_then(|b| {
+            snap.dir()
+                .identity_for(&b.account_id, b.identity_id.as_deref())
+        })
+        .and_then(crate::accounts::identity_signing);
     let remote = resolution
         .remotes
         .iter()
@@ -603,8 +610,10 @@ pub(crate) fn commit_facts(st: &AppState, repo_id: i64) -> AppResult<CommitFacts
         bound,
         rule: rule_only.default.filter(|r| r.rule_id.is_some()),
         remote,
-        gpg_sign: config_bool(&st.git, &root, &ctx, "commit.gpgsign"),
-        signing_key: config_get(&st.git, &root, &ctx, "user.signingkey").is_some(),
+        // With the identity's signing injected (`commit.gpgsign` + `user.signingkey` from the
+        // resolver), so a signing identity never triggers "gpgsign without key".
+        gpg_sign: config_bool(&st.git, &root, &sign_ctx, "commit.gpgsign"),
+        signing_key: config_get(&st.git, &root, &sign_ctx, "user.signingkey").is_some(),
         api,
         dir,
     })

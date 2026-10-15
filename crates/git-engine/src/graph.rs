@@ -39,6 +39,8 @@ pub fn read_log(
         "log".to_owned(),
         // Stashes are listed in the sidebar; their internal WIP/index commits would only add noise.
         "--exclude=refs/stash".to_owned(),
+        // Backups made before history rewrites (rebase, LFS migrate, author fix) stay hidden.
+        "--exclude=refs/nanomgg/*".to_owned(),
         "--all".to_owned(),
         "--topo-order".to_owned(),
         "-z".to_owned(),

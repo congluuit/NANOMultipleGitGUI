@@ -3,18 +3,25 @@ pub mod auth;
 mod branches;
 mod clone;
 mod commands;
+mod conflicts;
 mod error;
+mod file_views;
 mod graph;
 mod guards;
 mod import;
 mod lfs;
 mod lfs_transfer;
+mod linked_worktrees;
+mod rebase;
 mod repos;
 mod settings;
+mod signing;
 mod ssh_keys;
 mod stash;
 mod state;
+mod submodules;
 mod terminal;
+mod undo;
 mod worktree;
 
 use std::path::PathBuf;
@@ -64,6 +71,17 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             worktree::commit_create,
             worktree::commit_identity,
             worktree::head_message,
+            // Conflict editor, file history, blame, image diff (step 3.2)
+            conflicts::conflict_context,
+            conflicts::conflict_file,
+            conflicts::blob_preview,
+            conflicts::conflict_resolve_content,
+            conflicts::conflict_take_side,
+            conflicts::conflict_delete_file,
+            file_views::file_history,
+            file_views::blame_file,
+            file_views::file_at_commit,
+            file_views::diff_images,
             stash::stash_create,
             stash::stash_apply,
             stash::stash_pop,
@@ -97,6 +115,18 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             branches::remote_push_tag,
             branches::remote_delete_branch,
             branches::transfer_cancel,
+            // Rebase, interactive rebase, undo/redo, branch drag-and-drop (step 3.1)
+            rebase::rebase_preview,
+            rebase::rebase_todo,
+            rebase::rebase_start,
+            rebase::rebase_interactive,
+            rebase::rebase_continue,
+            rebase::rebase_skip,
+            rebase::branch_relation,
+            rebase::branch_fast_forward,
+            undo::undo_state,
+            undo::undo_run,
+            undo::redo_run,
             lfs_transfer::lfs_push_estimate,
             lfs_transfer::lfs_push,
             lfs_transfer::lfs_download_estimate,
@@ -170,6 +200,32 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             guards::guard_undo,
             guards::guard_backups,
             guards::guard_backup_delete,
+            // Phase 3.3: submodules, linked worktrees, LFS locks / files / maintenance, signing.
+            submodules::submodule_list,
+            submodules::submodule_update,
+            submodules::submodule_add,
+            submodules::submodule_url_account,
+            submodules::submodule_sync,
+            submodules::submodule_deinit,
+            submodules::submodule_remove,
+            linked_worktrees::linked_worktree_list,
+            linked_worktrees::linked_worktree_add,
+            linked_worktrees::linked_worktree_remove,
+            linked_worktrees::linked_worktree_prune,
+            linked_worktrees::linked_worktree_lock,
+            lfs::lfs_locks,
+            lfs::lfs_lock,
+            lfs::lfs_unlock,
+            lfs::lfs_set_lockable,
+            lfs::lfs_files,
+            lfs::lfs_storage,
+            lfs::lfs_prune_preview,
+            lfs::lfs_prune,
+            lfs::lfs_fsck,
+            lfs_transfer::lfs_pull_files,
+            signing::signing_gpg_keys,
+            signing::signing_test,
+            signing::commit_signature,
         ])
         .events(collect_events![
             repos::RepoChanged,

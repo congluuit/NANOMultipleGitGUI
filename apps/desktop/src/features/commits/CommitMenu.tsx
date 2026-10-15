@@ -21,6 +21,7 @@ import {
   ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import { parseRefs } from "@/features/graph/draw";
+import { RebaseCommitItems } from "@/features/rebase/MenuItems";
 import { useRepoRefs } from "@/features/repos/queries";
 import { commands, type GraphRow, type Head } from "@/ipc";
 import { useGraphStore } from "@/stores/graph";
@@ -136,6 +137,7 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
           </ContextMenuItem>
         </ContextMenuSubContent>
       </ContextMenuSub>
+      <RebaseCommitItems repoId={repoId} oid={row.hash} current={current} isHead={isHead} />
       {isHead && (
         <ContextMenuItem onSelect={() => void startAmend(repoId)}>
           <PencilLine />

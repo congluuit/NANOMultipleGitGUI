@@ -48,6 +48,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Git LFS uploads and downloads with an estimate, per-file progress, speed and ETA in a transfer queue, cancel/resume and plain-language errors (permission, quota, size limits).
 - Integrated terminal (Git Bash / PowerShell / login shell) that uses the repository's account.
 - Command palette (`Ctrl/Cmd+K`) with fuzzy search, including "Switch account", "Commit as", "Push as" and "Clone as".
+- Rebase onto a branch or commit, and interactive rebase with drag-to-reorder (or Alt+↑/↓), pick / reword / squash / fixup / drop / edit, a preview of the result and a warning for commits that are already pushed; a backup ref is always made first.
+- Undo and Redo (toolbar, `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`) for commit, amend, reset, checkout, merge, rebase, cherry-pick, revert, pull and branch create / delete / rename, without ever overwriting uncommitted work.
+- Drag a branch onto another branch (sidebar or graph labels) to fast-forward, merge or rebase.
+- 3-way conflict editor with per-block choices, including binary and Git LFS files with image previews and clear "ours / theirs" labels (also during a rebase, where git swaps them).
+- Image diff (side by side, swipe, onion skin), also for Git LFS images.
+- File history (following renames), blame with jump-to-commit and blame at the parent commit, and viewing a file at any commit.
+- Submodules and worktrees in the sidebar: status, add, update, sync, remove, open as a tab; network access uses the account of each submodule's host.
+- Git LFS manager: file list with download state, file locking (lock, unlock, force unlock, lock badges in the file list), lockable patterns, prune with a preview and integrity check.
+- Commit signing with GPG or SSH per identity, a "Test signing" button, and the signature status (verified, untrusted key, bad…) in commit details.
 
 ### Changed
 
@@ -59,3 +68,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Two history refreshes arriving together (file watcher and UI) no longer reload the whole history and reset the graph version.
 - Cancelling fetch, pull, push or an LFS transfer on Windows now also stops processes started by hooks (Windows Job Object).
 - An HTTP 403 from the server is reported as missing permission instead of a connection problem.
+- Monaco editors no longer crash the window in the Light theme of release builds (short `#fff` colors from the minified CSS); a failing center view now shows an error with a Close button instead of a blank window.
+- The toolbar no longer duplicates the Fetch / Pull / Push / Branch buttons after switching repository tabs.
+- Backup refs made before history rewrites are no longer drawn in the commit graph.

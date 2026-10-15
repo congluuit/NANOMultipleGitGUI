@@ -3,7 +3,9 @@ import { LoaderCircle, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FileViewMenuItems } from "@/features/file-history/FileMenuItems";
 import { commands, errorMessage, type StatusEntry } from "@/ipc";
+import { openFileView, useFileView } from "@/stores/fileView";
 import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
 import { CommitBox } from "./CommitBox";
 import { FileSection } from "./FileSection";
@@ -21,6 +23,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
   const status = useWorktreeStatus(repoId);
   const openDiff = useWorktreeStore((s) => s.openDiff);
   const diff = useOpenDiff(repoId);
+  const fileView = useFileView(repoId);
   const [discarding, setDiscarding] = useState<StatusEntry[] | null>(null);
   const st = status.data;
 
@@ -92,10 +95,17 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             <FileSection
               kind="conflicted"
               entries={st.conflicted}
-              activePath={activeIn("unstaged")}
-              onOpen={(e) => openDiff(repoId, requestFor(e, false))}
+              activePath={fileView?.kind === "conflict" ? fileView.path : null}
+              onOpen={(e) => openFileView(repoId, { kind: "conflict", path: e.path })}
               onPrimary={stage}
               onPrimaryAll={() => stage(st.conflicted)}
+              menuExtra={(target) => (
+                <FileViewMenuItems
+                  repoId={repoId}
+                  path={target.length === 1 ? target[0]!.path : null}
+                  conflicted
+                />
+              )}
             />
           )}
           <FileSection
@@ -106,6 +116,15 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             onPrimary={stage}
             onPrimaryAll={() => void runOp(repoId, () => commands.stageAll(repoId))}
             onDiscard={setDiscarding}
+            menuExtra={(target) => (
+              <FileViewMenuItems
+                repoId={repoId}
+                path={
+                  target.length === 1 && target[0]!.kind !== "untracked" ? target[0]!.path : null
+                }
+                deleted={target[0]?.kind === "deleted"}
+              />
+            )}
           />
           <FileSection
             kind="staged"
@@ -114,6 +133,13 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             onOpen={(e) => openDiff(repoId, requestFor(e, true))}
             onPrimary={unstage}
             onPrimaryAll={() => void runOp(repoId, () => commands.unstageAll(repoId))}
+            menuExtra={(target) => (
+              <FileViewMenuItems
+                repoId={repoId}
+                path={target.length === 1 && target[0]!.kind !== "added" ? target[0]!.path : null}
+                deleted={target[0]?.kind === "deleted"}
+              />
+            )}
           />
           {total === 0 && (
             <p className="px-3 py-4 text-center text-xs text-muted-foreground">{t("wip.clean")}</p>

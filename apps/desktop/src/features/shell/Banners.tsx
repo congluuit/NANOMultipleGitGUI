@@ -83,12 +83,40 @@ export function ToolBanner() {
 }
 
 export function NoticeBar() {
+  const { t } = useTranslation();
   const notice = useUi((s) => s.notice);
   const showNotice = useUi((s) => s.showNotice);
   if (!notice) return null;
+  const rich = Boolean(notice.hint || notice.detail || notice.actions?.length);
   return (
     <Bar tone={notice.kind === "error" ? "danger" : "info"} onDismiss={() => showNotice(null)}>
-      <span className="break-all">{notice.message}</span>
+      {rich ? (
+        <div className="grid min-w-0 flex-1 gap-1 py-0.5">
+          <span className="font-medium break-words">{notice.message}</span>
+          {notice.hint && (
+            <span className="whitespace-pre-line text-foreground/90">{notice.hint}</span>
+          )}
+          {notice.actions?.length ? (
+            <span className="flex flex-wrap gap-1.5">
+              {notice.actions.map((a) => (
+                <Button key={a.label} size="xs" variant="outline" onClick={a.run}>
+                  {a.label}
+                </Button>
+              ))}
+            </span>
+          ) : null}
+          {notice.detail && (
+            <details className="text-muted-foreground">
+              <summary className="cursor-pointer select-none">{t("notice.technical")}</summary>
+              <pre className="mt-1 max-h-40 overflow-auto font-mono text-[11px] break-all whitespace-pre-wrap">
+                {notice.detail}
+              </pre>
+            </details>
+          )}
+        </div>
+      ) : (
+        <span className="break-all">{notice.message}</span>
+      )}
     </Bar>
   );
 }

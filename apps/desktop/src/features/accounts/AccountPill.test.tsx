@@ -159,7 +159,11 @@ describe("AccountPill", () => {
     // A rule result is not a binding: nothing to unbind.
     expect(within(menu()).queryByRole("menuitem", { name: "Bỏ gắn" })).not.toBeInTheDocument();
     await user.click(item("Quản lý tài khoản…"));
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: false });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: false,
+      reauth: false,
+    });
 
     queryClient.setQueryData(["accounts", "repoContext", 1], makeContext());
     await openMenu(user);
@@ -168,7 +172,11 @@ describe("AccountPill", () => {
 
     await openMenu(user);
     await user.click(item("Thêm tài khoản…"));
-    expect(useAccountDialogs.getState().manager).toEqual({ accountId: null, add: true });
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: true,
+      reauth: false,
+    });
   });
 
   it("lists remotes bound differently", async () => {

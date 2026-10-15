@@ -4,6 +4,7 @@ use std::process::Command;
 fn main() {
     // Must run before tauri-build, which fails if a configured `externalBin` is missing.
     prepare_credential_sidecar();
+    load_dotenv();
 
     let mut attrs = tauri_build::Attributes::new();
     if std::env::var("TARGET").is_ok_and(|t| t.contains("windows-msvc")) {
@@ -19,6 +20,50 @@ fn main() {
         println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
     }
     tauri_build::try_build(attrs).expect("failed to run tauri-build");
+}
+
+/// Build-time settings that may come from `<workspace>/.env` (git-ignored) when they are not
+/// set in the environment, so local `pnpm dev` / `pnpm tauri build` embed the maintainer's
+/// OAuth client ids without exporting anything. A real environment variable (CI) wins.
+const DOTENV_KEYS: [&str; 2] = [
+    "NANOMGG_GITHUB_OAUTH_CLIENT_ID",
+    "NANOMGG_GITLAB_OAUTH_CLIENT_ID",
+];
+
+fn load_dotenv() {
+    let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let workspace = manifest_dir.join("../../..");
+    let file = workspace.join(".env");
+    for key in DOTENV_KEYS {
+        println!("cargo:rerun-if-env-changed={key}");
+    }
+    let Ok(text) = std::fs::read_to_string(&file) else {
+        // Watching a missing file would rerun this script on every build; the directory's
+        // mtime changes when `.env` is created.
+        println!("cargo:rerun-if-changed={}", workspace.display());
+        return;
+    };
+    println!("cargo:rerun-if-changed={}", file.display());
+    for line in text.lines() {
+        let line = line.trim();
+        let line = line.strip_prefix("export ").unwrap_or(line);
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let key = key.trim();
+        if !DOTENV_KEYS.contains(&key) || std::env::var(key).is_ok_and(|v| !v.trim().is_empty()) {
+            continue;
+        }
+        let value = value.trim();
+        let value = value
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .or_else(|| value.strip_prefix('\'').and_then(|v| v.strip_suffix('\'')))
+            .unwrap_or(value);
+        if !value.is_empty() {
+            println!("cargo:rustc-env={key}={value}");
+        }
+    }
 }
 
 /// Packages the `nanomgg-credential` sidecar (credential helper + SSH askpass).

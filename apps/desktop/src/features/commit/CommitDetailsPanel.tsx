@@ -4,11 +4,13 @@ import { isTauri } from "@tauri-apps/api/core";
 import { Check, Copy, LoaderCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CommitFilesMenu } from "@/features/file-history/CommitFileMenu";
 import { formatDate } from "@/features/graph/draw";
 import { commands, errorMessage, type ChangedFile, type Person } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { useGraphStore } from "@/stores/graph";
 import { useOpenDiff, useWorktreeStore } from "@/stores/worktree";
+import { SignatureRow } from "@/features/signing/SignatureRow";
 import { fileStatusLetter, splitPath } from "./format";
 
 const MAX_FILES = 2000;
@@ -77,6 +79,7 @@ function FileRow({
     <li
       role="button"
       tabIndex={0}
+      data-path={file.path}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -193,6 +196,7 @@ export function CommitDetailsPanel({ repoId, hash }: { repoId: number; hash: str
                 </div>
               )}
               <PersonLine label={t("details.author")} person={d.author} locale={i18n.language} />
+              <SignatureRow repoId={repoId} hash={d.hash} kind={d.signature} />
               {!sameCommitter && (
                 <PersonLine
                   label={t("details.committer")}
@@ -217,28 +221,32 @@ export function CommitDetailsPanel({ repoId, hash }: { repoId: number; hash: str
           {d.files.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground">{t("details.noFiles")}</p>
           ) : (
-            <ul className="pb-3">
-              {d.files.slice(0, MAX_FILES).map((f) => (
-                <FileRow
-                  key={`${f.oldPath ?? ""}>${f.path}`}
-                  file={f}
-                  active={diff?.side === "commit" && diff.commit === d.hash && diff.path === f.path}
-                  onOpen={() =>
-                    openDiff(repoId, {
-                      side: "commit",
-                      path: f.path,
-                      oldPath: f.oldPath ?? undefined,
-                      commit: d.hash,
-                    })
-                  }
-                />
-              ))}
-              {d.files.length > MAX_FILES && (
-                <li className="px-3 py-1 text-xs text-muted-foreground">
-                  {t("details.moreFiles", { count: d.files.length - MAX_FILES })}
-                </li>
-              )}
-            </ul>
+            <CommitFilesMenu repoId={repoId} commit={d.hash} files={d.files}>
+              <ul className="pb-3">
+                {d.files.slice(0, MAX_FILES).map((f) => (
+                  <FileRow
+                    key={`${f.oldPath ?? ""}>${f.path}`}
+                    file={f}
+                    active={
+                      diff?.side === "commit" && diff.commit === d.hash && diff.path === f.path
+                    }
+                    onOpen={() =>
+                      openDiff(repoId, {
+                        side: "commit",
+                        path: f.path,
+                        oldPath: f.oldPath ?? undefined,
+                        commit: d.hash,
+                      })
+                    }
+                  />
+                ))}
+                {d.files.length > MAX_FILES && (
+                  <li className="px-3 py-1 text-xs text-muted-foreground">
+                    {t("details.moreFiles", { count: d.files.length - MAX_FILES })}
+                  </li>
+                )}
+              </ul>
+            </CommitFilesMenu>
           )}
         </ScrollArea>
       )}

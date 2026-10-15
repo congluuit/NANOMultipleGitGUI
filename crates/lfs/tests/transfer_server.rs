@@ -85,6 +85,7 @@ impl Harness {
                 ],
             }),
             ssh: None,
+            signing: None,
         }
     }
 

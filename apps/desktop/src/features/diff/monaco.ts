@@ -8,11 +8,12 @@ import "monaco-editor/features/find/register";
 import "monaco-editor/languages/definitions/register.all";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import type { ResolvedTheme } from "@/theme/theme";
+import { expandHex } from "./color";
 
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };
 
 function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return expandHex(getComputedStyle(document.documentElement).getPropertyValue(name).trim());
 }
 
 /** `#rrggbb` + alpha (0–1) → `#rrggbbaa`, the format Monaco theme colors accept. */

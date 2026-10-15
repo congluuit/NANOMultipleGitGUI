@@ -129,6 +129,11 @@ pub struct DownloadRequest {
     /// Single repository path (or `lfs.fetchinclude`-style pattern) for `git lfs pull`.
     #[serde(default)]
     pub include: Option<String>,
+    /// Several repository paths ("Tải các file đã chọn"); combined with `include`. Paths
+    /// containing a comma are refused (git-lfs splits include lists on commas).
+    #[cfg_attr(feature = "specta", specta(optional))]
+    #[serde(default)]
+    pub paths: Vec<String>,
     /// `git lfs fetch --all`: every object of every ref, without checkout.
     #[serde(default)]
     pub all: bool,
@@ -416,6 +421,22 @@ fn check_include(include: Option<&str>) -> Result<Option<String>, TransferError>
         .transpose()
 }
 
+/// `include` plus `paths`, checked and joined with commas for `--include=`.
+fn include_list(req: &DownloadRequest) -> Result<Option<String>, TransferError> {
+    let mut all: Vec<String> = Vec::new();
+    if let Some(p) = check_include(req.include.as_deref())? {
+        all.push(p);
+    }
+    for p in &req.paths {
+        if let Some(p) = check_include(Some(p))?
+            && !all.contains(&p)
+        {
+            all.push(p);
+        }
+    }
+    Ok((!all.is_empty()).then(|| all.join(",")))
+}
+
 /// Objects a download would transfer and whether they fit on the disk.
 pub fn download_estimate(
     git: &GitRunner,
@@ -423,7 +444,7 @@ pub fn download_estimate(
     ctx: &AccountContext,
     req: &DownloadRequest,
 ) -> Result<DownloadEstimate, TransferError> {
-    let include = check_include(req.include.as_deref())?;
+    let include = include_list(req)?;
     let mut args = vec!["lfs".to_owned(), "ls-files".to_owned(), "--json".to_owned()];
     if req.all {
         args.push("--all".into());
@@ -493,7 +514,7 @@ pub fn download<F: FnMut(&LfsTransferStats)>(
     if let Some(remote) = &req.remote {
         validate_remote(git, repo, remote).map_err(invalid)?;
     }
-    let include = check_include(req.include.as_deref())?;
+    let include = include_list(req)?;
     if req.all && include.is_some() {
         return Err(TransferError::Invalid(
             "`fetch --all` cannot be limited to a path".into(),
@@ -651,6 +672,21 @@ push nothex => x.bin\n";
         for bad in ["../x", "/abs", "a,b", "C:/x"] {
             assert!(check_include(Some(bad)).is_err(), "{bad}");
         }
+        let req = DownloadRequest {
+            include: Some("a.bin".into()),
+            paths: vec![r"dir\b.bin".into(), "a.bin".into()],
+            ..Default::default()
+        };
+        assert_eq!(
+            include_list(&req).unwrap().as_deref(),
+            Some("a.bin,dir/b.bin")
+        );
+        let bad = DownloadRequest {
+            paths: vec!["x,y".into()],
+            ..Default::default()
+        };
+        assert!(include_list(&bad).is_err());
+        assert_eq!(include_list(&DownloadRequest::default()).unwrap(), None);
     }
 
     #[test]

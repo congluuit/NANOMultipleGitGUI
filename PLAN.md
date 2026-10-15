@@ -29,7 +29,12 @@
 | 2.6 | UI tài khoản (quản lý, đăng nhập, account pill/switcher, command palette, phím tắt) + nối resolver vào mọi lệnh git | ✅ Xong (2026-10-14) |
 | 2.7 | Clone browser đa tài khoản, Commit Guard & Push Guard | ✅ Xong (2026-10-14) |
 | 2.8 | Kiểm thử end-to-end đa tài khoản trên bản cài release | ✅ Xong (2026-10-14) — v0.1 chờ repo GitHub + OAuth app (việc của người dùng) |
-| 3.x | Phase 3 — Git nâng cao (interactive rebase, conflict editor 3-way, undo/redo, blame, LFS nâng cao…) | ⏭️ **Bước tiếp theo** |
+| 2.9 | Sửa sau v0.1: build tự đọc `.env`, scope `workflow` mặc định, lỗi push có hướng dẫn sửa + nút hành động | ✅ Xong (2026-10-14) |
+| 3.1 | Rebase + interactive rebase kéo-thả, kéo-thả nhánh để merge/rebase, Undo/Redo theo reflog | ✅ Xong (2026-10-15) |
+| 3.2 | Conflict editor 3-way (gồm binary/LFS), file history, blame, xem file tại commit, image diff | ✅ Xong (2026-10-15) |
+| 3.3 | Submodule, worktree, LFS nâng cao (lock, danh sách file, prune/fsck), signing GPG/SSH + Verified | ✅ Xong (2026-10-15) — lock LFS chưa thử với GitHub/GitLab thật |
+| 3.4 | Tích hợp + kiểm chứng end-to-end trên bản release, sửa lỗi phát hiện khi kiểm chứng | ✅ Xong (2026-10-15) |
+| 3B.x | Phase 3B — Trải nghiệm cho người mới (đồng bộ tài khoản CLI, onboarding, thư mục dữ liệu, check update, layout co giãn) | ⏭️ Tiếp theo |
 
 Chi tiết từng bước và nhật ký: xem mục 10 (Phase 0, Phase 1).
 
@@ -770,6 +775,11 @@ Nội dung gốc của Phase 1:
 - Test tự động cuối: Rust toàn workspace (app 74, git-engine 103, accounts 31, auth 34, providers 28, lfs 36, ssh-keys 21, import 22, storage 16, credentials 19, multi-account 4…) + 415 test frontend; clippy `-D warnings`, rustfmt, eslint, prettier sạch.
 - Ghi nhận khi thử: trong terminal tích hợp, lệnh git thiếu credential sẽ làm Git for Windows bật cửa sổ `git-askpass` (hành vi mặc định của Git for Windows trong terminal tương tác).
 
+**2.9 — Sửa sau v0.1 ✅ (2026-10-14)**
+- **`.env` khi build:** `apps/desktop/src-tauri/build.rs` đọc `<gốc repo>/.env` (đã git-ignore) và nhúng `NANOMGG_GITHUB_OAUTH_CLIENT_ID` / `NANOMGG_GITLAB_OAUTH_CLIENT_ID` nếu môi trường chưa đặt. Biến môi trường thật (CI) vẫn được ưu tiên. Sửa `.env` thì lần build sau tự nhúng lại.
+- **Push bị từ chối vì thiếu scope `workflow`** (GitHub chặn mọi push đụng `.github/workflows/` khi token OAuth/PAT không có scope này): GitHub nay xin mặc định `repo workflow read:user user:email`, kể cả link tạo PAT. Tài khoản đã đăng nhập trước đó cần **đăng nhập lại một lần**.
+- **Lỗi có hướng dẫn sửa (cho người mới):** thêm 5 loại lỗi push — `workflowScope`, `protectedBranch` (GH006, ruleset, GitLab protected branch), `emailPrivacy` (GH007), `secretDetected` (push protection), `fileTooLarge` (GH001). Thanh thông báo hiện: tên lỗi, **cách sửa bằng lời dễ hiểu cho cả 25 loại lỗi**, nút hành động khi app tự làm được ("Đăng nhập lại <tài khoản>" mở thẳng wizard đăng nhập lại, "Mở quản lý tài khoản", "Mở cài đặt email GitHub"), và log gốc của git thu gọn trong "Chi tiết kỹ thuật". Test bảo đảm loại lỗi nào cũng có nhãn và hướng dẫn ở cả vi/en.
+
 ### Phase 3 — Git nâng cao (6–8 tuần)
 - Interactive rebase kéo-thả, cherry-pick, revert, reset, tag.
 - Conflict editor 3-way (gồm xung đột file binary/LFS); abort/continue cho mọi thao tác dở dang.
@@ -778,6 +788,81 @@ Nội dung gốc của Phase 1:
 - **LFS nâng cao**: `lfs migrate` cho commit chưa push (có backup ref), LFS lock, LFS panel, prune/fsck, tải từng file pointer.
 - Signing GPG/SSH theo identity.
 - 🚀 v0.2 / v0.3 (beta).
+
+#### Các bước của Phase 3 (3 sub-agent song song, mỗi agent sở hữu nhóm file riêng; báo cáo chi tiết ở `.agent/phase3/3.x.md`)
+**3.1 — Rebase, interactive rebase, Undo/Redo, kéo-thả nhánh ✅ (2026-10-15)**
+- **git-engine `rebase`:** rebase nhánh hiện tại hoặc nhánh khác (tự `switch` trước) lên ref/commit; chặn HEAD tách rời, working tree bẩn (trừ khi bật autostash), và commit đã có trên remote khi chưa xác nhận (`FailureKind::pushedCommits`). Luôn tạo backup `refs/nanomgg/backup/<ts>`. Xung đột / dừng ở `edit` là kết quả có cấu trúc (bước i/n).
+- **Interactive rebase không bao giờ mở editor:** todo và message mới được lưu thành blob git; `GIT_SEQUENCE_EDITOR='git cat-file blob <oid> >"$1"'` cài todo, reword/squash/edit dùng `exec git cat-file blob … | git commit --amend -F -`. Không có đường dẫn file trong lệnh nên an toàn với dấu cách và tiếng Việt (có test trong thư mục `thư mục có dấu cách`); rebase dừng giữa chừng vẫn tiếp tục được từ terminal. Chặn khoảng có merge commit (kèm giải thích), tối đa 2000 commit.
+- **Undo/Redo:** journal `.git/nanomgg/undo.json` theo worktree; nguồn chính là reflog HEAD (nên thao tác từ terminal cũng undo được): commit, amend, reset, checkout, merge, rebase (cả cụm là 1 bước), cherry-pick, revert, pull. App tự ghi thêm tạo/xóa/đổi tên nhánh và fast-forward nhánh không checkout (giữ SHA + upstream để khôi phục nhánh đã xóa). Commit/amend undo bằng `reset --soft`, còn lại `reset --keep` (không bao giờ ghi đè thay đổi chưa commit); chỉ chạy khi repo đúng trạng thái "sau"; thao tác đã push phải xác nhận.
+- **UI:** hộp thoại rebase (danh sách commit sẽ viết lại, cảnh báo đã push/bẩn); hộp thoại interactive rebase (kéo tay nắm hoặc Alt+↑/↓, chọn pick/reword/squash/fixup/drop/edit, sửa message tại dòng, cột "Kết quả" xem trước); banner "Rebase bước i/n" với Hủy / Bỏ qua commit này / Tiếp tục; Undo/Redo trên toolbar có tooltip mô tả, `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` (không bắt trong ô nhập, Monaco, terminal, dialog); kéo nhánh (sidebar hoặc nhãn trên graph — hit-test dùng chung code vẽ) thả lên nhánh khác → Fast-forward / Merge / Rebase. Kéo bằng pointer events vì HTML5 DnD bị Tauri chặn trên Windows. Mục menu + palette "Rebase … lên đây", "Interactive rebase từ đây…".
+
+**3.2 — Conflict editor, file history, blame, image diff ✅ (2026-10-15)**
+- **git-engine:** `conflict` (đọc stage 1/2/3 + file có marker, gồm `diff3`/`zdiff3`; xác định ours/theirs đúng theo merge / squash / rebase / cherry-pick / revert / stash / `am`; ghi kết quả giữ CRLF/BOM rồi `add`; lấy nguyên một phía bằng `checkout --ours/--theirs` hoặc `git rm` khi phía đó đã xóa), `blob` (đọc blob nhị phân có giới hạn; LFS đọc thẳng kho object cục bộ — không gọi mạng, không bật hỏi mật khẩu), `file_history` (`--follow`, phân trang), `blame` (`--porcelain`, tại revision hoặc working tree), `diff::image_pair`.
+- **UI:** conflict editor 3 khung (Của tôi / Của họ chỉ đọc, Kết quả sửa được) với nút theo khối (lấy của tôi / của họ / cả hai theo 2 thứ tự / base), điều hướng + đếm khối, cảnh báo còn marker khi lưu, tự mở file xung đột tiếp theo; nhãn giải thích rõ ours/theirs bị **đảo** khi rebase. Xung đột nhị phân/LFS và modify/delete: 2 thẻ với dung lượng, xem trước ảnh, nút giữ một phía. Image diff: Song song / Trượt / Chồng mờ, kích thước pixel + dung lượng, ảnh LFS hiện nội dung thật + thông tin pointer + "Tải file này" khi thiếu object. File history, blame (ảo hóa, tô màu theo tuổi, nhóm dòng theo commit, bấm để nhảy tới commit, "blame tại commit cha"), xem file tại commit. Lối vào: menu chuột phải file ở working tree và chi tiết commit, palette.
+- Hạn chế: chỉ nhận marker 7 ký tự mặc định; file không phải UTF-8 chỉ giải quyết bằng cách lấy nguyên một phía; blame chưa tô màu cú pháp.
+
+**3.3 — Submodule, worktree, LFS nâng cao, signing ✅ (2026-10-15)**
+- **Submodule:** sidebar liệt kê cả lồng nhau với trạng thái (chưa tải / đúng commit / lệch commit / có thay đổi / xung đột) và tooltip commit ghi nhận vs đang checkout; tải/cập nhật (tiến độ + Hủy), checkout đúng commit ghi nhận, sync URL, thêm, deinit, xóa, mở thành tab. Tài khoản chọn **theo URL của từng submodule** (URL tương đối → tài khoản của repo cha → rule/binding → tài khoản cùng host → mặc định, kèm cảnh báo khác host).
+- **Worktree:** thêm (nhánh có sẵn / nhánh mới, gợi ý thư mục), mở thành tab, xóa (hỏi `--force` khi còn thay đổi), dọn (xem trước), khóa/mở khóa. 4 `FailureKind` mới có nhãn + hướng dẫn: `checkedOutElsewhere`, `dirtyWorktree`, `worktreeLocked`, `signingFailed`.
+- **LFS:** hộp thoại "Git LFS" 4 tab — File (đã tải / pointer / chưa tải, tải 1 hoặc nhiều file), Khóa (lock / unlock / force unlock có xác nhận, lỗi dịch dễ hiểu; badge 🔒 trong danh sách file, đỏ khi file mình sửa bị người khác khóa), Pattern (bật/tắt `lockable`), Bảo trì (dung lượng kho cục bộ, prune có xem trước, fsck, fetch --all, lối vào Push Guard để chuyển file nặng chưa push sang LFS).
+- **Signing:** resolver inject `commit.gpgsign` / `gpg.format` / `user.signingkey` từ identity; form identity chọn khóa GPG (liệt kê bằng gpg mà git dùng) hoặc khóa SSH của tài khoản / file `.pub`, nút **Thử ký**. Chi tiết commit có dòng Chữ ký (Đã xác minh / Khóa chưa tin cậy / Sai / …); SSH được kiểm bằng file `allowed_signers` app tự sinh từ các identity ký SSH. Tag annotated tạo trong app ký bằng `git tag -s` (không inject `tag.gpgSign` vì nó biến mọi tag thường thành tag cần message).
+- Hạn chế: lock LFS mới test phần đọc/phân loại lỗi (test server không có lock API) — cần thử với GitHub/GitLab thật; chưa upload SSH signing key lên provider; submodule riêng tư ở host chưa có tài khoản sẽ lỗi đăng nhập (UI có cảnh báo).
+
+**3.4 — Tích hợp & kiểm chứng end-to-end ✅ (2026-10-15)** (bản release, Windows 10, điều khiển qua CDP, repo thử `.agent/test-repos/p3-e2e` có submodule + remote; DB thật được sao lưu trước và khôi phục sau)
+- Đã bấm thử trên app thật: image diff (Song song / Chồng mờ); commit → `Ctrl+Z` (thay đổi quay lại vùng Staged) → `Ctrl+Shift+Z` (trả lại đúng commit cũ, cùng hash); merge có xung đột → conflict editor → "Lấy cả hai" → Lưu → Tiếp tục → Undo merge; interactive rebase (đổi thứ tự + reword message tiếng Việt, có backup ref) → Undo; kéo `topic` thả lên `main` → Rebase; sidebar Submodules/Worktrees; thêm worktree cho `conf` rồi checkout `conf` ở repo chính → thông báo "nhánh đang checkout ở worktree khác" kèm cách sửa; hộp thoại Git LFS; file history; blame; badge chữ ký SSH ("Khóa chưa tin cậy").
+- **Lỗi phát hiện và đã sửa khi kiểm chứng:**
+  - Toolbar **nhân đôi nhóm nút** Fetch/Pull/Push/Branch mỗi lần chuyển tab: `RemoteButtons` và `UndoButtons` (mới) cùng cấp và cùng `key = repo id`. Đổi sang key có tiền tố, và sửa luôn cặp trùng có từ trước trong `AppShell` (`DiffView`/`WorkingTreePanel`). Có test `Toolbar.test.tsx`.
+  - **Màn hình trắng** khi mở conflict editor: CSS bản release bị minify `#FFFFFF` → `#fff`, Monaco không nhận hex rút gọn nên sập khi dựng theme. Lỗi này làm sập **mọi** editor Monaco ở theme Light trên bản release, không riêng conflict editor. Đã chuẩn hóa màu (`features/diff/color.ts`, có test), và thêm `ViewErrorBoundary` cho vùng giữa: lỗi hiển thị giờ chỉ hiện thông báo + nút Đóng thay vì làm trắng cả cửa sổ.
+  - Graph vẽ lại **commit cũ từ backup ref** (`refs/nanomgg/backup/*`) sau rebase, và lần refresh tăng dần còn chèn chúng lên đầu làm rối lane: `git log --all` giờ có `--exclude=refs/nanomgg/*` (có test).
+  - Test `ImportWizard.test.tsx` chưa cập nhật theo trường `reauth` của bước 2.9.
+- **Test cuối:** Rust toàn workspace qua (git-engine 163, app 80, lfs 35 + 2 tích hợp…), clippy `-D warnings`, rustfmt; frontend 491 test / 73 file, typecheck, eslint, prettier sạch. Bộ cài: `target/release/bundle/nsis/NANOMultipleGitGUI_0.0.1_x64-setup.exe` (6,5 MB), `…/msi/…msi` (10 MB).
+- **Vấn đề có từ trước (chưa sửa):** test `terminal::tests::close_all_and_vanished_ui_end_sessions` treo vô thời hạn trên máy dev (binary build từ code trước Phase 3 cũng treo y hệt). Chạy riêng phần "UI biến mất" thì qua; chỉ treo khi ngay trước đó vừa đóng 2 phiên ConPTY: lần spawn thứ ba mất ~12 s và tiến trình con không bao giờ xuất output. Có thể ứng với lỗi thật (mở terminal mới sau khi đóng hết terminal có thể bị treo trên Windows 10) — cần điều tra riêng; tạm chạy test app với `--skip terminal::tests::close_all_and_vanished_ui_end_sessions`.
+- Chưa kiểm chứng trên app thật: signing qua form identity (chỉ có test tự động: commit ký SSH → `G`), lock LFS với server thật, submodule qua mạng với tài khoản.
+
+### Phase 3B — Trải nghiệm cho người mới (3–4 tuần)
+App nhắm tới cả dev mới học git: mọi chỗ phải nói rõ "chuyện gì xảy ra" và "bấm gì để sửa", không bắt người dùng đọc log hay gõ lệnh.
+
+**3B.1 — Tự quét & đồng bộ tài khoản từ `gh` / `glab` CLI**
+- Hiện trạng (bước 2.3): wizard nhập cấu hình đọc *tên* tài khoản trong `hosts.yml` của gh/glab nhưng **không lấy token**, nên người dùng vẫn phải đăng nhập lại từng tài khoản.
+- Làm thêm:
+  - Quét khi khởi động (và nút "Quét lại" trong Quản lý tài khoản): liệt kê mọi tài khoản đã `gh auth login` / `glab auth login` trên máy, kể cả nhiều tài khoản cùng host (gh ≥ 2.40 hỗ trợ nhiều tài khoản/host).
+  - Tài khoản chưa có trong app hiện thẻ "Tìm thấy N tài khoản đã đăng nhập bằng CLI — Thêm vào app" (chọn từng cái).
+  - **Chỉ khi người dùng bấm đồng ý** mới lấy token: `gh auth token --hostname <h> --user <u>` / `glab config get token --host <h>` (token có thể nằm trong keyring hệ điều hành, CLI tự đọc). Token lấy về được kiểm tra scope như PAT (§4.2), lưu vào keychain của app (không sửa gì cấu hình của gh/glab), ghi nguồn `auth_method = imported_cli`.
+  - Thiếu scope (ví dụ gh mặc định không có `workflow`) thì báo rõ và gợi ý `gh auth refresh -s workflow` hoặc đăng nhập lại bằng device flow trong app.
+  - Đồng bộ hai chiều *không* làm: app không ghi ngược vào gh/glab. Token gh bị thu hồi thì app báo "cần đăng nhập lại" như mọi tài khoản khác.
+- Sau khi thêm, tài khoản dùng được ngay trong account pill / switcher / `Ctrl+Alt+1..9`, thay vì phải gõ `gh auth switch`.
+
+**3B.2 — Onboarding từng bước lần đầu chạy**
+1. **Welcome:** logo, giới thiệu NANOMultipleGitGUI là dự án open-source (Apache-2.0) do **NANO Pret** phát triển, link repo GitHub, chọn ngôn ngữ + theme.
+2. **Kiểm tra công cụ:** quét git (≥ 2.35), git-lfs (≥ 3.0), OpenSSH, (tùy chọn) gh/glab CLI, WebView2 (Windows). Mỗi mục hiện ✅/⚠️/❌ kèm phiên bản.
+   - Thiếu thì có nút **[Mở trang tải chính thức]** (git-scm.com, git-lfs.com, cli.github.com…) và, nếu được, **[Cài giúp tôi]** 1 click: Windows dùng `winget install --id Git.Git -e` / `GitHub.GitLFS`, macOS dùng `xcode-select --install` hoặc `brew install git-lfs`. Cài xong bấm "Kiểm tra lại". Không cho qua bước sau khi thiếu git (bắt buộc); git-lfs chỉ cảnh báo.
+3. **Tài khoản:** nhập từ CLI (3B.1) / `.gitconfig` / `.ssh` (wizard có sẵn) hoặc đăng nhập mới.
+4. **Hoàn tất:** tóm tắt; nút [Mở repo] / [Clone] / [Đóng].
+- Chạy lại được từ Settings → "Chạy lại hướng dẫn ban đầu". Bỏ qua được nhưng ghi nhớ bước nào chưa xong.
+- Trình cài đặt NSIS/MSI giữ đơn giản (cài vào `%LOCALAPPDATA%`, cuối có "Mở NANOMultipleGitGUI ngay"); việc kiểm tra công cụ nằm trong app vì installer không nên tự cài phần mềm khác.
+
+**3B.3 — Thư mục dữ liệu tùy chỉnh (log, cache, dữ liệu)**
+- Settings → "Lưu trữ": liệt kê từng loại thư mục với **dung lượng đang dùng**, đường dẫn, nút [Mở thư mục] / [Đổi…] / [Về mặc định]:
+  | Loại | Mặc định (Windows) | Xóa thì sao |
+  |---|---|---|
+  | Log | `%LOCALAPPDATA%\<id>\logs` | Không ảnh hưởng; chỉ mất lịch sử để gửi báo lỗi |
+  | Cache (danh sách repo, avatar, graph) | `%LOCALAPPDATA%\<id>\cache` | Không mất dữ liệu; lần mở sau chậm hơn một chút vì tải lại |
+  | Dữ liệu app (SQLite, SSH key do app tạo) | `%APPDATA%\<id>` | **Mất tài khoản, rule, binding, key** — chỉ cho đổi vị trí, không có nút xóa; token vẫn nằm trong keychain |
+  | Thư mục clone mặc định | theo tài khoản | Là code của người dùng — app không bao giờ xóa |
+- Đổi đường dẫn: kiểm tra quyền ghi + dung lượng trống, **di chuyển dữ liệu cũ** sang (có tiến độ), ghi vị trí mới vào một file trỏ nhỏ ở vị trí mặc định (để lần khởi động sau tìm thấy). Dữ liệu app chỉ đổi được khi app khởi động lại.
+- Nút **[Xóa toàn bộ cache]** và **[Xóa log cũ]** có hộp thoại nói rõ hậu quả như bảng trên.
+- Cảnh báo khi ổ chứa dữ liệu app còn < 1 GB.
+
+**3B.4 — Check for Update theo bản phát hành trên GitHub**
+- `tauri-plugin-updater` đọc `https://github.com/<owner>/<repo>/releases/latest/download/latest.json` (chỉ bản **đã Publish**, không tính draft/pre-release; kênh beta đọc file riêng).
+- Kiểm tra khi khởi động (tối đa 1 lần/ngày) + menu "Kiểm tra cập nhật"; có bản mới thì hiện phiên bản, ghi chú phát hành, nút [Cập nhật & khởi động lại] / [Để sau] / [Bỏ qua bản này].
+- Gói cập nhật ký bằng khóa minisign của Tauri (§8.4); `release.yml` bật `uploadUpdaterJson`.
+- Hướng dẫn cho maintainer: `docs/RELEASING.md` (đã viết — các bước tạo khóa ký, đặt secret, đánh version, tag, publish).
+
+**3B.5 — Layout co giãn ở mọi kích thước cửa sổ**
+- Lỗi hiện tại: thu nhỏ cửa sổ thì một số nút bị che/mất, không chỉnh được bề rộng các panel.
+- Làm: sidebar / graph / panel phải **kéo chia được** (resizable panels, nhớ kích thước theo cửa sổ), có thể thu gọn sidebar và panel phải về dạng icon; toolbar tự dồn nút thừa vào menu "⋯" khi hẹp; dialog có thanh cuộn thay vì tràn; kiểm tra tại kích thước tối thiểu 960×600 và ở 125–150% scale của Windows.
+- Test: snapshot ở 3 kích thước (960×600, 1280×800, 1920×1080) bảo đảm mọi nút chính đều nhìn thấy và bấm được.
 
 ### Phase 4 — Tích hợp provider (4–6 tuần)
 - PR/MR: danh sách, tạo, review, comment, checkout, merge.

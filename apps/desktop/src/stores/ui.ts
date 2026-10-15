@@ -3,9 +3,19 @@ import type { ResolvedTheme } from "@/theme/theme";
 
 export type View = "workspace" | "palette";
 
+export interface NoticeAction {
+  label: string;
+  run: () => void;
+}
+
 export interface Notice {
   kind: "error" | "info";
   message: string;
+  /** What to do about it, in plain words (for users new to git). */
+  hint?: string;
+  /** Raw output (git's stderr), shown collapsed. */
+  detail?: string;
+  actions?: NoticeAction[];
 }
 
 /** Pending `git init` confirmation: for a folder that is not a repo, or a brand-new repo. */

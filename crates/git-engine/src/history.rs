@@ -225,6 +225,7 @@ impl RepoGraph {
                 "log.showSignature=false",
                 "log",
                 "--exclude=refs/stash",
+                "--exclude=refs/nanomgg/*",
                 "--all",
                 "--topo-order",
                 "-z",
@@ -434,6 +435,19 @@ mod tests {
             (RefreshKind::Full, 2)
         );
         assert!(g.commits.iter().all(|c| c.subject != "c"));
+    }
+
+    #[test]
+    fn backup_refs_of_rewritten_history_are_not_drawn() {
+        let r = Repo::new();
+        r.commit("a");
+        r.commit("old b");
+        r.run(&["update-ref", "refs/nanomgg/backup/1700000000", "HEAD"]);
+        r.run(&["reset", "-q", "--hard", "HEAD~1"]);
+        r.commit("new b");
+        let g = RepoGraph::load(&r.git, r.dir.path()).unwrap();
+        let subjects: Vec<_> = g.commits.iter().map(|c| c.subject.as_str()).collect();
+        assert_eq!(subjects, ["new b", "a"]);
     }
 
     #[test]
