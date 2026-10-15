@@ -21,7 +21,8 @@
 //!
 //! OAuth apps are public clients: the client id comes from the provider row (editable in the
 //! UI) or, for github.com / gitlab.com, from `NANOMGG_GITHUB_OAUTH_CLIENT_ID` /
-//! `NANOMGG_GITLAB_OAUTH_CLIENT_ID` at build time. Without one the commands fail with
+//! `NANOMGG_GITLAB_OAUTH_CLIENT_ID` at build time (github.com falls back to the project's own
+//! OAuth App, see [`service::builtin_client_id`]). Without one the commands fail with
 //! [`AuthCommandError::MissingClientId`] and the UI offers a PAT instead.
 //!
 //! [`account_store_tokens`]: crate::accounts::commands::account_store_tokens

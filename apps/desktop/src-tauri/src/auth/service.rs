@@ -67,18 +67,23 @@ pub fn endpoint_for(provider: &Provider) -> AuthResult<ProviderEndpoint> {
     )?)
 }
 
-/// Client id compiled into the app for github.com / gitlab.com (none until the project
-/// registers its OAuth apps, PLAN §9).
+/// Client id of the project's GitHub OAuth App (Device Flow, no client secret). Public by
+/// design, like GitHub CLI's; `NANOMGG_GITHUB_OAUTH_CLIENT_ID` overrides it at build time.
+const GITHUB_OAUTH_CLIENT_ID: &str = "Ov23lirK8fusz6ufwm2z";
+
+/// Client id compiled into the app for github.com / gitlab.com (GitLab: none until the project
+/// registers its OAuth app, PLAN §9).
 pub fn builtin_client_id(provider: &Provider) -> Option<&'static str> {
     if !provider.builtin {
         return None;
     }
-    let id = match provider.kind {
-        AccountProviderKind::Github => option_env!("NANOMGG_GITHUB_OAUTH_CLIENT_ID"),
-        AccountProviderKind::Gitlab => option_env!("NANOMGG_GITLAB_OAUTH_CLIENT_ID"),
+    let non_empty = |id: Option<&'static str>| id.filter(|s| !s.trim().is_empty());
+    match provider.kind {
+        AccountProviderKind::Github => non_empty(option_env!("NANOMGG_GITHUB_OAUTH_CLIENT_ID"))
+            .or(Some(GITHUB_OAUTH_CLIENT_ID)),
+        AccountProviderKind::Gitlab => non_empty(option_env!("NANOMGG_GITLAB_OAUTH_CLIENT_ID")),
         _ => None,
-    };
-    id.filter(|s| !s.trim().is_empty())
+    }
 }
 
 /// The provider's own client id, else the built-in one.

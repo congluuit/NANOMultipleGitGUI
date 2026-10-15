@@ -34,6 +34,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm --filter @nanomgg/desktop build
+      - run: pnpm --filter @nanomgg/installer build
 
   rust:
     name: Rust (${{ matrix.os }})

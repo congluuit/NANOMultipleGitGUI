@@ -1,6 +1,6 @@
 # Phát hành bản mới (dành cho maintainer)
 
-Tài liệu này hướng dẫn cách đưa một bản mới lên GitHub Releases để người dùng tải về, và để app của người dùng tự thấy bản mới và cập nhật (**Check for Update**, PLAN 3B.4).
+Tài liệu này hướng dẫn cách đưa một bản mới lên GitHub Releases để người dùng tải về, và để app của người dùng tự thấy bản mới và cập nhật (**Check for Update**; xem [Knowledge Base](../PLAN.md#8-build-đóng-gói-và-cập-nhật)).
 
 ## Phát hành nhanh (tóm tắt)
 
@@ -62,6 +62,10 @@ Thiếu secret hoặc variable thì release vẫn build như cũ (không có `.s
 
 > **Windows ký qua SignPath** (`SIGNPATH_ENABLED=true`): bộ cài được SignPath ký **sau** khi bundle, làm đổi nội dung file, nên `.sig` được tạo lại từ bộ cài đã ký cuối cùng (`tauri signer sign`) rồi job `windows-updater-json` thêm mục `windows-x86_64` (NSIS), `windows-x86_64-nsis`, `windows-x86_64-msi` vào `latest.json` sau khi mọi job build xong. Nếu job này lỗi, xem mục C.
 
+### A2b. Ký số Windows (SignPath Foundation)
+
+Khi đơn SignPath Foundation được duyệt, làm theo [SIGNPATH.md](SIGNPATH.md): tạo artifact configuration `app-exe` / `installers`, API token, rồi thêm các biến `SIGNPATH_*` và bật `SIGNPATH_ENABLED=true`. Chưa bật thì bản Windows vẫn được phát hành, chỉ là chưa ký.
+
 ### A3. Thử trên máy (không bắt buộc)
 
 File `.env` ở thư mục gốc (đã git-ignore) được `build.rs` đọc khi build cục bộ:
@@ -101,7 +105,7 @@ NANOMGG_UPDATER_PUBKEY=dW50cnVzdGVk...  # nội dung file .pub
    ```
    > Push file trong `.github/workflows/` cần token có quyền `workflow`. Trong NANOMultipleGitGUI, tài khoản GitHub đăng nhập từ bản 2.9 trở đi đã có sẵn quyền này; tài khoản cũ hãy "Đăng nhập lại" một lần.
 5. **Chờ CI:** tab **Actions → Release** build Windows, macOS, Linux (khoảng 15–25 phút) rồi đính kèm file vào bản **draft** `NANOMultipleGitGUI 0.2.0`.
-6. **Kiểm tra draft:** tải thử bộ cài, xem `SHA256SUMS.txt`; khi đã bật updater (A2) phải có `latest.json` và các file `.sig`. Mở `latest.json` xem có đủ `windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64` và `notes` đúng.
+6. **Kiểm tra draft:** tải thử bộ cài (trên Windows nên thử `NANOMultipleGitGUI_<version>_x64_Installer.exe`, bộ cài từng bước mà trang Release giới thiệu đầu tiên), xem `SHA256SUMS.txt`; khi đã bật updater (A2) phải có `latest.json` và các file `.sig`. Mở `latest.json` xem có đủ `windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64` và `notes` đúng.
 7. **Publish:** trên trang Releases, mở draft → sửa ghi chú nếu cần → **Publish release**.
    - **Bản stable:** để nguyên "Set as the latest release". Từ lúc này mọi app (kênh stable và beta) thấy bản mới.
    - **Bản beta** (`0.3.0-beta.1`): tick **Set as a pre-release**. Kênh stable không thấy. Ngay khi Publish, job `beta-channel` của `release.yml` chép `latest.json` của bản này sang pre-release cố định **`updater-beta`** (tự tạo lần đầu) — kênh beta đọc `releases/download/updater-beta/latest.json`. Đừng xóa release/tag `updater-beta`.

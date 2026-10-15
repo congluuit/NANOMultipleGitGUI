@@ -6,7 +6,7 @@ NANOMultipleGitGUI handles access tokens, SSH keys and credentials for several G
 
 **Please do not open a public issue for security problems.**
 
-Report privately through GitHub: open the repository's **Security** tab → **Report a vulnerability** (GitHub private vulnerability reporting). Include:
+Report privately through GitHub: open the repository's **Security** tab → **Report a vulnerability** (GitHub private vulnerability reporting), or email the maintainer, Cong Luu, at cong.luu.it@gmail.com. Include:
 
 - affected version / commit and operating system,
 - steps to reproduce or a proof of concept,

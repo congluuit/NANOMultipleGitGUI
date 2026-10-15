@@ -3086,6 +3086,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nanomgg-setup"
+version = "1.0.0"
+dependencies = [
+ "semver",
+ "serde",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "windows-registry",
+]
+
+[[package]]
 name = "nanomgg-ssh-keys"
 version = "1.0.0"
 dependencies = [

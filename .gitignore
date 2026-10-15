@@ -36,6 +36,7 @@ target/
 # Tauri generated files
 # ---------------------------------------------------------------------------
 apps/desktop/src-tauri/gen/schemas/
+apps/installer/src-tauri/gen/
 
 # ---------------------------------------------------------------------------
 # Secrets & local environment (never commit tokens or signing keys)

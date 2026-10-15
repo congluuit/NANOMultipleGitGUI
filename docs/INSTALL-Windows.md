@@ -7,15 +7,16 @@ Yêu cầu: Windows 10 hoặc 11, 64-bit (x64). WebView2 có sẵn trên Windows
 
 ## 1. Chọn bộ cài
 
-| File                                           | Dùng khi                                                                            |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `NANOMultipleGitGUI_<phiên bản>_x64-setup.exe` | **Khuyến nghị.** Cài cho tài khoản Windows hiện tại, không cần quyền Administrator. |
-| `NANOMultipleGitGUI_<phiên bản>_x64_en-US.msi` | Triển khai trong doanh nghiệp (Group Policy, Intune…).                              |
+| File                                               | Dùng khi                                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `NANOMultipleGitGUI_<phiên bản>_x64_Installer.exe` | **Khuyến nghị.** Bộ cài từng bước (chào mừng → giấy phép → thư mục → cài → hoàn tất), không cần quyền Administrator. |
+| `NANOMultipleGitGUI_<phiên bản>_x64-setup.exe`     | Bộ cài cổ điển (NSIS), hỗ trợ cài im lặng `/S`. Kết quả cài giống hệt bộ cài từng bước.                              |
+| `NANOMultipleGitGUI_<phiên bản>_x64_en-US.msi`     | Triển khai trong doanh nghiệp (Group Policy, Intune…).                                                               |
 
 (Tùy chọn) Kiểm tra toàn vẹn file trong PowerShell:
 
 ```powershell
-Get-FileHash .\NANOMultipleGitGUI_*_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\NANOMultipleGitGUI_*_x64_Installer.exe -Algorithm SHA256
 ```
 
 So kết quả với dòng tương ứng trong `SHA256SUMS.txt`.
@@ -25,15 +26,16 @@ So kết quả với dòng tương ứng trong `SHA256SUMS.txt`.
 Trong thời gian chờ chương trình ký số miễn phí cho dự án mã nguồn mở (SignPath Foundation) duyệt, bộ cài **chưa được ký số**, nên Microsoft Defender SmartScreen sẽ cảnh báo:
 
 1. Bấm **More info** (Thông tin thêm).
-2. Kiểm tra dòng _App_ là `NANOMultipleGitGUI_..._x64-setup.exe`.
+2. Kiểm tra dòng _App_ là tên file bạn vừa tải (`NANOMultipleGitGUI_..._x64_Installer.exe`).
 3. Bấm **Run anyway** (Vẫn chạy).
 
 Kể cả khi đã được ký, SmartScreen vẫn có thể cảnh báo ở vài bản đầu cho tới khi chứng chỉ tích lũy đủ "uy tín". Khi đó, chứng chỉ sẽ đứng tên **SignPath Foundation** (đặc điểm của chương trình ký số cho dự án mã nguồn mở).
 
 ## 3. Cài đặt
 
-Chạy bộ cài và làm theo hướng dẫn. Mặc định app được cài vào
-`%LOCALAPPDATA%\NANOMultipleGitGUI` và tạo shortcut trong Start Menu.
+Mở `_x64_Installer.exe` và làm theo 5 bước: chọn ngôn ngữ, đồng ý giấy phép, chọn thư mục (mặc định
+`%LOCALAPPDATA%\NANOMultipleGitGUI`) và có tạo lối tắt Desktop hay không, chờ cài, rồi bấm **Hoàn tất** để mở app.
+Lối tắt trong Start Menu luôn được tạo. Nếu máy đã có bản cũ, bộ cài cập nhật tại chỗ và giữ nguyên dữ liệu.
 
 ## 4. Câu hỏi thường gặp
 
@@ -59,26 +61,27 @@ Requirements: Windows 10 or 11, 64-bit (x64). WebView2 ships with Windows 10/11;
 
 ## 1. Pick an installer
 
-| File                                         | Use it when                                                        |
-| -------------------------------------------- | ------------------------------------------------------------------ |
-| `NANOMultipleGitGUI_<version>_x64-setup.exe` | **Recommended.** Per-user install, no administrator rights needed. |
-| `NANOMultipleGitGUI_<version>_x64_en-US.msi` | Enterprise deployment (Group Policy, Intune…).                     |
+| File                                             | Use it when                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `NANOMultipleGitGUI_<version>_x64_Installer.exe` | **Recommended.** Step-by-step installer (welcome → license → folder → install → done), no administrator rights needed. |
+| `NANOMultipleGitGUI_<version>_x64-setup.exe`     | Classic NSIS installer, supports silent `/S` installs. Same result as the step-by-step installer.                      |
+| `NANOMultipleGitGUI_<version>_x64_en-US.msi`     | Enterprise deployment (Group Policy, Intune…).                                                                         |
 
-(Optional) Verify the download in PowerShell with `Get-FileHash .\NANOMultipleGitGUI_*_x64-setup.exe -Algorithm SHA256` and compare with `SHA256SUMS.txt`.
+(Optional) Verify the download in PowerShell with `Get-FileHash .\NANOMultipleGitGUI_*_x64_Installer.exe -Algorithm SHA256` and compare with `SHA256SUMS.txt`.
 
 ## 2. "Windows protected your PC" (SmartScreen)
 
 While the project's application to the free SignPath Foundation code-signing program for open source is pending, installers are **unsigned** and SmartScreen warns:
 
 1. Click **More info**.
-2. Check that _App_ reads `NANOMultipleGitGUI_..._x64-setup.exe`.
+2. Check that _App_ is the file you downloaded (`NANOMultipleGitGUI_..._x64_Installer.exe`).
 3. Click **Run anyway**.
 
 Even once signed, SmartScreen may still warn for the first few releases until the certificate builds reputation. The certificate publisher will read **SignPath Foundation**, as is standard for that program.
 
 ## 3. Install
 
-Run the installer and follow the steps. By default the app goes to `%LOCALAPPDATA%\NANOMultipleGitGUI` with a Start Menu shortcut.
+Open `_x64_Installer.exe` and follow the five steps: pick a language, accept the license, choose the folder (default `%LOCALAPPDATA%\NANOMultipleGitGUI`) and whether to add a desktop shortcut, wait for the install, then click **Finish** to open the app. A Start Menu shortcut is always created. If an older version is installed, it is updated in place and your data is kept.
 
 ## 4. FAQ
 

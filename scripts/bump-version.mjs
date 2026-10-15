@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Sets the app version everywhere it is declared: pnpm release:version 0.2.0
-// (root and desktop package.json — Tauri reads the latter — and the Cargo workspace version).
+// (root, desktop and installer package.json — Tauri reads the desktop one — and the Cargo
+// workspace version).
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -13,7 +14,7 @@ if (!version || !/^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/.test(version)) {
   process.exit(1);
 }
 
-for (const file of ["package.json", "apps/desktop/package.json"]) {
+for (const file of ["package.json", "apps/desktop/package.json", "apps/installer/package.json"]) {
   const path = join(root, file);
   const json = JSON.parse(readFileSync(path, "utf8"));
   json.version = version;

@@ -1,347 +1,217 @@
 <p align="center">
-  <img src="apps/desktop/public/logo.png" width="96" height="96" alt="NANOMultipleGitGUI logo" />
+  <img src="apps/desktop/public/logo.png" width="96" height="96" alt="NANO Multiple Git GUI logo" />
 </p>
 
 <h1 align="center">NANO Multiple Git GUI</h1>
 
 <p align="center">
-  A free, open-source Git app for Windows, macOS and Linux that handles <b>many GitHub and GitLab accounts at the same time</b> — without mixing them up.
+  <b>Your repositories. Your accounts. The right identity, together.</b><br />
+  An open-source Git desktop app for working across personal, work and team accounts.<br />
+  GitHub and GitLab, side by side, on Windows, macOS and Linux.
 </p>
 
 <p align="center">
-  <a href="https://github.com/congluuit/NANOMultipleGitGUI/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/congluuit/NANOMultipleGitGUI?label=download&color=237A35" /></a>
-  <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-E8590C" />
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-1A68B0" />
-  <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2-FF8A3D" />
+  <a href="https://github.com/congluuit/NANOMultipleGitGUI/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/congluuit/NANOMultipleGitGUI?style=flat-square&amp;color=E8793E" /></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-537A5A?style=flat-square" /></a>
+  <img alt="Windows, macOS, Linux" src="https://img.shields.io/badge/Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-desktop-496B91?style=flat-square" />
+  <img alt="Tauri 2, Rust, React" src="https://img.shields.io/badge/Tauri%202-Rust%20%2B%20React-806298?style=flat-square" />
 </p>
 
 <p align="center">
-  <a id="english"></a><b>English</b> · <a href="#tiếng-việt">Tiếng Việt</a>
+  <a href="https://github.com/congluuit/NANOMultipleGitGUI/releases"><b>Download</b></a> ·
+  <a href="#features">Features</a> ·
+  <a href="#get-started">Get started</a> ·
+  <a href="#development">Development</a> ·
+  <a href="PLAN.md">Knowledge Base</a> ·
+  <a href="#tiếng-việt">Tiếng Việt</a>
 </p>
 
----
+<p align="center">
+  <img src="docs/images/account-context.svg" width="100%" alt="Personal GitHub, work GitHub and self-hosted GitLab repositories keep separate account contexts for commit identity, HTTPS credentials, SSH keys and LFS." />
+  <br />
+  <sub>How account context connects your repositories and identities. Concept diagram, not an app screenshot.</sub>
+</p>
 
-## Why NANOMultipleGitGUI?
+<table>
+  <tr>
+    <td width="25%" valign="top">
+      <h3>👥 Accounts together</h3>
+      Keep several GitHub and GitLab accounts signed in, including enterprise and self-hosted instances.
+    </td>
+    <td width="25%" valign="top">
+      <h3>🧭 Identity per repo</h3>
+      Bind each repository to an account, or let folder and remote rules choose for you.
+    </td>
+    <td width="25%" valign="top">
+      <h3>📦 Large files, covered</h3>
+      Check large files before committing and manage Git LFS transfers with progress and cancellation.
+    </td>
+    <td width="25%" valign="top">
+      <h3>🔐 Local by design</h3>
+      Keep app data on your machine and credentials in the OS keychain. No telemetry.
+    </td>
+  </tr>
+</table>
 
-Many people use more than one Git account: one for work, one for personal projects, maybe one for a client. Most Git apps only let you sign in to one account per service, which leads to everyday problems:
+## Why NANO GUI?
 
-- commits made with your personal email in a company repository (or the other way round),
-- pushes rejected because the wrong account was used,
-- hours spent editing SSH or credential settings by hand.
+A work repository and a personal project can live on the same Git host while needing different credentials, SSH keys and commit emails. Keeping those choices in sync should be part of the workflow.
 
-**NANOMultipleGitGUI remembers which account each repository belongs to** and uses the right name, email, password/token and SSH key for every action — clone, commit, push and large files. You always see "who you are" before you commit or push, and the app warns you before a mistake happens.
-
-## Download
-
-Get the latest version from **[GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases/latest)**.
-
-| Your computer                             | File to download                         |
-| ----------------------------------------- | ---------------------------------------- |
-| Windows 10 / 11                           | `NANOMultipleGitGUI_x.y.z_x64-setup.exe` |
-| Windows (company / IT deployment)         | `NANOMultipleGitGUI_x.y.z_x64_en-US.msi` |
-| macOS 11 or later (Apple Silicon & Intel) | `NANOMultipleGitGUI_x.y.z_universal.dmg` |
-| Linux                                     | `.AppImage`, `.deb` or `.rpm`            |
-
-**First launch:** the app is free and not yet code-signed, so your system may ask for confirmation once.
-
-- **Windows:** if "Windows protected your PC" appears, click **More info → Run anyway**. Step-by-step: [docs/INSTALL-Windows.md](docs/INSTALL-Windows.md).
-- **macOS:** right-click the app → **Open**, or allow it in **System Settings → Privacy & Security**. Step-by-step: [docs/INSTALL-macOS.md](docs/INSTALL-macOS.md).
-
-You need [Git](https://git-scm.com/downloads) installed. If it is missing, the first-run setup checks for it and can install it for you.
+**NANO Multiple Git GUI makes the account part of the repository context.** See the active identity, switch it when needed, and use Commit Guard and Push Guard to catch mismatches before continuing. Your repositories share one workspace while keeping their account settings distinct.
 
 ## Features
 
-### Many accounts, zero mix-ups
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Use the account you mean to use</h3>
+      Sign in through a browser or a personal access token. Bind accounts per repository or remote, match them by rules, and override the account for an individual commit or push. Create, import and upload SSH keys from the app.
+      <br /><br />
+      Commit Guard and Push Guard surface identity and access problems before an operation. Browser sign-in requires an OAuth client ID configured for the provider; PAT sign-in is available without one.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Read the history. Shape the next commit.</h3>
+      Explore a visual commit graph, inspect diffs, and stage files, hunks or individual lines. Follow file history and blame, amend a commit, or resolve conflicts in a three-way editor.
+      <br /><br />
+      Branches, tags, merge, rebase, interactive rebase, cherry-pick, revert, reset, stashes, submodules, worktrees and commit signing are available in the same workspace.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Bring large files along</h3>
+      Large File Guard checks staged files and outgoing history. Track files with Git LFS, inspect transfer estimates, and follow upload and download progress.
+      <br /><br />
+      Pause work by cancelling a transfer, then retry it. LFS uses the selected account context alongside Git. Size limits can be configured for your provider.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Stay close to your team</h3>
+      Browse repositories across accounts, fork and clone, and work with GitHub pull requests or GitLab merge requests: read, comment, review, create, check out and merge.
+      <br /><br />
+      Browse issues, create a branch from an issue, and gather assigned issues and review requests in My Work. Enable CI status when you want it.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Make room for your workflow</h3>
+      Open a terminal with the repository's account context, reach actions through the command palette, and keep tagged personal notes in My Work.
+      <br /><br />
+      Optional AI commit messages support OpenAI, Anthropic, Gemini, OpenAI-compatible endpoints and local Ollama. AI suggestions are off by default.
+    </td>
+    <td width="50%" valign="top">
+      <h3>Make it feel like home</h3>
+      Choose Light, Dark, System or a custom theme, including high-contrast presets. Resize panels and switch between English and Vietnamese.
+      <br /><br />
+      Export account settings or create an encrypted app-data backup. Restore settings on another computer, manage storage locations, and find feature explanations in the built-in Full Guide.
+    </td>
+  </tr>
+</table>
 
-- **Unlimited accounts** on GitHub (github.com and GitHub Enterprise) and GitLab (gitlab.com and self-hosted servers), all signed in at once.
-- **Each repository knows its account** — chosen automatically by rules you set (for example "everything in `D:/Work` or under `github.com/my-company` uses my work account") or picked by hand.
-- **The right name and email on every commit**, set automatically per repository.
-- **Switch accounts in one click**, or use another account for a single commit or push only.
-- **Commit Guard and Push Guard** warn you before committing or pushing with the wrong identity, an unverified email, or an account without access.
-- **Sign in safely**: through your browser or with a personal access token. Passwords and tokens are kept in your system's secure keychain, never in plain text.
-- **SSH keys per account**: create, import and upload keys from the app — no manual configuration files.
-- **Move your accounts to another computer** with an encrypted export file (Account Manager → **Export settings… / Import settings…**). Sign-in tokens are left out unless you choose to include them.
+## Get started
 
-### Everyday Git, made clear
+Download a build from **[GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases)**. The assets attached to each release are the source of truth for available builds and signing status.
 
-- Visual **commit history** (graph) with branches, tags, author avatars and fast search — smooth even with 100,000+ commits.
-- **Stage and commit** whole files, single blocks of changes, or individual lines; amend the last commit; undo changes.
-- **Double-click a branch** in the left panel to switch to it. Unsaved work is set aside automatically (stashed) and brought back when you return to that branch, so nothing is lost.
-- Create, rename, merge, rebase (including drag-and-drop interactive rebase), cherry-pick, revert, reset and tag — from menus or by dragging branches.
-- **Undo / Redo** for recent Git actions.
-- **Fetch, pull and push** with progress and a cancel button; ↑/↓ counters show what still needs to be sent or received; background fetch keeps them up to date.
-- **Conflict editor** that shows "mine", "theirs" and the result side by side, including for images and binary files.
-- **File history, blame** (who changed each line) and "view this file at any commit".
-- Stashes, submodules, worktrees, commit signing (GPG / SSH) with a "Verified" badge.
+| Platform | Package formats                              | Installation guide                         |
+| -------- | -------------------------------------------- | ------------------------------------------ |
+| Windows  | Setup `.exe`, `.msi`                         | [Windows](docs/INSTALL-Windows.md)         |
+| macOS    | Universal `.dmg` for Apple Silicon and Intel | [macOS](docs/INSTALL-macOS.md)             |
+| Linux    | `.AppImage`, `.deb`, `.rpm`                  | Pick the format matching your distribution |
 
-### Large files without surprises
+Unsigned builds may trigger an operating-system warning; see the installation guides for details. Git is required, and Git LFS is needed for LFS workflows. The first-run tool check helps detect missing tools.
 
-- **Large File Guard** warns before you commit a file that GitHub or GitLab would reject, and moves it to **Git LFS** in one click.
-- Push checks catch large files that were already committed but not yet pushed.
-- LFS uploads and downloads show progress, can be cancelled and resume where they stopped.
+1. Add a GitHub or GitLab account, using browser sign-in or a personal access token.
+2. Open a local repository or clone one from your accounts.
+3. Check the account shown for the repository and select its commit identity.
+4. Review changes, stage, commit, then push.
 
-### GitHub and GitLab built in
+## Under the hood
 
-- **Pull requests / merge requests**: list, read, comment, review, create, check out and merge.
-- **Issues**: browse, create, and create a branch from an issue.
-- **Unified clone**: search the repositories of all your accounts in one list.
-- **Fork & clone** with the original repository added automatically.
-- Optional CI status (GitHub Actions, GitLab pipelines).
+A **Tauri 2** desktop shell connects a **React 19 + TypeScript** interface to a **Rust** backend. Git operations run through the system Git CLI, using the repository's account context for identity and authentication.
 
-### Work smarter
+| Area                | Implementation                                             |
+| ------------------- | ---------------------------------------------------------- |
+| Interface           | React, Tailwind CSS, Radix UI, Monaco Editor, xterm.js     |
+| State and IPC       | Zustand, TanStack Query, generated Tauri/Specta bindings   |
+| Git and large files | System Git CLI, Git LFS CLI, per-account credential helper |
+| Local data          | SQLite for app data; OS keychain for secrets               |
+| Localization        | i18next, English and Vietnamese                            |
 
-- **AI commit messages** (optional, off by default): click ✨ next to the commit summary to get a suggested message. Use your own key for OpenAI, Anthropic (Claude), Google Gemini or any OpenAI-compatible service — or run a free model **on your own computer** with Ollama, which the app can install and set up for you (small recommended models included).
-- **My Work** gathers the pull requests waiting for your review, your own pull requests and the issues assigned to you, across every account.
-- **My notes** (inside My Work): a small personal notebook with colored tags (Default, Urgent, WIP, Review, Bug, Idea, Done or your own), priorities, pins and due dates. Export to a file to back them up or move them to another computer.
-- **Built-in terminal** that already uses the repository's account (`` Ctrl+` ``).
-- **Command palette** (`Ctrl+K` / `Cmd+K`) to reach any action by typing.
-
-### Make it yours
-
-- **Light, Dark or follow your system** — plus **custom themes**: two High Contrast themes are included, and you can design your own colors with a live preview and readability checks, then share them as a file.
-- English and Vietnamese interface.
-- Resizable, collapsible panels that adapt to small screens.
-
-### Back up and move to a new computer
-
-- **Full backup**: Settings → **Backup & restore** saves everything in the app (settings, accounts, repository list, themes, notes and, if you want, sign-in tokens and SSH keys) into one password-protected file. Store it on Google Drive, OneDrive or any cloud. On a new computer, restore it and you are ready to go.
-- **Storage management**: choose where logs, cache and app data are kept, clear the cache, and delete your themes or notes from Settings → **Storage**.
-
-### Help when you need it
-
-- A short **getting-started guide** on first launch checks your tools and helps you add accounts.
-- A **Full Guide** in Settings explains every feature in plain language, with a search box.
-- Error messages say what happened and what to click to fix it.
+For the module map, account resolution rules and data flows, read the **[Knowledge Base](PLAN.md)** (Vietnamese). Technical decisions live in [Architecture Decision Records](docs/adr/).
 
 ## Privacy and security
 
-- Everything runs on your computer. The project has **no servers** and collects **no data**; there is no telemetry.
-- Tokens, refresh tokens and SSH passphrases are stored only in your system keychain (Windows Credential Manager, macOS Keychain, Linux Secret Service).
-- The app only connects to the Git servers and GitHub/GitLab accounts you use, to GitHub Releases for updates, and — only if you turn on AI suggestions with a cloud service — to that AI service, sending your staged changes when you click ✨. With Ollama, your code never leaves your computer.
-- Export and backup files are encrypted with your password (Argon2id + XChaCha20-Poly1305).
+The project operates no application servers and currently collects no telemetry. Settings and repository metadata stay on your computer; access tokens, refresh tokens, SSH passphrases and AI API keys use the operating-system keychain.
 
-Details: [PRIVACY.md](PRIVACY.md) · Reporting a vulnerability: [SECURITY.md](SECURITY.md).
+Network access supports your configured Git remotes, provider APIs, avatars, update checks and requested tool downloads. If you enable cloud AI suggestions, requesting a message sends staged changes, the branch name and recent commit titles to the selected service. Ollama can run locally; check the endpoint you configure.
 
-## For developers
+Account exports and app backups use password-based encryption. These back up app data and selected credentials; **they do not replace backups of your Git repositories**.
 
-Built with [Tauri 2](https://tauri.app) (Rust) and React 19 + TypeScript. Git operations use the system Git CLI so hooks, LFS, signing and credentials behave exactly like the command line.
+Read [PRIVACY.md](PRIVACY.md) for data handling and [SECURITY.md](SECURITY.md) to report a vulnerability privately.
 
-### Requirements
+<a id="hướng-dẫn-phát-triển"></a>
 
-| Tool    | Version                                                                                    |
-| ------- | ------------------------------------------------------------------------------------------ |
-| Node.js | 20.19 or later                                                                             |
-| pnpm    | 9.x (`npm install -g pnpm@9` or `corepack enable`)                                         |
-| Rust    | stable 1.90 or later ([rustup](https://rustup.rs))                                         |
-| Git     | 2.35 or later, with Git LFS 3.0 or later                                                   |
-| Windows | Microsoft C++ Build Tools ("Desktop development with C++") and WebView2 (built into 10/11) |
-| macOS   | Xcode Command Line Tools (`xcode-select --install`)                                        |
-| Linux   | System packages from the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)  |
+## Development
 
-### Run, build, check
+| Requirement         | Version / setup                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Node.js             | 20.19 or newer                                                                                                    |
+| pnpm                | 9.15.9, pinned in `package.json`                                                                                  |
+| Rust                | Stable, 1.90 or newer                                                                                             |
+| Git / Git LFS       | Git 2.35+ / Git LFS 3.0+ recommended for the documented workflows                                                 |
+| Native dependencies | C++ Build Tools + WebView2 on Windows; Xcode Command Line Tools on macOS; WebKitGTK and related packages on Linux |
+
+Install the native dependencies described in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/), then:
 
 ```bash
+git clone https://github.com/congluuit/NANOMultipleGitGUI.git
+cd NANOMultipleGitGUI
 pnpm install
-pnpm dev          # run the app with hot reload
-pnpm build        # build the installers for your OS (output: target/release/bundle/)
-pnpm check        # format, lint, typecheck, tests, clippy and Rust tests
+pnpm dev
 ```
 
-Optional build settings (OAuth client IDs, update signing) are described in [.env.example](.env.example). Releasing a new version: [docs/RELEASING.md](docs/RELEASING.md).
-
-### Project layout
-
-```
-apps/desktop/          Tauri app
-  src/                   React + TypeScript frontend (features/, components/, theme/, i18n/)
-  src-tauri/             Rust backend of the app (commands, state, bundle settings)
-crates/                Shared Rust crates
-  git-engine/            runs Git per account, reads history, lays out the graph
-  credentials/           local credential server   credential-helper/  `nanomgg-credential` sidecar
-  accounts/ auth/ providers/ ssh-keys/ lfs/ storage/ logging/ import/ app-paths/ backup/
-tools/test-git-server/ multi-user Git + LFS server used by tests
-docs/                  install guides, release guide, architecture decisions (docs/adr)
+```bash
+pnpm build        # Create desktop bundles for the current OS
+pnpm check        # Formatting, lint, types, frontend tests, Clippy and Rust tests
+pnpm dev:web      # Frontend only; desktop integrations require Tauri
 ```
 
-### Tech stack
+Optional OAuth and update configuration is documented in [.env.example](.env.example). Build output is under `target/release/bundle/`. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [docs/RELEASING.md](docs/RELEASING.md) for releases.
 
-| Layer             | Technology                                                         |
-| ----------------- | ------------------------------------------------------------------ |
-| Desktop shell     | Tauri 2                                                            |
-| Backend           | Rust (Cargo workspace)                                             |
-| Frontend          | React 19, TypeScript, Vite                                         |
-| UI                | Tailwind CSS, Radix UI (shadcn/ui), design tokens in CSS variables |
-| State             | Zustand, TanStack Query                                            |
-| IPC               | Typed Tauri commands, TypeScript types generated with tauri-specta |
-| Git               | System Git CLI (machine-readable output), Git LFS CLI              |
-| Storage           | SQLite; secrets in the OS keychain (`keyring`)                     |
-| Editor / Terminal | Monaco Editor, xterm.js + `portable-pty`                           |
-| i18n              | i18next (English, Vietnamese)                                      |
+## Documentation and community
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Design notes and roadmap: [PLAN.md](PLAN.md) (Vietnamese) and [docs/adr](docs/adr/).
+| Looking for…                                               | Start here                                                              |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Architecture, account context, storage and troubleshooting | [Project Knowledge Base](PLAN.md)                                       |
+| Design decisions and their tradeoffs                       | [ADRs](docs/adr/)                                                       |
+| Changes between releases                                   | [Changelog](CHANGELOG.md)                                               |
+| Bugs and feature requests                                  | [GitHub Issues](https://github.com/congluuit/NANOMultipleGitGUI/issues) |
+| Contribution workflow                                      | [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) |
+
+## Tiếng Việt
+
+**NANO Multiple Git GUI** là ứng dụng Git mã nguồn mở cho Windows, macOS và Linux, tập trung vào việc dùng nhiều tài khoản GitHub/GitLab trong cùng một nơi làm việc.
+
+Mỗi repository có ngữ cảnh tài khoản riêng: danh tính commit, thông tin xác thực HTTPS, SSH key và thao tác LFS. Bạn có thể gán tài khoản thủ công, dùng quy tắc theo thư mục/remote, hoặc đổi tài khoản cho một lần thao tác. Commit Guard và Push Guard giúp phát hiện sai lệch trước khi tiếp tục.
+
+- **Git hằng ngày:** sơ đồ lịch sử, diff, stage từng file/hunk/dòng, quản lý nhánh, rebase tương tác, giải quyết conflict, stash, worktree và submodule.
+- **Làm việc nhóm:** PR/MR, issue, fork & clone, My Work và trạng thái CI tùy chọn.
+- **Cá nhân hóa:** giao diện Anh–Việt, theme sáng/tối/tùy chỉnh, terminal, ghi chú và gợi ý commit bằng AI tùy chọn.
+- **Dữ liệu:** lưu trên máy, bí mật trong keychain hệ điều hành, xuất cấu hình và sao lưu dữ liệu ứng dụng bằng file mã hóa. Sao lưu ứng dụng không bao gồm nội dung repository.
+
+**Bắt đầu:** [tải bản phát hành](https://github.com/congluuit/NANOMultipleGitGUI/releases), thêm tài khoản, mở hoặc clone repo, rồi kiểm tra danh tính trước khi commit/push. Đăng nhập trình duyệt cần OAuth client ID; có thể dùng PAT nếu bản build chưa cấu hình OAuth.
+
+Xem [hướng dẫn cài Windows](docs/INSTALL-Windows.md), [macOS](docs/INSTALL-macOS.md) và **[Knowledge Base tiếng Việt](PLAN.md)** để hiểu kiến trúc, cơ chế tài khoản, cách phát triển và xử lý lỗi.
 
 ## Support the project
 
-If you like this idea, please support me via (Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng):
+Bug reports, documentation, translations and contributions all help the project grow. If you would like to support development financially:
 
-<p align="center">
-  <img src="./QR_BIDV_Donate.jpg" width="260" alt="Donate via BIDV QR" />
-</p>
+<details>
+  <summary>Donate via BIDV · Ủng hộ dự án</summary>
+  <p align="center">
+    <img src="QR_BIDV_Donate.jpg" width="260" alt="BIDV donation QR code" />
+  </p>
+</details>
 
 ## License
 
-[Apache License 2.0](LICENSE) — free to use, modify and share, including commercially. See also [NOTICE](NOTICE).
-
----
-
-<a id="tiếng-việt"></a>
-
-# Tiếng Việt
-
-<p align="center">
-  <a href="#english">English</a> · <b>Tiếng Việt</b>
-</p>
-
-**NANOMultipleGitGUI** là ứng dụng Git miễn phí, mã nguồn mở cho Windows, macOS và Linux, dùng được **nhiều tài khoản GitHub và GitLab cùng lúc** mà không bị lẫn lộn.
-
-## Vì sao nên dùng?
-
-Nhiều người dùng hơn một tài khoản Git: một cho công việc, một cho dự án cá nhân, có khi thêm một cho khách hàng. Phần lớn ứng dụng Git chỉ cho đăng nhập một tài khoản cho mỗi dịch vụ, dẫn tới những rắc rối hằng ngày:
-
-- commit vào repo công ty bằng email cá nhân (hoặc ngược lại),
-- push bị từ chối vì dùng nhầm tài khoản,
-- mất hàng giờ tự sửa cấu hình SSH hoặc mật khẩu.
-
-**NANOMultipleGitGUI ghi nhớ mỗi repo thuộc tài khoản nào** và tự dùng đúng tên, email, token và SSH key cho mọi thao tác — clone, commit, push và file lớn. Bạn luôn thấy rõ "mình đang dùng tài khoản nào" trước khi commit hay push, và app cảnh báo trước khi sai sót xảy ra.
-
-## Tải về
-
-Tải bản mới nhất tại **[GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases/latest)**.
-
-| Máy của bạn                              | File cần tải                             |
-| ---------------------------------------- | ---------------------------------------- |
-| Windows 10 / 11                          | `NANOMultipleGitGUI_x.y.z_x64-setup.exe` |
-| Windows (cài hàng loạt trong công ty)    | `NANOMultipleGitGUI_x.y.z_x64_en-US.msi` |
-| macOS 11 trở lên (Apple Silicon & Intel) | `NANOMultipleGitGUI_x.y.z_universal.dmg` |
-| Linux                                    | `.AppImage`, `.deb` hoặc `.rpm`          |
-
-**Lần mở đầu tiên:** app miễn phí và chưa được ký số, nên hệ điều hành có thể hỏi xác nhận một lần.
-
-- **Windows:** nếu hiện "Windows protected your PC", bấm **More info → Run anyway**. Hướng dẫn chi tiết: [docs/INSTALL-Windows.md](docs/INSTALL-Windows.md).
-- **macOS:** chuột phải vào app → **Open**, hoặc cho phép trong **System Settings → Privacy & Security**. Hướng dẫn chi tiết: [docs/INSTALL-macOS.md](docs/INSTALL-macOS.md).
-
-Máy cần có [Git](https://git-scm.com/downloads). Nếu chưa có, trình hướng dẫn lần đầu sẽ kiểm tra và có thể cài giúp bạn.
-
-## Tính năng
-
-### Nhiều tài khoản, không nhầm lẫn
-
-- **Không giới hạn số tài khoản** GitHub (github.com và GitHub Enterprise) và GitLab (gitlab.com và máy chủ tự dựng), đăng nhập cùng lúc.
-- **Mỗi repo tự biết tài khoản của mình** — chọn tự động theo quy tắc bạn đặt (ví dụ "mọi thứ trong `D:/Work` hoặc thuộc `github.com/cong-ty` dùng tài khoản công ty") hoặc chọn tay.
-- **Đúng tên và email trên mọi commit**, tự đặt theo từng repo.
-- **Đổi tài khoản bằng một cú bấm**, hoặc dùng tài khoản khác chỉ cho một lần commit hay push.
-- **Commit Guard và Push Guard** cảnh báo trước khi commit hoặc push sai danh tính, dùng email chưa xác minh, hoặc tài khoản không có quyền.
-- **Đăng nhập an toàn** qua trình duyệt hoặc bằng token cá nhân. Mật khẩu và token nằm trong kho bảo mật của hệ điều hành, không bao giờ lưu dạng chữ thường.
-- **SSH key theo từng tài khoản**: tạo, nhập và tải key lên ngay trong app — không phải sửa file cấu hình.
-- **Chuyển tài khoản sang máy khác** bằng file xuất được mã hóa (Quản lý tài khoản → **Xuất cấu hình… / Nhập cấu hình…**). Token đăng nhập không được đưa vào file trừ khi bạn chọn.
-
-### Git hằng ngày, rõ ràng và dễ hiểu
-
-- **Lịch sử commit** dạng sơ đồ với nhánh, tag, ảnh đại diện tác giả và tìm kiếm nhanh — vẫn mượt với hơn 100.000 commit.
-- **Stage và commit** cả file, từng khối thay đổi hoặc từng dòng; sửa commit vừa tạo (amend); hoàn tác thay đổi.
-- **Nhấp đúp vào nhánh** ở panel trái để chuyển sang nhánh đó. Phần việc chưa commit được cất tạm tự động (stash) và trả lại khi bạn quay về nhánh cũ, nên không mất gì.
-- Tạo, đổi tên, merge, rebase (có cả rebase tương tác kéo-thả), cherry-pick, revert, reset và tag — bằng menu hoặc kéo-thả nhánh.
-- **Hoàn tác / Làm lại** các thao tác Git gần đây.
-- **Fetch, pull và push** có tiến độ và nút hủy; số ↑/↓ cho biết còn bao nhiêu commit cần gửi đi hoặc cần lấy về; app tự fetch nền để số luôn mới.
-- **Trình giải quyết xung đột** hiển thị song song "của tôi", "của họ" và kết quả, kể cả với ảnh và file nhị phân.
-- **Lịch sử file, blame** (ai sửa từng dòng) và "xem file tại bất kỳ commit nào".
-- Stash, submodule, worktree, ký commit (GPG / SSH) với nhãn "Verified".
-
-### File lớn không còn bất ngờ
-
-- **Large File Guard** cảnh báo trước khi bạn commit file mà GitHub hoặc GitLab sẽ từ chối, và chuyển file đó sang **Git LFS** bằng một cú bấm.
-- Kiểm tra trước khi push phát hiện file lớn đã lỡ commit nhưng chưa push.
-- Tải lên / tải về LFS có tiến độ, hủy được và tiếp tục từ chỗ đã dừng.
-
-### Tích hợp sẵn GitHub và GitLab
-
-- **Pull request / merge request**: xem danh sách, đọc, bình luận, review, tạo mới, checkout và merge.
-- **Issue**: xem, tạo, và tạo nhánh từ issue.
-- **Clone hợp nhất**: tìm repo của mọi tài khoản trong một danh sách.
-- **Fork & clone**, tự thêm repo gốc làm `upstream`.
-- Trạng thái CI (GitHub Actions, GitLab pipeline) — bật khi cần.
-
-### Làm việc thông minh hơn
-
-- **Gợi ý commit message bằng AI** (tùy chọn, mặc định tắt): bấm ✨ cạnh ô tóm tắt commit để nhận gợi ý. Dùng key của bạn cho OpenAI, Anthropic (Claude), Google Gemini hoặc dịch vụ tương thích OpenAI — hoặc chạy model miễn phí **ngay trên máy bạn** với Ollama; app có thể cài đặt và thiết lập giúp (kèm gợi ý các model nhẹ).
-- **Việc của tôi** gom pull request đang chờ bạn review, pull request của bạn và issue giao cho bạn, trên mọi tài khoản.
-- **Ghi chú của tôi** (trong Việc của tôi): sổ tay nhỏ cho riêng bạn với tag màu (Default, Urgent, WIP, Review, Bug, Idea, Done hoặc tag tự tạo), mức ưu tiên, ghim và hạn chót. Xuất ra file để sao lưu hoặc chuyển sang máy khác.
-- **Terminal tích hợp** đã dùng sẵn tài khoản của repo (`` Ctrl+` ``).
-- **Bảng lệnh** (`Ctrl+K` / `Cmd+K`) để gõ tìm và chạy mọi thao tác.
-
-### Theo cách của bạn
-
-- **Sáng, Tối hoặc theo hệ thống** — cùng **theme tùy chỉnh**: có sẵn 2 theme Tương phản cao, và bạn có thể tự phối màu với xem trước trực tiếp và kiểm tra độ dễ đọc, rồi chia sẻ dưới dạng file.
-- Giao diện tiếng Anh và tiếng Việt.
-- Các panel kéo giãn, thu gọn được, tự thích nghi với màn hình nhỏ.
-
-### Sao lưu và chuyển sang máy mới
-
-- **Sao lưu toàn bộ**: Cài đặt → **Sao lưu & khôi phục** lưu mọi thứ trong app (cài đặt, tài khoản, danh sách repo, theme, ghi chú và — nếu bạn muốn — token đăng nhập và SSH key) vào một file có mật khẩu. Cất file lên Google Drive, OneDrive hay bất kỳ dịch vụ đám mây nào. Ở máy mới, khôi phục là dùng được ngay.
-- **Quản lý lưu trữ**: chọn nơi lưu log, cache và dữ liệu app, xóa cache, xóa theme hoặc ghi chú tại Cài đặt → **Lưu trữ**.
-
-### Luôn có hướng dẫn
-
-- **Hướng dẫn ban đầu** ngắn gọn khi mở app lần đầu: kiểm tra công cụ và giúp thêm tài khoản.
-- **Hướng dẫn đầy đủ** trong Cài đặt giải thích mọi tính năng bằng lời dễ hiểu, có ô tìm kiếm.
-- Thông báo lỗi luôn nói rõ chuyện gì xảy ra và cần bấm gì để sửa.
-
-## Quyền riêng tư và bảo mật
-
-- Mọi thứ chạy trên máy của bạn. Dự án **không có máy chủ** và **không thu thập dữ liệu**; không có telemetry.
-- Token, refresh token và passphrase SSH chỉ nằm trong kho bảo mật của hệ điều hành (Windows Credential Manager, macOS Keychain, Linux Secret Service).
-- App chỉ kết nối tới các máy chủ Git và tài khoản GitHub/GitLab bạn dùng, tới GitHub Releases để kiểm tra cập nhật, và — chỉ khi bạn bật gợi ý AI bằng dịch vụ đám mây — tới dịch vụ AI đó, gửi phần thay đổi đã stage khi bạn bấm ✨. Với Ollama, code không rời khỏi máy bạn.
-- File xuất và file sao lưu được mã hóa bằng mật khẩu của bạn (Argon2id + XChaCha20-Poly1305).
-
-Chi tiết: [PRIVACY.md](PRIVACY.md) · Báo lỗ hổng bảo mật: [SECURITY.md](SECURITY.md).
-
-## Dành cho lập trình viên
-
-App xây dựng bằng [Tauri 2](https://tauri.app) (Rust) và React 19 + TypeScript. Thao tác Git dùng Git CLI của hệ thống nên hook, LFS, ký commit và credential hoạt động y như dòng lệnh.
-
-### Yêu cầu
-
-| Công cụ | Phiên bản                                                                                  |
-| ------- | ------------------------------------------------------------------------------------------ |
-| Node.js | 20.19 trở lên                                                                              |
-| pnpm    | 9.x (`npm install -g pnpm@9` hoặc `corepack enable`)                                       |
-| Rust    | stable 1.90 trở lên ([rustup](https://rustup.rs))                                          |
-| Git     | 2.35 trở lên, kèm Git LFS 3.0 trở lên                                                      |
-| Windows | Microsoft C++ Build Tools ("Desktop development with C++") và WebView2 (có sẵn trên 10/11) |
-| macOS   | Xcode Command Line Tools (`xcode-select --install`)                                        |
-| Linux   | Các gói hệ thống theo [hướng dẫn của Tauri](https://v2.tauri.app/start/prerequisites/)     |
-
-### Chạy, build, kiểm tra
-
-```bash
-pnpm install
-pnpm dev          # chạy app với hot reload
-pnpm build        # build bộ cài cho hệ điều hành hiện tại (kết quả: target/release/bundle/)
-pnpm check        # format, lint, typecheck, test, clippy và test Rust
-```
-
-Các tùy chọn khi build (OAuth client ID, khóa ký bản cập nhật) mô tả trong [.env.example](.env.example). Phát hành phiên bản mới: [docs/RELEASING.md](docs/RELEASING.md).
-
-Cấu trúc thư mục và tech stack: xem phần [For developers](#for-developers) ở trên. Mọi đóng góp đều được hoan nghênh — xem [CONTRIBUTING.md](CONTRIBUTING.md). Thiết kế và lộ trình: [PLAN.md](PLAN.md).
-
-## Ủng hộ
-
-Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng:
-
-<p align="center">
-  <img src="./QR_BIDV_Donate.jpg" width="260" alt="Ủng hộ qua mã QR BIDV" />
-</p>
-
-## Giấy phép
-
-[Apache License 2.0](LICENSE) — tự do sử dụng, chỉnh sửa và chia sẻ, kể cả cho mục đích thương mại. Xem thêm [NOTICE](NOTICE).
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution notices.

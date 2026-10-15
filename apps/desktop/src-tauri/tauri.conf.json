@@ -29,8 +29,8 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "msi", "app", "dmg", "appimage", "deb", "rpm"],
-    "publisher": "The NANOMultipleGitGUI Authors",
-    "copyright": "Copyright 2026 The NANOMultipleGitGUI Authors. Licensed under Apache-2.0.",
+    "publisher": "Cong Luu",
+    "copyright": "Copyright 2026 Cong Luu. Licensed under Apache-2.0.",
     "category": "DeveloperTool",
     "shortDescription": "Multi-account Git GUI for GitHub and GitLab",
     "longDescription": "Open-source Git GUI that manages many GitHub/GitLab accounts at once and switches accounts per repository for clone, commit and push.",

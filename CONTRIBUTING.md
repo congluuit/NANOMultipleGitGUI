@@ -18,7 +18,7 @@ For larger changes (new feature, new dependency, architectural change) please op
 
 ## Development setup
 
-Prerequisites and commands are in the [README](README.md#hướng-dẫn-phát-triển). In short:
+Prerequisites and commands are in the [README](README.md#development). In short:
 
 ```bash
 pnpm install
@@ -62,4 +62,4 @@ Useful extras:
 
 1. Update `CHANGELOG.md` and bump the version in `package.json`, `apps/desktop/package.json` and the `[workspace.package]` version in `Cargo.toml`.
 2. Tag `vX.Y.Z` and push the tag. The `Release` workflow builds all installers into a draft GitHub Release with `SHA256SUMS.txt`.
-3. Fill in the release notes, smoke-test the installers (checklist in PLAN §11), then publish.
+3. Fill in the release notes, smoke-test the installers (see the [installer verification checklist](PLAN.md#checklist-xác-minh-bộ-cài)), then publish.
