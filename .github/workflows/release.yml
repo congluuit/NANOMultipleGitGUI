@@ -59,19 +59,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
-      - id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --draft --verify-tag \
-              --title "NANOMultipleGitGUI ${TAG#v}" \
-              --notes-file .github/release-notes.md
-          fi
-          echo "release_id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
-          if [ "$UPDATER_ENABLED" != true ]; then
-            echo "::notice::In-app updates disabled for this release (TAURI_SIGNING_PRIVATE_KEY secret or NANOMGG_UPDATER_PUBKEY variable missing)."
-          fi
       # The update dialog shows `latest.json`'s notes: the CHANGELOG section of this version.
       - id: notes
         run: |
@@ -83,6 +70,23 @@ jobs:
             echo "::warning::CHANGELOG.md has no section for ${TAG#v}; the update dialog will show no release notes."
           fi
           { echo "notes<<NANOMGG_NOTES_EOF"; echo "$notes"; echo "NANOMGG_NOTES_EOF"; } >> "$GITHUB_OUTPUT"
+      # Release page = download/install instructions + this version's CHANGELOG section.
+      - id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ steps.notes.outputs.notes }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            body="$RUNNER_TEMP/release-body.md"
+            { cat .github/release-notes.md; echo; echo "$NOTES"; } > "$body"
+            gh release create "$TAG" --draft --verify-tag \
+              --title "NANOMultipleGitGUI ${TAG#v}" \
+              --notes-file "$body"
+          fi
+          echo "release_id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
+          if [ "$UPDATER_ENABLED" != true ]; then
+            echo "::notice::In-app updates disabled for this release (TAURI_SIGNING_PRIVATE_KEY secret or NANOMGG_UPDATER_PUBKEY variable missing)."
+          fi
 
   build:
     name: Build (${{ matrix.name }})
