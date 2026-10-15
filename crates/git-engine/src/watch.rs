@@ -3,10 +3,13 @@
 
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
-use std::time::Duration;
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::time::{Duration, Instant};
 
-use notify_debouncer_mini::notify::{RecommendedWatcher, RecursiveMode};
-use notify_debouncer_mini::{DebounceEventResult, Debouncer, new_debouncer};
+use notify_debouncer_mini::notify::{
+    self, Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+    event::{AccessKind, AccessMode},
+};
 
 use crate::{AccountContext, GitRunner};
 
@@ -111,7 +114,7 @@ fn not_ignored(git: &GitRunner, root: &Path, paths: Vec<PathBuf>) -> Vec<PathBuf
 
 /// Keeps watching while alive; dropping it stops the watcher.
 pub struct RepoWatcher {
-    _debouncer: Debouncer<RecommendedWatcher>,
+    _watcher: RecommendedWatcher,
 }
 
 pub const DEBOUNCE: Duration = Duration::from_millis(300);
@@ -128,43 +131,69 @@ impl RepoWatcher {
     ) -> notify_debouncer_mini::notify::Result<Self> {
         let (root_c, git_dir_c): (PathBuf, PathBuf) = (root.to_owned(), git_dir.to_owned());
         let git = git.clone();
-        let mut debouncer = new_debouncer(DEBOUNCE, move |res: DebounceEventResult| {
-            let Ok(events) = res else { return };
-            let mut change = RepoChange::default();
-            let mut worktree = Vec::new();
-            for event in events {
-                match classify(&event.path, &root_c, &git_dir_c) {
-                    ChangeKind::Worktree => {
-                        if let Ok(rel) = event.path.strip_prefix(&root_c) {
-                            worktree.push(rel.to_owned());
-                        }
-                    }
-                    kind => change.add(kind),
-                }
+        let (tx, rx) = mpsc::channel::<PathBuf>();
+        let mut watcher = notify::recommended_watcher(move |res: notify::Result<Event>| {
+            let Ok(event) = res else { return };
+            // inotify (Linux) also reports files being opened or read: every git command the
+            // app runs — including `check-ignore` below — would otherwise trigger a refresh.
+            if let EventKind::Access(kind) = event.kind
+                && kind != AccessKind::Close(AccessMode::Write)
+            {
+                return;
             }
-            if !not_ignored(&git, &root_c, worktree).is_empty() {
-                change.worktree = true;
-            }
-            if !change.is_empty() {
-                on_change(change);
+            for path in event.paths {
+                let _ = tx.send(path);
             }
         })?;
-        debouncer.watcher().watch(root, RecursiveMode::Recursive)?;
+        watcher.watch(root, RecursiveMode::Recursive)?;
         if !git_dir.starts_with(root) {
-            debouncer
-                .watcher()
-                .watch(git_dir, RecursiveMode::Recursive)?;
+            watcher.watch(git_dir, RecursiveMode::Recursive)?;
         }
-        Ok(Self {
-            _debouncer: debouncer,
-        })
+        // Ends when the watcher (and with it the sender) is dropped.
+        std::thread::Builder::new()
+            .name("repo-watcher".into())
+            .spawn(move || {
+                while let Ok(first) = rx.recv() {
+                    let mut paths = HashSet::from([first]);
+                    let deadline = Instant::now() + DEBOUNCE;
+                    while let Some(left) = deadline.checked_duration_since(Instant::now()) {
+                        match rx.recv_timeout(left) {
+                            Ok(path) => {
+                                paths.insert(path);
+                            }
+                            Err(RecvTimeoutError::Timeout) => break,
+                            Err(RecvTimeoutError::Disconnected) => return,
+                        }
+                    }
+                    let mut change = RepoChange::default();
+                    let mut worktree = Vec::new();
+                    for path in paths {
+                        match classify(&path, &root_c, &git_dir_c) {
+                            ChangeKind::Worktree => match path.strip_prefix(&root_c) {
+                                Ok(rel) if !rel.as_os_str().is_empty() => {
+                                    worktree.push(rel.to_owned());
+                                }
+                                _ => {}
+                            },
+                            kind => change.add(kind),
+                        }
+                    }
+                    if !not_ignored(&git, &root_c, worktree).is_empty() {
+                        change.worktree = true;
+                    }
+                    if !change.is_empty() {
+                        on_change(change);
+                    }
+                }
+            })
+            .map_err(|e| notify::Error::generic(&e.to_string()))?;
+        Ok(Self { _watcher: watcher })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::mpsc;
 
     fn p(s: &str) -> PathBuf {
         PathBuf::from(s.replace('/', std::path::MAIN_SEPARATOR_STR))

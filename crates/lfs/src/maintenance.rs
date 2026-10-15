@@ -105,13 +105,18 @@ pub struct PruneReport {
     pub approximate: bool,
 }
 
-/// Parses `prune: 4 local objects, 2 retained[, 2 verified with remote], done.` and the
-/// verbose ` * <oid> (<size>)` lines of `git lfs prune --dry-run --verbose`.
+/// Parses `prune: 4 local objects, 2 retained[, 2 verified with remote], done.` (git-lfs 3.8
+/// dropped the `prune:` prefix) and the verbose ` * <oid> (<size>)` lines of
+/// `git lfs prune --dry-run --verbose`.
 pub fn parse_prune(output: &str, media: Option<&Path>) -> PruneReport {
     let mut r = PruneReport::default();
     for line in output.split(['\n', '\r']) {
         let line = line.trim();
-        if let Some(rest) = line.strip_prefix("prune:") {
+        let summary = line.strip_prefix("prune:").or_else(|| {
+            (line.starts_with(|c: char| c.is_ascii_digit()) && line.contains(" local object"))
+                .then_some(line)
+        });
+        if let Some(rest) = summary {
             for part in rest.split(',') {
                 let mut w = part.split_whitespace();
                 let (Some(n), Some(word)) = (w.next(), w.next()) else {
@@ -377,6 +382,12 @@ mod tests {
             None,
         );
         assert_eq!(r.verified, Some(2));
+        // git-lfs 3.8 output.
+        let r = parse_prune(
+            "3 local objects, 1 retained, 2 verified with remote, done.\n2 files would be pruned (2.1 KB), done.\n",
+            None,
+        );
+        assert_eq!((r.local_objects, r.retained, r.verified), (3, 1, Some(2)));
         assert!(parse_prune("", None).objects.is_empty());
     }
 
