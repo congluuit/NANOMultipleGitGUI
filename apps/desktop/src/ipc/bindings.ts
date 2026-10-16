@@ -5,1268 +5,868 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
-  appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
-  getSettings: () => __TAURI_INVOKE<AppSettings>("get_settings"),
-  updateSettings: (patch: SettingsPatch) =>
-    __TAURI_INVOKE<AppSettings>("update_settings", { patch }),
-  /**
-   *  Loads the history the first time, then refreshes it (incrementally when possible).
-   *  The graph is taken out of the shared map while git runs so row requests never wait on it.
-   */
-  graphOpen: (repoId: number) => __TAURI_INVOKE<GraphSummary>("graph_open", { repoId }),
-  graphRows: (repoId: number, offset: number, limit: number) =>
-    __TAURI_INVOKE<GraphRow[]>("graph_rows", { repoId, offset, limit }),
-  /**  Row of a commit (full hash or unique-enough prefix), if it is in the loaded history. */
-  graphFind: (repoId: number, oid: string) =>
-    __TAURI_INVOKE<number | null>("graph_find", { repoId, oid }),
-  /**  Rows matching `query` in subject, author or hash prefix (at most `limit`, in graph order). */
-  graphSearch: (repoId: number, query: string, limit: number) =>
-    __TAURI_INVOKE<number[]>("graph_search", { repoId, query, limit }),
-  commitDetails: (repoId: number, hash: string) =>
-    __TAURI_INVOKE<CommitDetails>("commit_details", { repoId, hash }),
-  startupArgs: () => __TAURI_INVOKE<StartupArgs>("startup_args"),
-  reportBenchmark: (result: GraphBenchmark) => __TAURI_INVOKE<void>("report_benchmark", { result }),
-  toolStatus: () => __TAURI_INVOKE<Tools>("tool_status"),
-  repoOpen: (path: string) => __TAURI_INVOKE<RepoTab>("repo_open", { path }),
-  repoInit: (path: string, initialBranch: string | null) =>
-    __TAURI_INVOKE<RepoTab>("repo_init", { path, initialBranch }),
-  repoClose: (id: number) => __TAURI_INVOKE<WorkspaceState>("repo_close", { id }),
-  /**
-   *  Current tabs. The first call of a session restores the tabs saved in the database,
-   *  re-resolving each folder (missing ones are kept and flagged so the user can relocate or close).
-   */
-  workspaceState: () => __TAURI_INVOKE<WorkspaceState>("workspace_state"),
-  workspaceSetActive: (id: number) => __TAURI_INVOKE<null>("workspace_set_active", { id }),
-  /**  Moves the tabs into the order of `ids` (drag and drop, pinning) and saves it. */
-  workspaceReorder: (ids: number[]) => __TAURI_INVOKE<WorkspaceState>("workspace_reorder", { ids }),
-  recentRepos: () => __TAURI_INVOKE<RecentRepo[]>("recent_repos"),
-  /**  Forgets a repository (does not touch its files). Closes its tab if open. */
-  recentRemove: (id: number) => __TAURI_INVOKE<WorkspaceState>("recent_remove", { id }),
-  repoRefs: (id: number) => __TAURI_INVOKE<RepoRefs>("repo_refs", { id }),
-  worktreeStatus: (repoId: number) =>
-    __TAURI_INVOKE<WorkingTreeStatus>("worktree_status", { repoId }),
-  fileDiff: (repoId: number, request: DiffRequest) =>
-    __TAURI_INVOKE<FileDiff>("file_diff", { repoId, request }),
-  fileContents: (repoId: number, request: DiffRequest) =>
-    __TAURI_INVOKE<FileContents>("file_contents", { repoId, request }),
-  stageFiles: (repoId: number, paths: string[]) =>
-    __TAURI_INVOKE<null>("stage_files", { repoId, paths }),
-  unstageFiles: (repoId: number, paths: string[]) =>
-    __TAURI_INVOKE<null>("unstage_files", { repoId, paths }),
-  stageAll: (repoId: number) => __TAURI_INVOKE<null>("stage_all", { repoId }),
-  unstageAll: (repoId: number) => __TAURI_INVOKE<null>("unstage_all", { repoId }),
-  /**  Discards unstaged changes of tracked files and deletes the given untracked files. */
-  discardFiles: (repoId: number, tracked: string[], untracked: string[]) =>
-    __TAURI_INVOKE<null>("discard_files", { repoId, tracked, untracked }),
-  /**
-   *  Stages, unstages or discards selected lines/hunks of one file. `fingerprint` is the value of
-   *  the diff the user made the selection on; a changed file is refused.
-   */
-  applyLines: (
-    repoId: number,
-    action: PatchAction,
-    path: string,
-    fingerprint: string,
-    selection: LineSelection[],
-  ) => __TAURI_INVOKE<null>("apply_lines", { repoId, action, path, fingerprint, selection }),
-  commitCreate: (
-    repoId: number,
-    message: string,
-    options: CommitOptions,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) => __TAURI_INVOKE<CommitResult>("commit_create", { repoId, message, options, asAccount }),
-  /**
-   *  Name and email git's own configuration (repo + global) gives for this repository, i.e. what
-   *  git outside the app records. Deliberately without the account context: the "Commit as"
-   *  block shows the bound account's identity itself and warns when this one differs; unbound
-   *  repos commit with exactly this identity.
-   */
-  commitIdentity: (repoId: number) => __TAURI_INVOKE<GitIdentity>("commit_identity", { repoId }),
-  /**  Message of the last commit, to prefill "amend". */
-  headMessage: (repoId: number) => __TAURI_INVOKE<string | null>("head_message", { repoId }),
-  /**  Operation in progress and the commits behind "ours" / "theirs". */
-  conflictContext: (repoId: number) =>
-    __TAURI_INVOKE<ConflictContext>("conflict_context", { repoId }),
-  /**  Stages and working-tree text of one conflicted file. */
-  conflictFile: (repoId: number, path: string) =>
-    __TAURI_INVOKE<ConflictFile>("conflict_file", { repoId, path }),
-  /**  Preview of a file from a commit, an index stage or the working tree (images, LFS objects). */
-  blobPreview: (repoId: number, source: BlobSource, path: string) =>
-    __TAURI_INVOKE<{
-      /**  Size of the real content (of the LFS object for a pointer). */
-      size: number;
-      /**  MIME type guessed from the file extension. */
-      mime: string;
-      /**  Base64 content; `None` when too large or the LFS object is not downloaded. */
-      data: string | null;
-      /**  Set when the stored file is an LFS pointer. */
-      lfs: LfsPointer | null;
-      /**  LFS pointer whose object is not in the local LFS store (needs a download). */
-      lfsMissing: boolean;
-      tooLarge: boolean;
-      /**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
-      binary: boolean;
-    } | null>("blob_preview", { repoId, source, path }),
-  /**  Writes the edited result (keeping line endings and BOM) and marks the file resolved. */
-  conflictResolveContent: (repoId: number, path: string, content: string) =>
-    __TAURI_INVOKE<Outcome<null>>("conflict_resolve_content", { repoId, path, content }),
-  /**
-   *  Keeps one side of a conflicted file as a whole (`checkout --ours/--theirs` + add, or `rm`
-   *  when that side deleted it).
-   */
-  conflictTakeSide: (repoId: number, path: string, side: ConflictSide) =>
-    __TAURI_INVOKE<Outcome<null>>("conflict_take_side", { repoId, path, side }),
-  /**  Resolves a conflicted file by deleting it (`git rm`). */
-  conflictDeleteFile: (repoId: number, path: string) =>
-    __TAURI_INVOKE<Outcome<null>>("conflict_delete_file", { repoId, path }),
-  /**  One page of the commits that changed `path` (`git log --follow`), newest first. */
-  fileHistory: (repoId: number, path: string, rev: string | null, skip: number, limit: number) =>
-    __TAURI_INVOKE<FileHistoryPage>("file_history", { repoId, path, rev, skip, limit }),
-  /**  `git blame` of `path` at `rev` (hex id or `HEAD`), or of the working tree when `None`. */
-  blameFile: (repoId: number, path: string, rev: string | null) =>
-    __TAURI_INVOKE<BlameResult>("blame_file", { repoId, path, rev }),
-  /**  The file as of one commit (read-only viewer). */
-  fileAtCommit: (repoId: number, commit: string, path: string) =>
-    __TAURI_INVOKE<FileAtCommit>("file_at_commit", { repoId, commit, path }),
-  /**  Old and new version of an image for the image diff (LFS objects from the local store). */
-  diffImages: (repoId: number, request: DiffRequest) =>
-    __TAURI_INVOKE<ImagePair>("diff_images", { repoId, request }),
-  /**  `git stash push`. `created: false` means there was nothing to stash. */
-  stashCreate: (repoId: number, options: StashOptions) =>
-    __TAURI_INVOKE<StashCreated>("stash_create", { repoId, options }),
-  /**
-   *  `git stash apply [--index] stash@{index}`. Conflicts are returned in the outcome, not as
-   *  an error; the entry stays in the list.
-   */
-  stashApply: (repoId: number, index: number, restoreIndex: boolean) =>
-    __TAURI_INVOKE<StashApplyOutcome>("stash_apply", { repoId, index, restoreIndex }),
-  /**  `git stash pop [--index] stash@{index}`. On conflicts the entry is kept (`dropped: false`). */
-  stashPop: (repoId: number, index: number, restoreIndex: boolean) =>
-    __TAURI_INVOKE<StashApplyOutcome>("stash_pop", { repoId, index, restoreIndex }),
-  /**  `git stash drop stash@{index}`; returns the dropped commit id (for an undo hint). */
-  stashDrop: (repoId: number, index: number) =>
-    __TAURI_INVOKE<string>("stash_drop", { repoId, index }),
-  /**  Files of `stash@{index}`: tracked changes plus untracked files (third parent). */
-  stashShow: (repoId: number, index: number) =>
-    __TAURI_INVOKE<StashDetails>("stash_show", { repoId, index }),
-  /**  git-lfs version, LFS patterns, hooks and filter config of the repository. */
-  lfsStatus: (repoId: number) => __TAURI_INVOKE<LfsStatus>("lfs_status", { repoId }),
-  /**  `git lfs install --local` (this repository only), then the refreshed status. */
-  lfsInstallLocal: (repoId: number) => __TAURI_INVOKE<LfsStatus>("lfs_install_local", { repoId }),
-  /**  `git lfs track [--lockable] -- <pattern>`; `true` when `.gitattributes` changed. */
-  lfsTrack: (repoId: number, pattern: string, lockable: boolean) =>
-    __TAURI_INVOKE<boolean>("lfs_track", { repoId, pattern, lockable }),
-  /**  `git lfs untrack -- <pattern>`; `true` when `.gitattributes` changed. */
-  lfsUntrack: (repoId: number, pattern: string) =>
-    __TAURI_INVOKE<boolean>("lfs_untrack", { repoId, pattern }),
-  /**
-   *  After `lfs_track`: stage `.gitattributes`, renormalize already-tracked paths and add new
-   *  ones, so every path is staged as an LFS pointer.
-   */
-  lfsRestage: (repoId: number, paths: string[]) =>
-    __TAURI_INVOKE<null>("lfs_restage", { repoId, paths }),
-  /**
-   *  Large File Guard over `paths` (staged / new files). `thresholds` overrides the provider
-   *  defaults (GitHub warn 50 MiB / block 100 MiB, GitLab and others warn 50 MiB, no block).
-   */
-  largeFileCheck: (
-    repoId: number,
-    paths: string[],
-    provider: GuardProvider,
-    thresholds: {
-      warnBytes: number;
-      blockBytes: number | null;
-    } | null,
-  ) => __TAURI_INVOKE<GuardReport>("large_file_check", { repoId, paths, provider, thresholds }),
-  /**  Creates `name` at `start` (commit id or ref name), optionally switching to it. */
-  branchCreate: (repoId: number, name: string, start: string, checkout: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("branch_create", { repoId, name, start, checkout }),
-  branchCheckout: (repoId: number, name: string) =>
-    __TAURI_INVOKE<Outcome<null>>("branch_checkout", { repoId, name }),
-  /**  Checks out `remote/branch` as a new tracking branch; returns the local branch name. */
-  branchCheckoutRemote: (
-    repoId: number,
-    remote: string,
-    branch: string,
-    localName: string | null,
-  ) =>
-    __TAURI_INVOKE<Outcome<string>>("branch_checkout_remote", {
-      repoId,
-      remote,
-      branch,
-      localName,
-    }),
-  /**  Checks out a commit with a detached HEAD. */
-  commitCheckout: (repoId: number, oid: string) =>
-    __TAURI_INVOKE<Outcome<null>>("commit_checkout", { repoId, oid }),
-  branchRename: (repoId: number, oldName: string, newName: string) =>
-    __TAURI_INVOKE<Outcome<null>>("branch_rename", { repoId, oldName, newName }),
-  /**  Deletes a local branch; `notFullyMerged` / `currentBranch` come back as rejections. */
-  branchDelete: (repoId: number, name: string, force: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("branch_delete", { repoId, name, force }),
-  /**  Sets (`origin/main`, or a local branch) or removes (`null`) the upstream of `name`. */
-  branchSetUpstream: (repoId: number, name: string, upstream: string | null) =>
-    __TAURI_INVOKE<Outcome<null>>("branch_set_upstream", { repoId, name, upstream }),
-  /**  Creates a tag at `oid`: annotated when `message` is set, lightweight otherwise. */
-  tagCreate: (repoId: number, name: string, oid: string, message: string | null) =>
-    __TAURI_INVOKE<Outcome<null>>("tag_create", { repoId, name, oid, message }),
-  tagDelete: (repoId: number, name: string) =>
-    __TAURI_INVOKE<Outcome<null>>("tag_delete", { repoId, name }),
-  commitCherryPick: (repoId: number, oid: string) =>
-    __TAURI_INVOKE<Outcome<OpOutcome>>("commit_cherry_pick", { repoId, oid }),
-  commitRevert: (repoId: number, oid: string) =>
-    __TAURI_INVOKE<Outcome<OpOutcome>>("commit_revert", { repoId, oid }),
-  /**  Moves the current branch to `oid` (`hard` discards local changes). */
-  resetTo: (repoId: number, oid: string, mode: ResetMode) =>
-    __TAURI_INVOKE<Outcome<null>>("reset_to", { repoId, oid, mode }),
-  /**  In-progress merge / rebase / cherry-pick / revert / bisect and the conflicted paths. */
-  repoOperationState: (repoId: number) =>
-    __TAURI_INVOKE<OperationState>("repo_operation_state", { repoId }),
-  /**  Aborts the in-progress operation; returns which one it was. */
-  operationAbort: (repoId: number) =>
-    __TAURI_INVOKE<Outcome<RepoOperation>>("operation_abort", { repoId }),
-  /**  Continues the in-progress operation after conflicts were resolved and staged. */
-  operationContinue: (repoId: number) =>
-    __TAURI_INVOKE<Outcome<OpOutcome>>("operation_continue", { repoId }),
-  /**  Merges `rev` (branch / remote branch / tag / commit id) into the current branch. */
-  mergeIntoCurrent: (repoId: number, rev: string, mode: MergeMode, message: string | null) =>
-    __TAURI_INVOKE<Outcome<MergeOutcome>>("merge_into_current", { repoId, rev, mode, message }),
-  remoteFetch: (
-    repoId: number,
-    opId: string,
-    remote: string | null,
-    prune: boolean,
-    tags: boolean,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<Outcome<FetchSummary>>("remote_fetch", {
-      repoId,
-      opId,
-      remote,
-      prune,
-      tags,
-      asAccount,
-    }),
-  remotePull: (
-    repoId: number,
-    opId: string,
-    remote: string | null,
-    branch: string | null,
-    mode: PullMode,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<Outcome<MergeOutcome>>("remote_pull", {
-      repoId,
-      opId,
-      remote,
-      branch,
-      mode,
-      asAccount,
-    }),
-  remotePush: (
-    repoId: number,
-    opId: string,
-    request: PushRequest,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) => __TAURI_INVOKE<Outcome<PushSummary>>("remote_push", { repoId, opId, request, asAccount }),
-  remotePushTag: (
-    repoId: number,
-    opId: string,
-    remote: string,
-    tag: string,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<Outcome<PushSummary>>("remote_push_tag", {
-      repoId,
-      opId,
-      remote,
-      tag,
-      asAccount,
-    }),
-  remoteDeleteBranch: (repoId: number, opId: string, remote: string, branch: string) =>
-    __TAURI_INVOKE<Outcome<PushSummary>>("remote_delete_branch", { repoId, opId, remote, branch }),
-  /**  Asks a running fetch / pull / push to stop. Returns `false` if no such operation runs. */
-  transferCancel: (opId: string) => __TAURI_INVOKE<boolean>("transfer_cancel", { opId }),
-  /**  What `git rebase <onto>` would rewrite for `branch` (default: the current branch). */
-  rebasePreview: (repoId: number, onto: string, branch: string | null) =>
-    __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_preview", { repoId, onto, branch }),
-  /**  Rows of the interactive rebase dialog: commits of the current branch after `base`. */
-  rebaseTodo: (repoId: number, base: string) =>
-    __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_todo", { repoId, base }),
-  /**  Plain rebase (backup ref first; pushed commits need `allowPushed`). */
-  rebaseStart: (repoId: number, request: RebaseRequest) =>
-    __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_start", { repoId, request }),
-  /**  Interactive rebase with the plan from the dialog; never opens an editor. */
-  rebaseInteractive: (repoId: number, request: InteractiveRebaseRequest) =>
-    __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_interactive", { repoId, request }),
-  rebaseContinue: (repoId: number) =>
-    __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_continue", { repoId }),
-  /**  Drops the commit the rebase stopped at and goes on. */
-  rebaseSkip: (repoId: number) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_skip", { repoId }),
-  /**  How `source` relates to `target` (for the branch drop menu). */
-  branchRelation: (repoId: number, source: string, target: string) =>
-    __TAURI_INVOKE<Outcome<BranchRelation>>("branch_relation", { repoId, source, target }),
-  /**  Fast-forwards local branch `target` to `source` (recorded for Undo). Returns the new tip. */
-  branchFastForward: (repoId: number, target: string, source: string) =>
-    __TAURI_INVOKE<Outcome<string>>("branch_fast_forward", { repoId, target, source }),
-  /**  What the Undo / Redo buttons would do now. */
-  undoState: (repoId: number) => __TAURI_INVOKE<UndoState>("undo_state", { repoId }),
-  /**  Undoes the most recent operation (never discards uncommitted changes). */
-  undoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("undo_run", { repoId }),
-  /**  Redoes the operation undone last, if the repository did not change since. */
-  redoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("redo_run", { repoId }),
-  /**
-   *  What `git lfs push <remote> <branch>` would upload (an upper bound: objects the server
-   *  already has are only skipped during the real push).
-   */
-  lfsPushEstimate: (repoId: number, remote: string, branch: string) =>
-    __TAURI_INVOKE<LfsOutcome<PushEstimate>>("lfs_push_estimate", { repoId, remote, branch }),
-  /**  `git lfs push <remote> <branch>` with progress events (`lfsTransferProgress`). */
-  lfsPush: (
-    repoId: number,
-    opId: string,
-    remote: string,
-    branch: string,
-    options: {
-      /**  `lfs.concurrenttransfers` (git-lfs default: 8). */
-      concurrentTransfers?: number | null;
-      /**  `lfs.transfer.maxretries` (default: 8). */
-      maxRetries?: number | null;
-      /**  `lfs.activitytimeout` in seconds (default: 30). */
-      activityTimeoutSecs?: number | null;
-    } | null,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_push", {
-      repoId,
-      opId,
-      remote,
-      branch,
-      options,
-      asAccount,
-    }),
-  /**  Objects a download would fetch, and whether they fit on the disk. */
-  lfsDownloadEstimate: (repoId: number, request: DownloadRequest) =>
-    __TAURI_INVOKE<LfsOutcome<DownloadEstimate>>("lfs_download_estimate", { repoId, request }),
-  /**
-   *  `git lfs pull`, or `git lfs pull --include=<path>` for one pointer file ("Tải file này");
-   *  also used for the clone option "download later". Refuses with `insufficientDiskSpace`
-   *  unless `ignoreDiskSpace`.
-   */
-  lfsPull: (
-    repoId: number,
-    opId: string,
-    include: string | null,
-    ignoreDiskSpace: boolean,
-    options: {
-      /**  `lfs.concurrenttransfers` (git-lfs default: 8). */
-      concurrentTransfers?: number | null;
-      /**  `lfs.transfer.maxretries` (default: 8). */
-      maxRetries?: number | null;
-      /**  `lfs.activitytimeout` in seconds (default: 30). */
-      activityTimeoutSecs?: number | null;
-    } | null,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_pull", {
-      repoId,
-      opId,
-      include,
-      ignoreDiskSpace,
-      options,
-      asAccount,
-    }),
-  /**  `git lfs fetch --all`: every LFS object of every ref into the local store. */
-  lfsFetchAll: (
-    repoId: number,
-    opId: string,
-    ignoreDiskSpace: boolean,
-    options: {
-      /**  `lfs.concurrenttransfers` (git-lfs default: 8). */
-      concurrentTransfers?: number | null;
-      /**  `lfs.transfer.maxretries` (default: 8). */
-      maxRetries?: number | null;
-      /**  `lfs.activitytimeout` in seconds (default: 30). */
-      activityTimeoutSecs?: number | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_fetch_all", {
-      repoId,
-      opId,
-      ignoreDiskSpace,
-      options,
-    }),
-  /**
-   *  LFS transfers currently running (latest progress of each), e.g. after a window reload.
-   *  Cancel one with `transfer_cancel(opId)`.
-   */
-  lfsTransferQueue: () => __TAURI_INVOKE<LfsTransferProgress[]>("lfs_transfer_queue"),
-  /**
-   *  Opens a shell in the repository root with the repository's account context. Output and the
-   *  exit event arrive on `on_event`.
-   */
-  terminalOpen: (repoId: number, cols: number, rows: number, onEvent: Channel<TerminalEvent>) =>
-    __TAURI_INVOKE<TerminalInfo>("terminal_open", { repoId, cols, rows, onEvent }),
-  terminalWrite: (sessionId: number, data: string) =>
-    __TAURI_INVOKE<null>("terminal_write", { sessionId, data }),
-  terminalResize: (sessionId: number, cols: number, rows: number) =>
-    __TAURI_INVOKE<null>("terminal_resize", { sessionId, cols, rows }),
-  terminalClose: (sessionId: number) => __TAURI_INVOKE<null>("terminal_close", { sessionId }),
-  providerList: () => __TAURI_INVOKE<Provider[]>("provider_list"),
-  providerSave: (provider: ProviderInput) =>
-    __TAURI_INVOKE<Provider>("provider_save", { provider }),
-  providerDelete: (id: string) => __TAURI_INVOKE<boolean>("provider_delete", { id }),
-  accountList: () => __TAURI_INVOKE<Account[]>("account_list"),
-  accountSave: (account: AccountInput) => __TAURI_INVOKE<Account>("account_save", { account }),
-  accountDelete: (id: string) => __TAURI_INVOKE<boolean>("account_delete", { id }),
-  /**  Reorders the switcher (`Ctrl/Cmd+Alt+1..9`). */
-  accountReorder: (ids: string[]) => __TAURI_INVOKE<Account[]>("account_reorder", { ids }),
-  /**  Stores an already-obtained token (OAuth flow result or PAT) in the OS keychain. */
-  accountSaveToken: (accountId: string, kind: AccountSecret, token: string) =>
-    __TAURI_INVOKE<Account>("account_save_token", { accountId, kind, token }),
-  accountDeleteToken: (accountId: string, kind: AccountSecret) =>
-    __TAURI_INVOKE<Account>("account_delete_token", { accountId, kind }),
-  identityList: (accountId: string | null) =>
-    __TAURI_INVOKE<Identity[]>("identity_list", { accountId }),
-  identitySave: (identity: IdentityInput) =>
-    __TAURI_INVOKE<Identity>("identity_save", { identity }),
-  identityDelete: (id: string) => __TAURI_INVOKE<boolean>("identity_delete", { id }),
-  /**  Makes the identity its account's default; returns that account's identities. */
-  identitySetDefault: (id: string) => __TAURI_INVOKE<Identity[]>("identity_set_default", { id }),
-  ruleList: () => __TAURI_INVOKE<Rule[]>("rule_list"),
-  ruleSave: (rule: RuleInput) => __TAURI_INVOKE<Rule>("rule_save", { rule }),
-  ruleDelete: (id: string) => __TAURI_INVOKE<boolean>("rule_delete", { id }),
-  /**  New evaluation order: `ids` first (priority 0..), other rules after. */
-  ruleReorder: (ids: string[]) => __TAURI_INVOKE<Rule[]>("rule_reorder", { ids }),
-  /**  Which rule/account a URL and/or folder would get, without saving anything. */
-  ruleTest: (url: string | null, path: string | null) =>
-    __TAURI_INVOKE<RuleTestResult>("rule_test", { url, path }),
-  repoBindingGet: (repoId: number) => __TAURI_INVOKE<RepoBinding[]>("repo_binding_get", { repoId }),
-  repoBindingSet: (repoId: number, binding: BindingInput) =>
-    __TAURI_INVOKE<RepoAccountContext>("repo_binding_set", { repoId, binding }),
-  /**  Removes the binding of `remote` (or the repo-level one when `None`). */
-  repoBindingClear: (repoId: number, remote: string | null) =>
-    __TAURI_INVOKE<RepoAccountContext>("repo_binding_clear", { repoId, remote }),
-  /**
-   *  Account pill data for an open repo. A pure read (every open tab polls it): the identity
-   *  copy in `.git/config` is written when a binding / identity / rule / setting changes and
-   *  right before a commit (`worktree::commit_create`), never here.
-   */
-  repoAccountContext: (repoId: number) =>
-    __TAURI_INVOKE<RepoAccountContext>("repo_account_context", { repoId }),
-  accountSettingsGet: () => __TAURI_INVOKE<AccountSettings>("account_settings_get"),
-  accountSettingsUpdate: (patch: AccountSettingsPatch) =>
-    __TAURI_INVOKE<AccountSettings>("account_settings_update", { patch }),
-  /**
-   *  Starts a device flow (GitHub, GitHub Enterprise, GitLab where enabled). `scopes = None` →
-   *  the defaults (`repo workflow read:user user:email` / `read_user read_api read_repository
-   *  write_repository`).
-   */
-  authDeviceStart: (providerId: string, scopes: string[] | null) =>
-    __TAURI_INVOKE<DeviceStart>("auth_device_start", { providerId, scopes }),
-  /**  Waits until the user approves the device code; resolves with the signed-in account. */
-  authDeviceWait: (flowId: string) => __TAURI_INVOKE<Account>("auth_device_wait", { flowId }),
-  /**  Starts a GitLab PKCE login on the provider's loopback port. */
-  authPkceStart: (providerId: string, scopes: string[] | null) =>
-    __TAURI_INVOKE<PkceStart>("auth_pkce_start", { providerId, scopes }),
-  /**  Waits for the browser redirect of a PKCE login; resolves with the signed-in account. */
-  authPkceWait: (flowId: string) => __TAURI_INVOKE<Account>("auth_pkce_wait", { flowId }),
-  /**  Cancels a device/PKCE flow (the pending `*_wait` fails with `cancelled`). */
-  authCancel: (flowId: string) => __TAURI_INVOKE<boolean>("auth_cancel", { flowId }),
-  /**  Adds (or updates, same provider + username) an account from a personal access token. */
-  authAddPat: (providerId: string, token: string, label: string | null) =>
-    __TAURI_INVOKE<Account>("auth_add_pat", { providerId, token, label }),
-  /**
-   *  Replaces the token of an existing account (re-authentication with a PAT). The token must
-   *  belong to the same user.
-   */
-  authUpdateToken: (accountId: string, token: string) =>
-    __TAURI_INVOKE<Account>("auth_update_token", { accountId, token }),
-  /**
-   *  Sign-in options of a provider: client id availability, loopback port / redirect URI, PAT
-   *  page and scopes.
-   */
-  authConfig: (providerId: string) =>
-    __TAURI_INVOKE<ProviderAuthConfig>("auth_config", { providerId }),
-  /**  Sets the loopback port of a provider's PKCE redirect (1024..=65535). */
-  authConfigSet: (providerId: string, loopbackPort: number) =>
-    __TAURI_INVOKE<ProviderAuthConfig>("auth_config_set", { providerId, loopbackPort }),
-  /**  Token health (no network): missing scopes, expiry, "needs sign-in". */
-  accountHealth: (accountId: string) =>
-    __TAURI_INVOKE<AccountHealth>("account_health", { accountId }),
-  /**  Health of every account (account manager list). */
-  accountHealthAll: () => __TAURI_INVOKE<AccountHealth[]>("account_health_all"),
-  /**
-   *  Refreshes a GitLab OAuth token now, or re-validates any other token (updates scopes,
-   *  expiry and profile; a rejected token marks the account "needs sign-in").
-   */
-  accountRefresh: (accountId: string) =>
-    __TAURI_INVOKE<AccountHealth>("account_refresh", { accountId }),
-  /**  Email addresses of the account on the provider (identity suggestions, Commit Guard). */
-  accountEmails: (accountId: string) =>
-    __TAURI_INVOKE<ProviderEmail[]>("account_emails", { accountId }),
-  /**  Default account color palette (`crates/accounts/src/colors.rs`). */
-  accountColors: () => __TAURI_INVOKE<string[]>("account_colors"),
-  /**  Keys of one account, or every key (also unassigned ones) when `accountId` is `null`. */
-  sshKeyList: (accountId: string | null) =>
-    __TAURI_INVOKE<SshKeyInfo[]>("ssh_key_list", { accountId }),
-  /**  New Ed25519 key for the account; an optional passphrase is saved in the OS keychain. */
-  sshKeyGenerate: (accountId: string, comment: string | null, passphrase: string | null) =>
-    __TAURI_INVOKE<SshKeyInfo>("ssh_key_generate", { accountId, comment, passphrase }),
-  /**  Copies an existing OpenSSH private key into the app key store (the file is not modified). */
-  sshKeyImport: (accountId: string, path: string, passphrase: string | null) =>
-    __TAURI_INVOKE<SshImportResult>("ssh_key_import", { accountId, path, passphrase }),
-  sshKeyDelete: (keyId: string) => __TAURI_INVOKE<boolean>("ssh_key_delete", { keyId }),
-  /**  The key git uses for the account's SSH remotes. Returns the account's keys. */
-  sshKeySetDefault: (accountId: string, keyId: string) =>
-    __TAURI_INVOKE<SshKeyInfo[]>("ssh_key_set_default", { accountId, keyId }),
-  /**  Registers the public key on the account's provider with its token. */
-  sshKeyUpload: (keyId: string, title: string) =>
-    __TAURI_INVOKE<SshUploadResult>("ssh_key_upload", { keyId, title }),
-  sshKeyCheckPermissions: (keyId: string) =>
-    __TAURI_INVOKE<SshKeyPermissions>("ssh_key_check_permissions", { keyId }),
-  sshKeyRepairPermissions: (keyId: string) =>
-    __TAURI_INVOKE<SshKeyPermissions>("ssh_key_repair_permissions", { keyId }),
-  /**  `ssh -T git@<host>` with the account's key (or `keyId`): which user does it authenticate as? */
-  sshTestConnection: (accountId: string, keyId: string | null) =>
-    __TAURI_INVOKE<SshTestResult>("ssh_test_connection", { accountId, keyId }),
-  /**
-   *  Scans the real environment: home, `%APPDATA%` (Windows), `XDG_CONFIG_HOME`,
-   *  `GIT_CONFIG_GLOBAL`, `GH_CONFIG_DIR`, `GLAB_CONFIG_DIR`. Read-only.
-   */
-  importScan: () => __TAURI_INVOKE<ImportScan>("import_scan"),
-  /**  Creates the ticked identities / rules / SSH key imports. */
-  importApply: (selection: ImportSelection) =>
-    __TAURI_INVOKE<ImportApplyResult>("import_apply", { selection }),
-  onboardingStatus: () => __TAURI_INVOKE<OnboardingStatus>("onboarding_status"),
-  /**  "Bỏ qua" / finish (`true`), or show the wizard again on next start (`false`). */
-  onboardingSetImportDone: (done: boolean) =>
-    __TAURI_INVOKE<OnboardingStatus>("onboarding_set_import_done", { done }),
-  /**  Lists gh / glab accounts on this machine (config files only, no token). Read-only. */
-  cliAccountsScan: () => __TAURI_INVOKE<CliAccountsScan>("cli_accounts_scan"),
-  /**
-   *  Copies the tokens of the ticked accounts from gh / glab into the app (user consent given
-   *  in the UI). Never modifies the CLI configuration.
-   */
-  cliAccountsImport: (accounts: CliAccountRef[]) =>
-    __TAURI_INVOKE<CliImportItem[]>("cli_accounts_import", { accounts }),
-  /**  "Bỏ qua" in the startup notice: hide it until another CLI account appears. */
-  cliAccountsDismiss: (keys: string[]) => __TAURI_INVOKE<null>("cli_accounts_dismiss", { keys }),
-  setupStatus: () => __TAURI_INVOKE<SetupStatus>("setup_status"),
-  /**  Saves the whole progress object (finish, skip, steps done). */
-  setupSave: (progress: SetupProgress) => __TAURI_INVOKE<SetupStatus>("setup_save", { progress }),
-  setupTools: () => __TAURI_INVOKE<SetupToolsReport>("setup_tools"),
-  /**  Installs `tool` with the whitelisted package-manager command of this OS. */
-  setupInstall: (tool: SetupToolId) =>
-    __TAURI_INVOKE<SetupInstallResult>("setup_install", { tool }),
-  /**  Stops the running install, if any. */
-  setupInstallCancel: () => __TAURI_INVOKE<boolean>("setup_install_cancel"),
-  /**  Restarts the app so it picks up a `PATH` changed by an installer. */
-  setupRestart: () => __TAURI_INVOKE<null>("setup_restart"),
-  /**
-   *  Repositories of `accountIds` (default: every account). Missing lists are fetched now;
-   *  `refresh` refetches all of them; a stale cache is returned immediately and refreshed in
-   *  the background (then [`CloneListUpdated`] is emitted).
-   */
-  cloneRepoList: (accountIds: string[] | null, refresh: boolean) =>
-    __TAURI_INVOKE<CloneRepoList>("clone_repo_list", { accountIds, refresh }),
-  /**  Parses `url` and lists the accounts that could clone it (see [`CloneGuess`]). */
-  cloneGuess: (url: string) => __TAURI_INVOKE<CloneGuess>("clone_guess", { url }),
-  /**
-   *  Default destination for cloning `url` as `accountId` (or checks `path` when given), with
-   *  the free space of its volume.
-   */
-  cloneDestination: (accountId: string | null, url: string, path: string | null) =>
-    __TAURI_INVOKE<CloneDestination>("clone_destination", { accountId, url, path }),
-  /**  Saves the destination template (must contain `{repo}`). Returns the stored template. */
-  cloneSetTemplate: (template: string) =>
-    __TAURI_INVOKE<string>("clone_set_template", { template }),
-  /**
-   *  Clones `request.url` into `request.dest` with [`CloneProgress`] events; cancel with
-   *  `transfer_cancel(opId)` (the half-cloned folder is removed). On success the repository is
-   *  bound to the account (`source: clone`), added to the recent list and opened as a tab.
-   */
-  cloneStart: (opId: string, request: CloneRequest) =>
-    __TAURI_INVOKE<Outcome<CloneResult>>("clone_start", { opId, request }),
-  /**  Commit Guard report for the repo's default context. Never fails because of the network. */
-  commitGuard: (repoId: number) => __TAURI_INVOKE<CommitGuardReport>("commit_guard", { repoId }),
-  /**
-   *  Push Guard report for pushing `branch` to `remote`. A `rejected` outcome means the names
-   *  are invalid / the branch does not exist.
-   */
-  pushGuard: (repoId: number, remote: string, branch: string) =>
-    __TAURI_INVOKE<Outcome<PushGuardReport>>("push_guard", { repoId, remote, branch }),
-  /**
-   *  "Sửa tác giả" for unpushed commits of `branch` (checked out), as the identity that pushes
-   *  to `remote`. Creates a backup ref first; refuses when a commit is already on a remote.
-   */
-  guardFixAuthors: (repoId: number, remote: string, branch: string, mode: FixAuthorMode) =>
-    __TAURI_INVOKE<Outcome<RewriteOutcome>>("guard_fix_authors", { repoId, remote, branch, mode }),
-  /**
-   *  "Chuyển sang LFS": `git lfs migrate import` of `paths` over the unpushed commits of
-   *  `branch` (checked out). Backup ref first; refuses when a commit is already on a remote.
-   */
-  guardLfsMigrate: (repoId: number, remote: string, branch: string, paths: string[]) =>
-    __TAURI_INVOKE<Outcome<RewriteOutcome>>("guard_lfs_migrate", { repoId, remote, branch, paths }),
-  /**
-   *  Undo a guard rewrite: restores the backup's branch to `backup_ref` (and backs up the
-   *  current tip first, so the undo can itself be undone).
-   */
-  guardUndo: (repoId: number, backupRef: string) =>
-    __TAURI_INVOKE<Outcome<RestoreOutcome>>("guard_undo", { repoId, backupRef }),
-  /**  Backup refs of the repo (`refs/nanomgg/backup/*`), newest first. */
-  guardBackups: (repoId: number) => __TAURI_INVOKE<BackupRef[]>("guard_backups", { repoId }),
-  /**  Deletes one backup ref. */
-  guardBackupDelete: (repoId: number, backupRef: string) =>
-    __TAURI_INVOKE<Outcome<null>>("guard_backup_delete", { repoId, backupRef }),
-  /**  Every submodule (nested ones too) with its state and the account it will use. */
-  submoduleList: (repoId: number) => __TAURI_INVOKE<SubmoduleInfo[]>("submodule_list", { repoId }),
-  /**
-   *  `git submodule update [--init] [--recursive]` for `paths` (empty = every submodule), each
-   *  group of submodules as its own account.
-   */
-  submoduleUpdate: (
-    repoId: number,
-    opId: string,
-    paths: string[],
-    init: boolean,
-    recursive: boolean,
-  ) =>
-    __TAURI_INVOKE<Outcome<SubmoduleUpdateSummary>>("submodule_update", {
-      repoId,
-      opId,
-      paths,
-      init,
-      recursive,
-    }),
-  /**
-   *  `git submodule add [-b branch] -- <url> <path>`; the clone runs as the account the URL
-   *  resolves to.
-   */
-  submoduleAdd: (repoId: number, opId: string, url: string, path: string, branch: string | null) =>
-    __TAURI_INVOKE<Outcome<Submodule>>("submodule_add", { repoId, opId, url, path, branch }),
-  /**  Account a submodule URL would use (for the "Add submodule" dialog). */
-  submoduleUrlAccount: (repoId: number, url: string) =>
-    __TAURI_INVOKE<SubmoduleAccount>("submodule_url_account", { repoId, url }),
-  /**  `git submodule sync [--recursive]` (copy URLs from `.gitmodules` to the config). */
-  submoduleSync: (repoId: number, paths: string[], recursive: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("submodule_sync", { repoId, paths, recursive }),
-  /**
-   *  `git submodule deinit [-f]`: empties the folder, keeps `.gitmodules`. Local changes come
-   *  back as `dirtyWorktree` (ask, then retry with `force`).
-   */
-  submoduleDeinit: (repoId: number, path: string, force: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("submodule_deinit", { repoId, path, force }),
-  /**  Removes the submodule from the repository (deinit + `git rm`); commit afterwards. */
-  submoduleRemove: (repoId: number, path: string, force: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("submodule_remove", { repoId, path, force }),
-  /**  Worktrees of the repository (main first; `isCurrent` marks the open one). */
-  linkedWorktreeList: (repoId: number) =>
-    __TAURI_INVOKE<Worktree[]>("linked_worktree_list", { repoId }),
-  /**  `git worktree add` at the absolute folder `path` (missing or empty) for `target`. */
-  linkedWorktreeAdd: (repoId: number, path: string, target: WorktreeTarget) =>
-    __TAURI_INVOKE<Outcome<Worktree>>("linked_worktree_add", { repoId, path, target }),
-  /**  `git worktree remove [--force]`; changes inside come back as `dirtyWorktree`. */
-  linkedWorktreeRemove: (repoId: number, path: string, force: boolean) =>
-    __TAURI_INVOKE<Outcome<null>>("linked_worktree_remove", { repoId, path, force }),
-  /**  `git worktree prune -v` (`dryRun`: only list what would be pruned). */
-  linkedWorktreePrune: (repoId: number, dryRun: boolean) =>
-    __TAURI_INVOKE<Outcome<string[]>>("linked_worktree_prune", { repoId, dryRun }),
-  /**  `git worktree lock [--reason]` / `unlock`. */
-  linkedWorktreeLock: (repoId: number, path: string, locked: boolean, reason: string | null) =>
-    __TAURI_INVOKE<Outcome<null>>("linked_worktree_lock", { repoId, path, locked, reason }),
-  /**  `git lfs locks --verify --json` (falls back to the plain list): who holds which file. */
-  lfsLocks: (repoId: number) => __TAURI_INVOKE<LockOutcome<LockList>>("lfs_locks", { repoId }),
-  /**  `git lfs lock <path>` as the repo's account. */
-  lfsLock: (repoId: number, path: string) =>
-    __TAURI_INVOKE<LockOutcome<LfsLock>>("lfs_lock", { repoId, path }),
-  /**  `git lfs unlock [--force]` by path (or lock id when the file is gone). */
-  lfsUnlock: (repoId: number, path: string | null, id: string | null, force: boolean) =>
-    __TAURI_INVOKE<LockOutcome<null>>("lfs_unlock", { repoId, path, id, force }),
-  /**  Marks / unmarks an LFS pattern `lockable`; `true` when `.gitattributes` changed. */
-  lfsSetLockable: (repoId: number, pattern: string, lockable: boolean) =>
-    __TAURI_INVOKE<boolean>("lfs_set_lockable", { repoId, pattern, lockable }),
-  /**  LFS files of the checkout: size, downloaded / pointer, lockable. */
-  lfsFiles: (repoId: number) => __TAURI_INVOKE<LfsFile[]>("lfs_files", { repoId }),
-  /**  Size of the local LFS object store. */
-  lfsStorage: (repoId: number) => __TAURI_INVOKE<LfsStorage>("lfs_storage", { repoId }),
-  /**  `git lfs prune --dry-run`: what would be deleted and how much it frees. */
-  lfsPrunePreview: (repoId: number, verifyRemote: boolean) =>
-    __TAURI_INVOKE<PruneReport>("lfs_prune_preview", { repoId, verifyRemote }),
-  /**  `git lfs prune` (after the user confirmed the preview). */
-  lfsPrune: (repoId: number, verifyRemote: boolean) =>
-    __TAURI_INVOKE<PruneReport>("lfs_prune", { repoId, verifyRemote }),
-  /**  `git lfs fsck --dry-run` (objects and/or pointers), read-only. */
-  lfsFsck: (repoId: number, objects: boolean, pointers: boolean) =>
-    __TAURI_INVOKE<FsckReport>("lfs_fsck", { repoId, objects, pointers }),
-  /**
-   *  `git lfs pull --include=<a>,<b>,…`: downloads the selected pointer files in one transfer
-   *  ("Tải các file đã chọn" in the LFS panel).
-   */
-  lfsPullFiles: (
-    repoId: number,
-    opId: string,
-    paths: string[],
-    ignoreDiskSpace: boolean,
-    options: {
-      /**  `lfs.concurrenttransfers` (git-lfs default: 8). */
-      concurrentTransfers?: number | null;
-      /**  `lfs.transfer.maxretries` (default: 8). */
-      maxRetries?: number | null;
-      /**  `lfs.activitytimeout` in seconds (default: 30). */
-      activityTimeoutSecs?: number | null;
-    } | null,
-  ) =>
-    __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_pull_files", {
-      repoId,
-      opId,
-      paths,
-      ignoreDiskSpace,
-      options,
-    }),
-  /**
-   *  GPG secret keys usable for signing, listed with the `gpg` git would run (`gpg.program`, the
-   *  one bundled with Git for Windows, or `gpg` on PATH). `notInstalled` when it cannot start.
-   */
-  signingGpgKeys: () => __TAURI_INVOKE<GpgKeyList>("signing_gpg_keys"),
-  /**
-   *  "Thử ký": signs a throw-away commit with the given key (GPG: gpg-agent may ask for the
-   *  passphrase in its own window) and verifies it.
-   */
-  signingTest: (probe: SigningProbe) => __TAURI_INVOKE<SignTestResult>("signing_test", { probe }),
-  /**
-   *  Verification status of a commit's signature (lazy: the details panel asks only for signed
-   *  commits, see `CommitDetails.signature`).
-   */
-  commitSignature: (repoId: number, oid: string) =>
-    __TAURI_INVOKE<CommitSignature>("commit_signature", { repoId, oid }),
-  /**  Hosted remotes of an open repository with the account each one uses. */
-  hostedRemoteList: (repoId: number) =>
-    __TAURI_INVOKE<HostedRemote[]>("hosted_remote_list", { repoId }),
-  /**
-   *  A page of issues of the project behind `remote` (default: `origin`, else the first hosted
-   *  remote) of an open repository.
-   */
-  issueList: (repoId: number, remote: string | null, query: IssueListQuery) =>
-    __TAURI_INVOKE<IssueListResult>("issue_list", { repoId, remote, query }),
-  issueGet: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<IssueDetail>("issue_get", { accountId, fullName, number }),
-  issueComments: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<IssueCommentList>("issue_comments", { accountId, fullName, number }),
-  /**  Posts a comment as `account_id` (the account the user confirmed). */
-  issueCommentCreate: (accountId: string, fullName: string, number: number, body: string) =>
-    __TAURI_INVOKE<IssueComment>("issue_comment_create", { accountId, fullName, number, body }),
-  /**
-   *  Creates an issue on the project behind `remote` of an open repository, as the resolved
-   *  account or `as_account` ("only for this action").
-   */
-  issueCreate: (
-    repoId: number,
-    remote: string | null,
-    asAccount: string | null,
-    input: IssueCreate,
-  ) => __TAURI_INVOKE<IssueCreated>("issue_create", { repoId, remote, asAccount, input }),
-  /**  Close / reopen, replace labels or assignees, as `account_id`. */
-  issueUpdate: (accountId: string, fullName: string, number: number, change: IssueUpdate) =>
-    __TAURI_INVOKE<IssueDetail>("issue_update", { accountId, fullName, number, change }),
-  issueLabels: (accountId: string, fullName: string) =>
-    __TAURI_INVOKE<IssueLabel[]>("issue_labels", { accountId, fullName }),
-  issueAssignableUsers: (accountId: string, fullName: string) =>
-    __TAURI_INVOKE<IssueUser[]>("issue_assignable_users", { accountId, fullName }),
-  /**  Suggested branch name for an issue (the UI lets the user edit it). */
-  issueBranchName: (number: number, title: string) =>
-    __TAURI_INVOKE<string>("issue_branch_name", { number, title }),
-  /**
-   *  Creates local branch `name` (default: [`issue_branch_name`]) at `start` (default: `HEAD`),
-   *  optionally switching to it. Names are checked with `git check-ref-format --branch`;
-   *  recorded for Undo like any branch creation. Returns the branch name.
-   */
-  issueBranchCreate: (
-    repoId: number,
-    number: number,
-    title: string,
-    name: string | null,
-    start: string | null,
-    checkout: boolean,
-  ) =>
-    __TAURI_INVOKE<Outcome<string>>("issue_branch_create", {
-      repoId,
-      number,
-      title,
-      name,
-      start,
-      checkout,
-    }),
-  /**
-   *  The "My work" lists of every account with a token. Answers younger than a minute come from
-   *  the cache unless `refresh`. A new call cancels the one still running.
-   */
-  myworkList: (refresh: boolean) => __TAURI_INVOKE<WorkOverview>("mywork_list", { refresh }),
-  /**  Stops the running [`mywork_list`] (it then answers with `cancelled: true`). */
-  myworkCancel: () => __TAURI_INVOKE<boolean>("mywork_cancel"),
-  /**
-   *  CI of `shas` (full or abbreviated commit ids) of open repository `repo_id`. `remote` is the
-   *  preferred remote (the current branch's upstream remote); GitLab jobs are only read with
-   *  `with_jobs` (badges do not need them).
-   */
-  ciStatuses: (repoId: number, shas: string[], remote: string | null, withJobs: boolean) =>
-    __TAURI_INVOKE<CiBatch>("ci_statuses", { repoId, shas, remote, withJobs }),
-  /**
-   *  CI of one commit of `full_name` read with `account_id` (PR/MR pages, which know the account
-   *  and project but may have no open repository). Always includes the jobs.
-   */
-  ciStatusFor: (accountId: string, fullName: string, sha: string) =>
-    __TAURI_INVOKE<CiBatch>("ci_status_for", { accountId, fullName, sha }),
-  /**  Where `account_id` may fork to: itself first, then organizations / groups. */
-  forkNamespaces: (accountId: string) =>
-    __TAURI_INVOKE<ForkOutcome<ForkNamespace[]>>("fork_namespaces", { accountId }),
-  /**  The account's existing fork of `source` in `namespace` (`None` = the account itself). */
-  forkFind: (accountId: string, source: string, namespace: string | null) =>
-    __TAURI_INVOKE<ForkOutcome<ForkRepo | null>>("fork_find", { accountId, source, namespace }),
-  /**
-   *  Forks `source` with `account_id` (or returns the account's existing fork in that namespace).
-   *  The data may still be copying: call [`fork_wait`] before cloning / fetching.
-   */
-  forkCreate: (accountId: string, source: string, options: ForkOptions) =>
-    __TAURI_INVOKE<ForkOutcome<ForkRepo>>("fork_create", { accountId, source, options }),
-  /**
-   *  Waits (≤ 2 minutes) until the fork `full_name` can be cloned. `false` = still copying.
-   *  Cancel with `transfer_cancel(opId)`.
-   */
-  forkWait: (opId: string, accountId: string, fullName: string) =>
-    __TAURI_INVOKE<ForkOutcome<boolean>>("fork_wait", { opId, accountId, fullName }),
-  /**
-   *  After cloning a fork: `upstream` = the source (same transport as `origin`), then a
-   *  best-effort fetch of it is left to the frontend (`remote_fetch`).
-   */
-  forkAddUpstream: (repoId: number, upstreamHttps: string, upstreamSsh: string) =>
-    __TAURI_INVOKE<ForkRemoteChange>("fork_add_upstream", { repoId, upstreamHttps, upstreamSsh }),
-  /**
-   *  Adds the fork of the open repository as a remote (see [`ForkAttachMode`]) and binds that
-   *  remote to `account_id`. Fetch it afterwards with `remote_fetch`.
-   */
-  forkAttach: (
-    repoId: number,
-    accountId: string,
-    sourceRemote: string,
-    forkHttps: string,
-    forkSsh: string,
-    mode: ForkAttachMode,
-  ) =>
-    __TAURI_INVOKE<ForkRemoteChange>("fork_attach", {
-      repoId,
-      accountId,
-      sourceRemote,
-      forkHttps,
-      forkSsh,
-      mode,
-    }),
-  /**  Creates an empty repository with `account_id` (see [`NewRepoOptions`]). */
-  publishCreateRepo: (accountId: string, options: NewRepoOptions) =>
-    __TAURI_INVOKE<ForkOutcome<ForkRepo>>("publish_create_repo", { accountId, options }),
-  /**
-   *  Adds remote `name` → `url` to the open repository and, when `account_id` is given, binds
-   *  that remote to the account so fetch / push use its credentials.
-   */
-  publishAddRemote: (repoId: number, name: string, url: string, accountId: string | null) =>
-    __TAURI_INVOKE<ForkRemoteChange>("publish_add_remote", { repoId, name, url, accountId }),
-  pullList: (accountId: string, fullName: string, query: PullListQuery) =>
-    __TAURI_INVOKE<PullPage>("pull_list", { accountId, fullName, query }),
-  pullDetail: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<PullDetail>("pull_detail", { accountId, fullName, number }),
-  pullReviews: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<PullReviews>("pull_reviews", { accountId, fullName, number }),
-  pullCommits: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<PullCommit[]>("pull_commits", { accountId, fullName, number }),
-  pullFiles: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<PullFiles>("pull_files", { accountId, fullName, number }),
-  pullComments: (accountId: string, fullName: string, number: number) =>
-    __TAURI_INVOKE<PullComment[]>("pull_comments", { accountId, fullName, number }),
-  pullCommentCreate: (
-    accountId: string,
-    fullName: string,
-    number: number,
-    target: PullCommentTarget,
-    body: string,
-  ) =>
-    __TAURI_INVOKE<PullComment>("pull_comment_create", {
-      accountId,
-      fullName,
-      number,
-      target,
-      body,
-    }),
-  pullReviewSubmit: (
-    accountId: string,
-    fullName: string,
-    number: number,
-    event: PullReviewEvent,
-    body: string,
-  ) => __TAURI_INVOKE<null>("pull_review_submit", { accountId, fullName, number, event, body }),
-  pullCreate: (accountId: string, fullName: string, create: PullCreate) =>
-    __TAURI_INVOKE<PullCreated>("pull_create", { accountId, fullName, create }),
-  pullMerge: (accountId: string, fullName: string, number: number, request: PullMergeRequest) =>
-    __TAURI_INVOKE<PullMerged>("pull_merge", { accountId, fullName, number, request }),
-  /**  Closes (`open = false`) or reopens a pull request. */
-  pullSetOpen: (accountId: string, fullName: string, number: number, open: boolean) =>
-    __TAURI_INVOKE<null>("pull_set_open", { accountId, fullName, number, open }),
-  /**
-   *  Context for creating a pull request from `branch` (current branch when `None`) into the
-   *  project of `target_remote`, branch `target_branch` (default branch when `None`).
-   */
-  pullCreateContext: (
-    repoId: number,
-    branch: string | null,
-    targetRemote: string | null,
-    targetBranch: string | null,
-  ) =>
-    __TAURI_INVOKE<PullCreateContext>("pull_create_context", {
-      repoId,
-      branch,
-      targetRemote,
-      targetBranch,
-    }),
-  /**
-   *  Checks out the pull request's source branch: a tracking branch for same-project pull
-   *  requests, a local branch at `refs/pull/N/head` / `refs/merge-requests/N/head` for forks.
-   */
-  pullCheckout: (
-    repoId: number,
-    request: PullCheckoutRequest,
-    asAccount: {
-      accountId: string;
-      /**  Must belong to the account; omitted → its default identity. */
-      identityId?: string | null;
-    } | null,
-  ) => __TAURI_INVOKE<Outcome<PullCheckout>>("pull_checkout", { repoId, request, asAccount }),
-  /**
-   *  Diff of one file of a pull request computed with local git (fetching the pull request ref
-   *  first when its commits are not here yet).
-   */
-  pullLocalDiff: (repoId: number, request: PullLocalDiffRequest) =>
-    __TAURI_INVOKE<Outcome<PullLocalDiff>>("pull_local_diff", { repoId, request }),
-  updaterStatus: () => __TAURI_INVOKE<UpdaterStatus>("updater_status"),
-  /**
-   *  Looks for a newer published release. `startup: true` honours the once-a-day limit; the
-   *  caller decides what to do with a skipped version (`update.skipped`).
-   */
-  updaterCheck: (startup: boolean) => __TAURI_INVOKE<UpdateCheck>("updater_check", { startup }),
-  /**
-   *  Downloads, verifies and installs `version` (found by the last check), then restarts the
-   *  app. Progress arrives as [`UpdateProgress`]. Only returns on failure: on Windows the
-   *  installer closes the app and starts it again, elsewhere the app restarts itself.
-   */
-  updaterInstall: (version: string) => __TAURI_INVOKE<null>("updater_install", { version }),
-  /**  "Bỏ qua bản này": the startup check stays quiet about `version` (`null` clears it). */
-  updaterSkipVersion: (version: string | null) =>
-    __TAURI_INVOKE<UpdaterStatus>("updater_skip_version", { version }),
-  updaterSetChannel: (channel: UpdateChannel) =>
-    __TAURI_INVOKE<UpdaterStatus>("updater_set_channel", { channel }),
-  /**  Every folder with its size (measured with a time limit), path and free space. */
-  storageOverview: () => __TAURI_INVOKE<StorageOverview>("storage_overview"),
-  /**  Free space of the data drive (low-space warning) and the startup warnings. */
-  storageStatus: () => __TAURI_INVOKE<StorageStatus>("storage_status"),
-  /**
-   *  Checks a folder before moving there (`path: null` = the default location). Problems the
-   *  user can fix are returned in `problem`, not as errors.
-   */
-  storageCheckTarget: (kind: StorageKind, path: string | null) =>
-    __TAURI_INVOKE<StorageTargetCheck>("storage_check_target", { kind, path }),
-  /**
-   *  Moves the log or cache folder now (with [`StorageMoveProgress`]), or schedules the data
-   *  folder for the next start (`restartRequired`). `path: null` = back to the default.
-   */
-  storageChange: (kind: StorageKind, path: string | null) =>
-    __TAURI_INVOKE<StorageChangeResult>("storage_change", { kind, path }),
-  /**  Drops the data move scheduled for the next start. */
-  storageCancelPending: () => __TAURI_INVOKE<StorageStatus>("storage_cancel_pending"),
-  /**  Opens the folder in the system file manager (created first if missing). */
-  storageOpen: (kind: StorageKind) => __TAURI_INVOKE<null>("storage_open", { kind }),
-  /**  Deletes everything in the cache folder and the in-memory repository lists. */
-  storageClearCache: () => __TAURI_INVOKE<CleanReport>("storage_clear_cache"),
-  /**  Deletes old log files, keeping the one being written today. */
-  storagePruneLogs: () => __TAURI_INVOKE<CleanReport>("storage_prune_logs"),
-  /**  Restarts the app (after the user confirmed, to apply a scheduled data move). */
-  storageRestart: () => __TAURI_INVOKE<void>("storage_restart"),
-  /**  What switching to `target` would run into (reads only). */
-  branchSwitchCheck: (repoId: number, target: SwitchTarget) =>
-    __TAURI_INVOKE<BranchSwitchCheck>("branch_switch_check", { repoId, target }),
-  /**  Switches to `target` (see the module docs). `autoRestore` comes from the preferences. */
-  branchSwitchRun: (repoId: number, target: SwitchTarget, mode: SwitchDirtyMode) =>
-    __TAURI_INVOKE<BranchSwitchResult>("branch_switch_run", { repoId, target, mode }),
-  /**  Pops the newest autostash of the checked-out `branch`; `None` when there is none. */
-  branchSwitchRestore: (repoId: number, branch: string) =>
-    __TAURI_INVOKE<{
-      status: RestoreStatus;
-      /**  Files in the stash entry. */
-      files: number;
-      /**  Conflicted paths (`Conflicts`). */
-      conflicts: string[];
-      /**  The working tree was not clean (`Pending`). */
-      dirty: boolean;
-      /**  git's explanation (`Failed`). */
-      message: string | null;
-    } | null>("branch_switch_restore", { repoId, branch }),
-  branchSwitchPrefsGet: () => __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_get"),
-  branchSwitchPrefsSet: (patch: BranchSwitchPrefsPatch) =>
-    __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_set", { patch }),
-  customThemeList: () => __TAURI_INVOKE<CustomThemes>("custom_theme_list"),
-  customThemeSave: (input: CustomThemeInput) =>
-    __TAURI_INVOKE<CustomTheme>("custom_theme_save", { input }),
-  customThemeDelete: (id: string) => __TAURI_INVOKE<CustomThemes>("custom_theme_delete", { id }),
-  customThemeDeleteAll: () => __TAURI_INVOKE<CustomThemes>("custom_theme_delete_all"),
-  customThemeSetActive: (id: string | null) =>
-    __TAURI_INVOKE<CustomThemes>("custom_theme_set_active", { id }),
-  customThemeExport: (path: string, input: CustomThemeInput) =>
-    __TAURI_INVOKE<null>("custom_theme_export", { path, input }),
-  customThemeImport: (path: string) =>
-    __TAURI_INVOKE<ThemeImportResult>("custom_theme_import", { path }),
-  notesLoad: () => __TAURI_INVOKE<NotesData>("notes_load"),
-  notesSave: (input: NoteInput) => __TAURI_INVOKE<NotesData>("notes_save", { input }),
-  notesDelete: (ids: string[]) => __TAURI_INVOKE<NotesData>("notes_delete", { ids }),
-  notesDeleteAll: (withTags: boolean) =>
-    __TAURI_INVOKE<NotesData>("notes_delete_all", { withTags }),
-  notesTagSave: (input: NoteTagInput) => __TAURI_INVOKE<NotesData>("notes_tag_save", { input }),
-  notesTagDelete: (id: string) => __TAURI_INVOKE<NotesData>("notes_tag_delete", { id }),
-  /**  `ids: None` exports every note. Returns how many notes were written. */
-  notesExportFile: (path: string, ids: string[] | null) =>
-    __TAURI_INVOKE<number>("notes_export_file", { path, ids }),
-  notesImportFile: (path: string) =>
-    __TAURI_INVOKE<NotesImportReport>("notes_import_file", { path }),
-  notesExportMarkdown: (path: string, content: string) =>
-    __TAURI_INVOKE<null>("notes_export_markdown", { path, content }),
-  userDataSummary: () => __TAURI_INVOKE<UserDataSummary>("user_data_summary"),
-  aiSettings: () => __TAURI_INVOKE<AiSettingsView>("ai_settings"),
-  aiSettingsSave: (config: AiConfig) =>
-    __TAURI_INVOKE<AiSettingsView>("ai_settings_save", { config }),
-  /**  Stores the API key of a cloud service in the keychain. */
-  aiKeySet: (provider: AiProvider, key: string) =>
-    __TAURI_INVOKE<AiSettingsView>("ai_key_set", { provider, key }),
-  aiKeyDelete: (provider: AiProvider) =>
-    __TAURI_INVOKE<AiSettingsView>("ai_key_delete", { provider }),
-  /**  "Kiểm tra kết nối": lists the service's models with `config` (may be unsaved). */
-  aiTest: (config: AiConfig, requestId: string) =>
-    __TAURI_INVOKE<AiTestResult>("ai_test", { config, requestId }),
-  /**
-   *  Suggests a commit message for the staged changes of `repo_id` (or, with `unstaged`, the
-   *  working-tree changes when nothing is staged). `app_language`: `vi` / `en`.
-   */
-  aiGenerate: (repoId: number, requestId: string, appLanguage: string, unstaged: boolean) =>
-    __TAURI_INVOKE<AiSuggestion>("ai_generate", { repoId, requestId, appLanguage, unstaged }),
-  /**  Cancels a running `ai_generate` / `ai_test` / `ai_ollama_pull` / `ai_ollama_start`. */
-  aiCancel: (requestId: string) => __TAURI_INVOKE<boolean>("ai_cancel", { requestId }),
-  aiOllamaStatus: () => __TAURI_INVOKE<OllamaStatus>("ai_ollama_status"),
-  /**
-   *  Installs Ollama with winget (Windows) / Homebrew (macOS). Linux / no manager →
-   *  `managerMissing` (the UI opens the download page).
-   */
-  aiOllamaInstall: () => __TAURI_INVOKE<AiInstallResult>("ai_ollama_install"),
-  aiOllamaInstallCancel: () => __TAURI_INVOKE<boolean>("ai_ollama_install_cancel"),
-  /**  Starts `ollama serve` in the background (macOS: opens Ollama.app) and waits for it. */
-  aiOllamaStart: (requestId: string) =>
-    __TAURI_INVOKE<OllamaStatus>("ai_ollama_start", { requestId }),
-  /**  Downloads an Ollama model; progress arrives as [`AiPullProgress`]. */
-  aiOllamaPull: (model: string, requestId: string) =>
-    __TAURI_INVOKE<null>("ai_ollama_pull", { model, requestId }),
-  aiOllamaDelete: (model: string) => __TAURI_INVOKE<null>("ai_ollama_delete", { model }),
-  /**
-   *  Writes the chosen accounts (all when `accountIds` is empty) to an encrypted file. Tokens and
-   *  the app's SSH keys only with `includeSecrets`.
-   */
-  backupAccountsExport: (
-    path: string,
-    password: string,
-    accountIds: string[],
-    includeSecrets: boolean,
-  ) =>
-    __TAURI_INVOKE<BackupWriteResult>("backup_accounts_export", {
-      path,
-      password,
-      accountIds,
-      includeSecrets,
-    }),
-  /**  Decrypts an account export and lists its accounts, marking those already on this machine. */
-  backupAccountsOpen: (path: string, password: string) =>
-    __TAURI_INVOKE<AccountsFileResult>("backup_accounts_open", { path, password }),
-  /**
-   *  Imports the accounts named by `keys` (ids inside the file). Existing accounts are skipped,
-   *  or get only their label/color when `updateExisting`. All or nothing.
-   */
-  backupAccountsImport: (path: string, password: string, keys: string[], updateExisting: boolean) =>
-    __TAURI_INVOKE<AccountsImportResult>("backup_accounts_import", {
-      path,
-      password,
-      keys,
-      updateExisting,
-    }),
-  /**
-   *  Writes an encrypted snapshot of all app data; with `includeSecrets` also the tokens, SSH
-   *  passphrases, AI keys and the app's SSH key files.
-   */
-  backupFullCreate: (path: string, password: string, includeSecrets: boolean) =>
-    __TAURI_INVOKE<BackupWriteResult>("backup_full_create", { path, password, includeSecrets }),
-  /**  Decrypts a full backup and describes it (counts read from a throw-away copy). */
-  backupFullOpen: (path: string, password: string) =>
-    __TAURI_INVOKE<FullBackupFileResult>("backup_full_open", { path, password }),
-  /**
-   *  Stages the restore (database next to the live one, secrets, key files). The caller then
-   *  restarts the app (`storage_restart`); the swap happens before the database opens.
-   */
-  backupFullRestore: (path: string, password: string) =>
-    __TAURI_INVOKE<FullRestoreResult>("backup_full_restore", { path, password }),
-  /**  The restore applied at this start, once (later calls return `null`). */
-  backupRestoreNotice: () =>
-    __TAURI_INVOKE<{
-      ok: boolean;
-      error: string | null;
-      /**  When the backup was made (Unix ms). */
-      createdAt: number | null;
-      appVersion: string | null;
-      /**  Copy of the replaced database. */
-      previousCopy: string | null;
-    } | null>("backup_restore_notice"),
+	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+	getSettings: () => __TAURI_INVOKE<AppSettings>("get_settings"),
+	updateSettings: (patch: SettingsPatch) => __TAURI_INVOKE<AppSettings>("update_settings", { patch }),
+	/**
+	 *  Loads the history the first time, then refreshes it (incrementally when possible).
+	 *  The graph is taken out of the shared map while git runs so row requests never wait on it.
+	 */
+	graphOpen: (repoId: number) => __TAURI_INVOKE<GraphSummary>("graph_open", { repoId }),
+	graphRows: (repoId: number, offset: number, limit: number) => __TAURI_INVOKE<GraphRow[]>("graph_rows", { repoId, offset, limit }),
+	/**  Row of a commit (full hash or unique-enough prefix), if it is in the loaded history. */
+	graphFind: (repoId: number, oid: string) => __TAURI_INVOKE<number | null>("graph_find", { repoId, oid }),
+	/**  Rows matching `query` in subject, author or hash prefix (at most `limit`, in graph order). */
+	graphSearch: (repoId: number, query: string, limit: number) => __TAURI_INVOKE<number[]>("graph_search", { repoId, query, limit }),
+	commitDetails: (repoId: number, hash: string) => __TAURI_INVOKE<CommitDetails>("commit_details", { repoId, hash }),
+	startupArgs: () => __TAURI_INVOKE<StartupArgs>("startup_args"),
+	reportBenchmark: (result: GraphBenchmark) => __TAURI_INVOKE<void>("report_benchmark", { result }),
+	toolStatus: () => __TAURI_INVOKE<Tools>("tool_status"),
+	repoOpen: (path: string) => __TAURI_INVOKE<RepoTab>("repo_open", { path }),
+	repoInit: (path: string, initialBranch: string | null) => __TAURI_INVOKE<RepoTab>("repo_init", { path, initialBranch }),
+	repoClose: (id: number) => __TAURI_INVOKE<WorkspaceState>("repo_close", { id }),
+	/**
+	 *  Current tabs. The first call of a session restores the tabs saved in the database,
+	 *  re-resolving each folder (missing ones are kept and flagged so the user can relocate or close).
+	 */
+	workspaceState: () => __TAURI_INVOKE<WorkspaceState>("workspace_state"),
+	workspaceSetActive: (id: number) => __TAURI_INVOKE<null>("workspace_set_active", { id }),
+	/**  Moves the tabs into the order of `ids` (drag and drop, pinning) and saves it. */
+	workspaceReorder: (ids: number[]) => __TAURI_INVOKE<WorkspaceState>("workspace_reorder", { ids }),
+	recentRepos: () => __TAURI_INVOKE<RecentRepo[]>("recent_repos"),
+	/**  Forgets a repository (does not touch its files). Closes its tab if open. */
+	recentRemove: (id: number) => __TAURI_INVOKE<WorkspaceState>("recent_remove", { id }),
+	repoRefs: (id: number) => __TAURI_INVOKE<RepoRefs>("repo_refs", { id }),
+	worktreeStatus: (repoId: number) => __TAURI_INVOKE<WorkingTreeStatus>("worktree_status", { repoId }),
+	fileDiff: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileDiff>("file_diff", { repoId, request }),
+	fileContents: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileContents>("file_contents", { repoId, request }),
+	stageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("stage_files", { repoId, paths }),
+	unstageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("unstage_files", { repoId, paths }),
+	stageAll: (repoId: number) => __TAURI_INVOKE<null>("stage_all", { repoId }),
+	unstageAll: (repoId: number) => __TAURI_INVOKE<null>("unstage_all", { repoId }),
+	/**  Discards unstaged changes of tracked files and deletes the given untracked files. */
+	discardFiles: (repoId: number, tracked: string[], untracked: string[]) => __TAURI_INVOKE<null>("discard_files", { repoId, tracked, untracked }),
+	/**
+	 *  Stages, unstages or discards selected lines/hunks of one file. `fingerprint` is the value of
+	 *  the diff the user made the selection on; a changed file is refused.
+	 */
+	applyLines: (repoId: number, action: PatchAction, path: string, fingerprint: string, selection: LineSelection[]) => __TAURI_INVOKE<null>("apply_lines", { repoId, action, path, fingerprint, selection }),
+	commitCreate: (repoId: number, message: string, options: CommitOptions, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<CommitResult>("commit_create", { repoId, message, options, asAccount }),
+	/**
+	 *  Name and email git's own configuration (repo + global) gives for this repository, i.e. what
+	 *  git outside the app records. Deliberately without the account context: the "Commit as"
+	 *  block shows the bound account's identity itself and warns when this one differs; unbound
+	 *  repos commit with exactly this identity.
+	 */
+	commitIdentity: (repoId: number) => __TAURI_INVOKE<GitIdentity>("commit_identity", { repoId }),
+	/**  Message of the last commit, to prefill "amend". */
+	headMessage: (repoId: number) => __TAURI_INVOKE<string | null>("head_message", { repoId }),
+	/**  Operation in progress and the commits behind "ours" / "theirs". */
+	conflictContext: (repoId: number) => __TAURI_INVOKE<ConflictContext>("conflict_context", { repoId }),
+	/**  Stages and working-tree text of one conflicted file. */
+	conflictFile: (repoId: number, path: string) => __TAURI_INVOKE<ConflictFile>("conflict_file", { repoId, path }),
+	/**  Preview of a file from a commit, an index stage or the working tree (images, LFS objects). */
+	blobPreview: (repoId: number, source: BlobSource, path: string) => __TAURI_INVOKE<{
+	/**  Size of the real content (of the LFS object for a pointer). */
+	size: number,
+	/**  MIME type guessed from the file extension. */
+	mime: string,
+	/**  Base64 content; `None` when too large or the LFS object is not downloaded. */
+	data: string | null,
+	/**  Set when the stored file is an LFS pointer. */
+	lfs: LfsPointer | null,
+	/**  LFS pointer whose object is not in the local LFS store (needs a download). */
+	lfsMissing: boolean,
+	tooLarge: boolean,
+	/**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
+	binary: boolean,
+} | null>("blob_preview", { repoId, source, path }),
+	/**  Writes the edited result (keeping line endings and BOM) and marks the file resolved. */
+	conflictResolveContent: (repoId: number, path: string, content: string) => __TAURI_INVOKE<Outcome<null>>("conflict_resolve_content", { repoId, path, content }),
+	/**
+	 *  Keeps one side of a conflicted file as a whole (`checkout --ours/--theirs` + add, or `rm`
+	 *  when that side deleted it).
+	 */
+	conflictTakeSide: (repoId: number, path: string, side: ConflictSide) => __TAURI_INVOKE<Outcome<null>>("conflict_take_side", { repoId, path, side }),
+	/**  Resolves a conflicted file by deleting it (`git rm`). */
+	conflictDeleteFile: (repoId: number, path: string) => __TAURI_INVOKE<Outcome<null>>("conflict_delete_file", { repoId, path }),
+	/**  One page of the commits that changed `path` (`git log --follow`), newest first. */
+	fileHistory: (repoId: number, path: string, rev: string | null, skip: number, limit: number) => __TAURI_INVOKE<FileHistoryPage>("file_history", { repoId, path, rev, skip, limit }),
+	/**  `git blame` of `path` at `rev` (hex id or `HEAD`), or of the working tree when `None`. */
+	blameFile: (repoId: number, path: string, rev: string | null) => __TAURI_INVOKE<BlameResult>("blame_file", { repoId, path, rev }),
+	/**  The file as of one commit (read-only viewer). */
+	fileAtCommit: (repoId: number, commit: string, path: string) => __TAURI_INVOKE<FileAtCommit>("file_at_commit", { repoId, commit, path }),
+	/**  Old and new version of an image for the image diff (LFS objects from the local store). */
+	diffImages: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<ImagePair>("diff_images", { repoId, request }),
+	/**  `git stash push`. `created: false` means there was nothing to stash. */
+	stashCreate: (repoId: number, options: StashOptions) => __TAURI_INVOKE<StashCreated>("stash_create", { repoId, options }),
+	/**
+	 *  `git stash apply [--index] stash@{index}`. Conflicts are returned in the outcome, not as
+	 *  an error; the entry stays in the list.
+	 */
+	stashApply: (repoId: number, index: number, restoreIndex: boolean) => __TAURI_INVOKE<StashApplyOutcome>("stash_apply", { repoId, index, restoreIndex }),
+	/**  `git stash pop [--index] stash@{index}`. On conflicts the entry is kept (`dropped: false`). */
+	stashPop: (repoId: number, index: number, restoreIndex: boolean) => __TAURI_INVOKE<StashApplyOutcome>("stash_pop", { repoId, index, restoreIndex }),
+	/**  `git stash drop stash@{index}`; returns the dropped commit id (for an undo hint). */
+	stashDrop: (repoId: number, index: number) => __TAURI_INVOKE<string>("stash_drop", { repoId, index }),
+	/**  Files of `stash@{index}`: tracked changes plus untracked files (third parent). */
+	stashShow: (repoId: number, index: number) => __TAURI_INVOKE<StashDetails>("stash_show", { repoId, index }),
+	/**  git-lfs version, LFS patterns, hooks and filter config of the repository. */
+	lfsStatus: (repoId: number) => __TAURI_INVOKE<LfsStatus>("lfs_status", { repoId }),
+	/**  `git lfs install --local` (this repository only), then the refreshed status. */
+	lfsInstallLocal: (repoId: number) => __TAURI_INVOKE<LfsStatus>("lfs_install_local", { repoId }),
+	/**  `git lfs track [--lockable] -- <pattern>`; `true` when `.gitattributes` changed. */
+	lfsTrack: (repoId: number, pattern: string, lockable: boolean) => __TAURI_INVOKE<boolean>("lfs_track", { repoId, pattern, lockable }),
+	/**  `git lfs untrack -- <pattern>`; `true` when `.gitattributes` changed. */
+	lfsUntrack: (repoId: number, pattern: string) => __TAURI_INVOKE<boolean>("lfs_untrack", { repoId, pattern }),
+	/**
+	 *  After `lfs_track`: stage `.gitattributes`, renormalize already-tracked paths and add new
+	 *  ones, so every path is staged as an LFS pointer.
+	 */
+	lfsRestage: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("lfs_restage", { repoId, paths }),
+	/**
+	 *  Large File Guard over `paths` (staged / new files). `thresholds` overrides the provider
+	 *  defaults (GitHub warn 50 MiB / block 100 MiB, GitLab and others warn 50 MiB, no block).
+	 */
+	largeFileCheck: (repoId: number, paths: string[], provider: GuardProvider, thresholds: {
+	warnBytes: number,
+	blockBytes: number | null,
+} | null) => __TAURI_INVOKE<GuardReport>("large_file_check", { repoId, paths, provider, thresholds }),
+	/**  Creates `name` at `start` (commit id or ref name), optionally switching to it. */
+	branchCreate: (repoId: number, name: string, start: string, checkout: boolean) => __TAURI_INVOKE<Outcome<null>>("branch_create", { repoId, name, start, checkout }),
+	branchCheckout: (repoId: number, name: string) => __TAURI_INVOKE<Outcome<null>>("branch_checkout", { repoId, name }),
+	/**  Checks out `remote/branch` as a new tracking branch; returns the local branch name. */
+	branchCheckoutRemote: (repoId: number, remote: string, branch: string, localName: string | null) => __TAURI_INVOKE<Outcome<string>>("branch_checkout_remote", { repoId, remote, branch, localName }),
+	/**  Checks out a commit with a detached HEAD. */
+	commitCheckout: (repoId: number, oid: string) => __TAURI_INVOKE<Outcome<null>>("commit_checkout", { repoId, oid }),
+	branchRename: (repoId: number, oldName: string, newName: string) => __TAURI_INVOKE<Outcome<null>>("branch_rename", { repoId, oldName, newName }),
+	/**  Deletes a local branch; `notFullyMerged` / `currentBranch` come back as rejections. */
+	branchDelete: (repoId: number, name: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("branch_delete", { repoId, name, force }),
+	/**  Sets (`origin/main`, or a local branch) or removes (`null`) the upstream of `name`. */
+	branchSetUpstream: (repoId: number, name: string, upstream: string | null) => __TAURI_INVOKE<Outcome<null>>("branch_set_upstream", { repoId, name, upstream }),
+	/**  Creates a tag at `oid`: annotated when `message` is set, lightweight otherwise. */
+	tagCreate: (repoId: number, name: string, oid: string, message: string | null) => __TAURI_INVOKE<Outcome<null>>("tag_create", { repoId, name, oid, message }),
+	tagDelete: (repoId: number, name: string) => __TAURI_INVOKE<Outcome<null>>("tag_delete", { repoId, name }),
+	commitCherryPick: (repoId: number, oid: string) => __TAURI_INVOKE<Outcome<OpOutcome>>("commit_cherry_pick", { repoId, oid }),
+	commitRevert: (repoId: number, oid: string) => __TAURI_INVOKE<Outcome<OpOutcome>>("commit_revert", { repoId, oid }),
+	/**  Moves the current branch to `oid` (`hard` discards local changes). */
+	resetTo: (repoId: number, oid: string, mode: ResetMode) => __TAURI_INVOKE<Outcome<null>>("reset_to", { repoId, oid, mode }),
+	/**  In-progress merge / rebase / cherry-pick / revert / bisect and the conflicted paths. */
+	repoOperationState: (repoId: number) => __TAURI_INVOKE<OperationState>("repo_operation_state", { repoId }),
+	/**  Aborts the in-progress operation; returns which one it was. */
+	operationAbort: (repoId: number) => __TAURI_INVOKE<Outcome<RepoOperation>>("operation_abort", { repoId }),
+	/**  Continues the in-progress operation after conflicts were resolved and staged. */
+	operationContinue: (repoId: number) => __TAURI_INVOKE<Outcome<OpOutcome>>("operation_continue", { repoId }),
+	/**  Merges `rev` (branch / remote branch / tag / commit id) into the current branch. */
+	mergeIntoCurrent: (repoId: number, rev: string, mode: MergeMode, message: string | null) => __TAURI_INVOKE<Outcome<MergeOutcome>>("merge_into_current", { repoId, rev, mode, message }),
+	remoteFetch: (repoId: number, opId: string, remote: string | null, prune: boolean, tags: boolean, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<FetchSummary>>("remote_fetch", { repoId, opId, remote, prune, tags, asAccount }),
+	remotePull: (repoId: number, opId: string, remote: string | null, branch: string | null, mode: PullMode, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<MergeOutcome>>("remote_pull", { repoId, opId, remote, branch, mode, asAccount }),
+	remotePush: (repoId: number, opId: string, request: PushRequest, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<PushSummary>>("remote_push", { repoId, opId, request, asAccount }),
+	remotePushTag: (repoId: number, opId: string, remote: string, tag: string, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<PushSummary>>("remote_push_tag", { repoId, opId, remote, tag, asAccount }),
+	remoteDeleteBranch: (repoId: number, opId: string, remote: string, branch: string) => __TAURI_INVOKE<Outcome<PushSummary>>("remote_delete_branch", { repoId, opId, remote, branch }),
+	/**  Asks a running fetch / pull / push to stop. Returns `false` if no such operation runs. */
+	transferCancel: (opId: string) => __TAURI_INVOKE<boolean>("transfer_cancel", { opId }),
+	/**  What `git rebase <onto>` would rewrite for `branch` (default: the current branch). */
+	rebasePreview: (repoId: number, onto: string, branch: string | null) => __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_preview", { repoId, onto, branch }),
+	/**  Rows of the interactive rebase dialog: commits of the current branch after `base`. */
+	rebaseTodo: (repoId: number, base: string) => __TAURI_INVOKE<Outcome<RebasePreview>>("rebase_todo", { repoId, base }),
+	/**  Plain rebase (backup ref first; pushed commits need `allowPushed`). */
+	rebaseStart: (repoId: number, request: RebaseRequest) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_start", { repoId, request }),
+	/**  Interactive rebase with the plan from the dialog; never opens an editor. */
+	rebaseInteractive: (repoId: number, request: InteractiveRebaseRequest) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_interactive", { repoId, request }),
+	rebaseContinue: (repoId: number) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_continue", { repoId }),
+	/**  Drops the commit the rebase stopped at and goes on. */
+	rebaseSkip: (repoId: number) => __TAURI_INVOKE<Outcome<RebaseOutcome>>("rebase_skip", { repoId }),
+	/**  How `source` relates to `target` (for the branch drop menu). */
+	branchRelation: (repoId: number, source: string, target: string) => __TAURI_INVOKE<Outcome<BranchRelation>>("branch_relation", { repoId, source, target }),
+	/**  Fast-forwards local branch `target` to `source` (recorded for Undo). Returns the new tip. */
+	branchFastForward: (repoId: number, target: string, source: string) => __TAURI_INVOKE<Outcome<string>>("branch_fast_forward", { repoId, target, source }),
+	/**  What the Undo / Redo buttons would do now. */
+	undoState: (repoId: number) => __TAURI_INVOKE<UndoState>("undo_state", { repoId }),
+	/**  Undoes the most recent operation (never discards uncommitted changes). */
+	undoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("undo_run", { repoId }),
+	/**  Redoes the operation undone last, if the repository did not change since. */
+	redoRun: (repoId: number) => __TAURI_INVOKE<Outcome<UndoOutcome>>("redo_run", { repoId }),
+	/**
+	 *  What `git lfs push <remote> <branch>` would upload (an upper bound: objects the server
+	 *  already has are only skipped during the real push).
+	 */
+	lfsPushEstimate: (repoId: number, remote: string, branch: string) => __TAURI_INVOKE<LfsOutcome<PushEstimate>>("lfs_push_estimate", { repoId, remote, branch }),
+	/**  `git lfs push <remote> <branch>` with progress events (`lfsTransferProgress`). */
+	lfsPush: (repoId: number, opId: string, remote: string, branch: string, options: {
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
+} | null, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_push", { repoId, opId, remote, branch, options, asAccount }),
+	/**  Objects a download would fetch, and whether they fit on the disk. */
+	lfsDownloadEstimate: (repoId: number, request: DownloadRequest) => __TAURI_INVOKE<LfsOutcome<DownloadEstimate>>("lfs_download_estimate", { repoId, request }),
+	/**
+	 *  `git lfs pull`, or `git lfs pull --include=<path>` for one pointer file ("Tải file này");
+	 *  also used for the clone option "download later". Refuses with `insufficientDiskSpace`
+	 *  unless `ignoreDiskSpace`.
+	 */
+	lfsPull: (repoId: number, opId: string, include: string | null, ignoreDiskSpace: boolean, options: {
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
+} | null, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_pull", { repoId, opId, include, ignoreDiskSpace, options, asAccount }),
+	/**  `git lfs fetch --all`: every LFS object of every ref into the local store. */
+	lfsFetchAll: (repoId: number, opId: string, ignoreDiskSpace: boolean, options: {
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
+} | null) => __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_fetch_all", { repoId, opId, ignoreDiskSpace, options }),
+	/**
+	 *  LFS transfers currently running (latest progress of each), e.g. after a window reload.
+	 *  Cancel one with `transfer_cancel(opId)`.
+	 */
+	lfsTransferQueue: () => __TAURI_INVOKE<LfsTransferProgress[]>("lfs_transfer_queue"),
+	/**
+	 *  Opens a shell in the repository root with the repository's account context. Output and the
+	 *  exit event arrive on `on_event`.
+	 */
+	terminalOpen: (repoId: number, cols: number, rows: number, onEvent: Channel<TerminalEvent>) => __TAURI_INVOKE<TerminalInfo>("terminal_open", { repoId, cols, rows, onEvent }),
+	terminalWrite: (sessionId: number, data: string) => __TAURI_INVOKE<null>("terminal_write", { sessionId, data }),
+	terminalResize: (sessionId: number, cols: number, rows: number) => __TAURI_INVOKE<null>("terminal_resize", { sessionId, cols, rows }),
+	terminalClose: (sessionId: number) => __TAURI_INVOKE<null>("terminal_close", { sessionId }),
+	providerList: () => __TAURI_INVOKE<Provider[]>("provider_list"),
+	providerSave: (provider: ProviderInput) => __TAURI_INVOKE<Provider>("provider_save", { provider }),
+	providerDelete: (id: string) => __TAURI_INVOKE<boolean>("provider_delete", { id }),
+	accountList: () => __TAURI_INVOKE<Account[]>("account_list"),
+	accountSave: (account: AccountInput) => __TAURI_INVOKE<Account>("account_save", { account }),
+	accountDelete: (id: string) => __TAURI_INVOKE<boolean>("account_delete", { id }),
+	/**  Reorders the switcher (`Ctrl/Cmd+Alt+1..9`). */
+	accountReorder: (ids: string[]) => __TAURI_INVOKE<Account[]>("account_reorder", { ids }),
+	/**  Stores an already-obtained token (OAuth flow result or PAT) in the OS keychain. */
+	accountSaveToken: (accountId: string, kind: AccountSecret, token: string) => __TAURI_INVOKE<Account>("account_save_token", { accountId, kind, token }),
+	accountDeleteToken: (accountId: string, kind: AccountSecret) => __TAURI_INVOKE<Account>("account_delete_token", { accountId, kind }),
+	identityList: (accountId: string | null) => __TAURI_INVOKE<Identity[]>("identity_list", { accountId }),
+	identitySave: (identity: IdentityInput) => __TAURI_INVOKE<Identity>("identity_save", { identity }),
+	identityDelete: (id: string) => __TAURI_INVOKE<boolean>("identity_delete", { id }),
+	/**  Makes the identity its account's default; returns that account's identities. */
+	identitySetDefault: (id: string) => __TAURI_INVOKE<Identity[]>("identity_set_default", { id }),
+	ruleList: () => __TAURI_INVOKE<Rule[]>("rule_list"),
+	ruleSave: (rule: RuleInput) => __TAURI_INVOKE<Rule>("rule_save", { rule }),
+	ruleDelete: (id: string) => __TAURI_INVOKE<boolean>("rule_delete", { id }),
+	/**  New evaluation order: `ids` first (priority 0..), other rules after. */
+	ruleReorder: (ids: string[]) => __TAURI_INVOKE<Rule[]>("rule_reorder", { ids }),
+	/**  Which rule/account a URL and/or folder would get, without saving anything. */
+	ruleTest: (url: string | null, path: string | null) => __TAURI_INVOKE<RuleTestResult>("rule_test", { url, path }),
+	repoBindingGet: (repoId: number) => __TAURI_INVOKE<RepoBinding[]>("repo_binding_get", { repoId }),
+	repoBindingSet: (repoId: number, binding: BindingInput) => __TAURI_INVOKE<RepoAccountContext>("repo_binding_set", { repoId, binding }),
+	/**  Removes the binding of `remote` (or the repo-level one when `None`). */
+	repoBindingClear: (repoId: number, remote: string | null) => __TAURI_INVOKE<RepoAccountContext>("repo_binding_clear", { repoId, remote }),
+	/**
+	 *  Account pill data for an open repo. A pure read (every open tab polls it): the identity
+	 *  copy in `.git/config` is written when a binding / identity / rule / setting changes and
+	 *  right before a commit (`worktree::commit_create`), never here.
+	 */
+	repoAccountContext: (repoId: number) => __TAURI_INVOKE<RepoAccountContext>("repo_account_context", { repoId }),
+	accountSettingsGet: () => __TAURI_INVOKE<AccountSettings>("account_settings_get"),
+	accountSettingsUpdate: (patch: AccountSettingsPatch) => __TAURI_INVOKE<AccountSettings>("account_settings_update", { patch }),
+	/**
+	 *  Starts a device flow (GitHub, GitHub Enterprise, GitLab where enabled). `scopes = None` →
+	 *  the defaults (`repo workflow read:user user:email` / `read_user read_api read_repository
+	 *  write_repository`).
+	 */
+	authDeviceStart: (providerId: string, scopes: string[] | null) => __TAURI_INVOKE<DeviceStart>("auth_device_start", { providerId, scopes }),
+	/**  Waits until the user approves the device code; resolves with the signed-in account. */
+	authDeviceWait: (flowId: string) => __TAURI_INVOKE<Account>("auth_device_wait", { flowId }),
+	/**  Starts a GitLab PKCE login on the provider's loopback port. */
+	authPkceStart: (providerId: string, scopes: string[] | null) => __TAURI_INVOKE<PkceStart>("auth_pkce_start", { providerId, scopes }),
+	/**  Waits for the browser redirect of a PKCE login; resolves with the signed-in account. */
+	authPkceWait: (flowId: string) => __TAURI_INVOKE<Account>("auth_pkce_wait", { flowId }),
+	/**  Cancels a device/PKCE flow (the pending `*_wait` fails with `cancelled`). */
+	authCancel: (flowId: string) => __TAURI_INVOKE<boolean>("auth_cancel", { flowId }),
+	/**  Adds (or updates, same provider + username) an account from a personal access token. */
+	authAddPat: (providerId: string, token: string, label: string | null) => __TAURI_INVOKE<Account>("auth_add_pat", { providerId, token, label }),
+	/**
+	 *  Replaces the token of an existing account (re-authentication with a PAT). The token must
+	 *  belong to the same user.
+	 */
+	authUpdateToken: (accountId: string, token: string) => __TAURI_INVOKE<Account>("auth_update_token", { accountId, token }),
+	/**
+	 *  Sign-in options of a provider: client id availability, loopback port / redirect URI, PAT
+	 *  page and scopes.
+	 */
+	authConfig: (providerId: string) => __TAURI_INVOKE<ProviderAuthConfig>("auth_config", { providerId }),
+	/**  Sets the loopback port of a provider's PKCE redirect (1024..=65535). */
+	authConfigSet: (providerId: string, loopbackPort: number) => __TAURI_INVOKE<ProviderAuthConfig>("auth_config_set", { providerId, loopbackPort }),
+	/**  Token health (no network): missing scopes, expiry, "needs sign-in". */
+	accountHealth: (accountId: string) => __TAURI_INVOKE<AccountHealth>("account_health", { accountId }),
+	/**  Health of every account (account manager list). */
+	accountHealthAll: () => __TAURI_INVOKE<AccountHealth[]>("account_health_all"),
+	/**
+	 *  Refreshes a GitLab OAuth token now, or re-validates any other token (updates scopes,
+	 *  expiry and profile; a rejected token marks the account "needs sign-in").
+	 */
+	accountRefresh: (accountId: string) => __TAURI_INVOKE<AccountHealth>("account_refresh", { accountId }),
+	/**  Email addresses of the account on the provider (identity suggestions, Commit Guard). */
+	accountEmails: (accountId: string) => __TAURI_INVOKE<ProviderEmail[]>("account_emails", { accountId }),
+	/**  Default account color palette (`crates/accounts/src/colors.rs`). */
+	accountColors: () => __TAURI_INVOKE<string[]>("account_colors"),
+	/**  Keys of one account, or every key (also unassigned ones) when `accountId` is `null`. */
+	sshKeyList: (accountId: string | null) => __TAURI_INVOKE<SshKeyInfo[]>("ssh_key_list", { accountId }),
+	/**  New Ed25519 key for the account; an optional passphrase is saved in the OS keychain. */
+	sshKeyGenerate: (accountId: string, comment: string | null, passphrase: string | null) => __TAURI_INVOKE<SshKeyInfo>("ssh_key_generate", { accountId, comment, passphrase }),
+	/**  Copies an existing OpenSSH private key into the app key store (the file is not modified). */
+	sshKeyImport: (accountId: string, path: string, passphrase: string | null) => __TAURI_INVOKE<SshImportResult>("ssh_key_import", { accountId, path, passphrase }),
+	sshKeyDelete: (keyId: string) => __TAURI_INVOKE<boolean>("ssh_key_delete", { keyId }),
+	/**  The key git uses for the account's SSH remotes. Returns the account's keys. */
+	sshKeySetDefault: (accountId: string, keyId: string) => __TAURI_INVOKE<SshKeyInfo[]>("ssh_key_set_default", { accountId, keyId }),
+	/**  Registers the public key on the account's provider with its token. */
+	sshKeyUpload: (keyId: string, title: string) => __TAURI_INVOKE<SshUploadResult>("ssh_key_upload", { keyId, title }),
+	sshKeyCheckPermissions: (keyId: string) => __TAURI_INVOKE<SshKeyPermissions>("ssh_key_check_permissions", { keyId }),
+	sshKeyRepairPermissions: (keyId: string) => __TAURI_INVOKE<SshKeyPermissions>("ssh_key_repair_permissions", { keyId }),
+	/**  `ssh -T git@<host>` with the account's key (or `keyId`): which user does it authenticate as? */
+	sshTestConnection: (accountId: string, keyId: string | null) => __TAURI_INVOKE<SshTestResult>("ssh_test_connection", { accountId, keyId }),
+	/**
+	 *  Scans the real environment: home, `%APPDATA%` (Windows), `XDG_CONFIG_HOME`,
+	 *  `GIT_CONFIG_GLOBAL`, `GH_CONFIG_DIR`, `GLAB_CONFIG_DIR`. Read-only.
+	 */
+	importScan: () => __TAURI_INVOKE<ImportScan>("import_scan"),
+	/**  Creates the ticked identities / rules / SSH key imports. */
+	importApply: (selection: ImportSelection) => __TAURI_INVOKE<ImportApplyResult>("import_apply", { selection }),
+	onboardingStatus: () => __TAURI_INVOKE<OnboardingStatus>("onboarding_status"),
+	/**  "Bỏ qua" / finish (`true`), or show the wizard again on next start (`false`). */
+	onboardingSetImportDone: (done: boolean) => __TAURI_INVOKE<OnboardingStatus>("onboarding_set_import_done", { done }),
+	/**  Lists gh / glab accounts on this machine (config files only, no token). Read-only. */
+	cliAccountsScan: () => __TAURI_INVOKE<CliAccountsScan>("cli_accounts_scan"),
+	/**
+	 *  Copies the tokens of the ticked accounts from gh / glab into the app (user consent given
+	 *  in the UI). Never modifies the CLI configuration.
+	 */
+	cliAccountsImport: (accounts: CliAccountRef[]) => __TAURI_INVOKE<CliImportItem[]>("cli_accounts_import", { accounts }),
+	/**  "Bỏ qua" in the startup notice: hide it until another CLI account appears. */
+	cliAccountsDismiss: (keys: string[]) => __TAURI_INVOKE<null>("cli_accounts_dismiss", { keys }),
+	setupStatus: () => __TAURI_INVOKE<SetupStatus>("setup_status"),
+	/**  Saves the whole progress object (finish, skip, steps done). */
+	setupSave: (progress: SetupProgress) => __TAURI_INVOKE<SetupStatus>("setup_save", { progress }),
+	setupTools: () => __TAURI_INVOKE<SetupToolsReport>("setup_tools"),
+	/**  Installs `tool` with the whitelisted package-manager command of this OS. */
+	setupInstall: (tool: SetupToolId) => __TAURI_INVOKE<SetupInstallResult>("setup_install", { tool }),
+	/**  Stops the running install, if any. */
+	setupInstallCancel: () => __TAURI_INVOKE<boolean>("setup_install_cancel"),
+	/**  Restarts the app so it picks up a `PATH` changed by an installer. */
+	setupRestart: () => __TAURI_INVOKE<null>("setup_restart"),
+	/**
+	 *  Repositories of `accountIds` (default: every account). Missing lists are fetched now;
+	 *  `refresh` refetches all of them; a stale cache is returned immediately and refreshed in
+	 *  the background (then [`CloneListUpdated`] is emitted).
+	 */
+	cloneRepoList: (accountIds: string[] | null, refresh: boolean) => __TAURI_INVOKE<CloneRepoList>("clone_repo_list", { accountIds, refresh }),
+	/**  Parses `url` and lists the accounts that could clone it (see [`CloneGuess`]). */
+	cloneGuess: (url: string) => __TAURI_INVOKE<CloneGuess>("clone_guess", { url }),
+	/**
+	 *  Default destination for cloning `url` as `accountId` (or checks `path` when given), with
+	 *  the free space of its volume.
+	 */
+	cloneDestination: (accountId: string | null, url: string, path: string | null) => __TAURI_INVOKE<CloneDestination>("clone_destination", { accountId, url, path }),
+	/**  Saves the destination template (must contain `{repo}`). Returns the stored template. */
+	cloneSetTemplate: (template: string) => __TAURI_INVOKE<string>("clone_set_template", { template }),
+	/**
+	 *  Clones `request.url` into `request.dest` with [`CloneProgress`] events; cancel with
+	 *  `transfer_cancel(opId)` (the half-cloned folder is removed). On success the repository is
+	 *  bound to the account (`source: clone`), added to the recent list and opened as a tab.
+	 */
+	cloneStart: (opId: string, request: CloneRequest) => __TAURI_INVOKE<Outcome<CloneResult>>("clone_start", { opId, request }),
+	/**  Commit Guard report for the repo's default context. Never fails because of the network. */
+	commitGuard: (repoId: number) => __TAURI_INVOKE<CommitGuardReport>("commit_guard", { repoId }),
+	/**
+	 *  Push Guard report for pushing `branch` to `remote`. A `rejected` outcome means the names
+	 *  are invalid / the branch does not exist.
+	 */
+	pushGuard: (repoId: number, remote: string, branch: string) => __TAURI_INVOKE<Outcome<PushGuardReport>>("push_guard", { repoId, remote, branch }),
+	/**
+	 *  "Sửa tác giả" for unpushed commits of `branch` (checked out), as the identity that pushes
+	 *  to `remote`. Creates a backup ref first; refuses when a commit is already on a remote.
+	 */
+	guardFixAuthors: (repoId: number, remote: string, branch: string, mode: FixAuthorMode) => __TAURI_INVOKE<Outcome<RewriteOutcome>>("guard_fix_authors", { repoId, remote, branch, mode }),
+	/**
+	 *  "Chuyển sang LFS": `git lfs migrate import` of `paths` over the unpushed commits of
+	 *  `branch` (checked out). Backup ref first; refuses when a commit is already on a remote.
+	 */
+	guardLfsMigrate: (repoId: number, remote: string, branch: string, paths: string[]) => __TAURI_INVOKE<Outcome<RewriteOutcome>>("guard_lfs_migrate", { repoId, remote, branch, paths }),
+	/**
+	 *  Undo a guard rewrite: restores the backup's branch to `backup_ref` (and backs up the
+	 *  current tip first, so the undo can itself be undone).
+	 */
+	guardUndo: (repoId: number, backupRef: string) => __TAURI_INVOKE<Outcome<RestoreOutcome>>("guard_undo", { repoId, backupRef }),
+	/**  Backup refs of the repo (`refs/nanomgg/backup/*`), newest first. */
+	guardBackups: (repoId: number) => __TAURI_INVOKE<BackupRef[]>("guard_backups", { repoId }),
+	/**  Deletes one backup ref. */
+	guardBackupDelete: (repoId: number, backupRef: string) => __TAURI_INVOKE<Outcome<null>>("guard_backup_delete", { repoId, backupRef }),
+	/**  Every submodule (nested ones too) with its state and the account it will use. */
+	submoduleList: (repoId: number) => __TAURI_INVOKE<SubmoduleInfo[]>("submodule_list", { repoId }),
+	/**
+	 *  `git submodule update [--init] [--recursive]` for `paths` (empty = every submodule), each
+	 *  group of submodules as its own account.
+	 */
+	submoduleUpdate: (repoId: number, opId: string, paths: string[], init: boolean, recursive: boolean) => __TAURI_INVOKE<Outcome<SubmoduleUpdateSummary>>("submodule_update", { repoId, opId, paths, init, recursive }),
+	/**
+	 *  `git submodule add [-b branch] -- <url> <path>`; the clone runs as the account the URL
+	 *  resolves to.
+	 */
+	submoduleAdd: (repoId: number, opId: string, url: string, path: string, branch: string | null) => __TAURI_INVOKE<Outcome<Submodule>>("submodule_add", { repoId, opId, url, path, branch }),
+	/**  Account a submodule URL would use (for the "Add submodule" dialog). */
+	submoduleUrlAccount: (repoId: number, url: string) => __TAURI_INVOKE<SubmoduleAccount>("submodule_url_account", { repoId, url }),
+	/**  `git submodule sync [--recursive]` (copy URLs from `.gitmodules` to the config). */
+	submoduleSync: (repoId: number, paths: string[], recursive: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_sync", { repoId, paths, recursive }),
+	/**
+	 *  `git submodule deinit [-f]`: empties the folder, keeps `.gitmodules`. Local changes come
+	 *  back as `dirtyWorktree` (ask, then retry with `force`).
+	 */
+	submoduleDeinit: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_deinit", { repoId, path, force }),
+	/**  Removes the submodule from the repository (deinit + `git rm`); commit afterwards. */
+	submoduleRemove: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("submodule_remove", { repoId, path, force }),
+	/**  Worktrees of the repository (main first; `isCurrent` marks the open one). */
+	linkedWorktreeList: (repoId: number) => __TAURI_INVOKE<Worktree[]>("linked_worktree_list", { repoId }),
+	/**  `git worktree add` at the absolute folder `path` (missing or empty) for `target`. */
+	linkedWorktreeAdd: (repoId: number, path: string, target: WorktreeTarget) => __TAURI_INVOKE<Outcome<Worktree>>("linked_worktree_add", { repoId, path, target }),
+	/**  `git worktree remove [--force]`; changes inside come back as `dirtyWorktree`. */
+	linkedWorktreeRemove: (repoId: number, path: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("linked_worktree_remove", { repoId, path, force }),
+	/**  `git worktree prune -v` (`dryRun`: only list what would be pruned). */
+	linkedWorktreePrune: (repoId: number, dryRun: boolean) => __TAURI_INVOKE<Outcome<string[]>>("linked_worktree_prune", { repoId, dryRun }),
+	/**  `git worktree lock [--reason]` / `unlock`. */
+	linkedWorktreeLock: (repoId: number, path: string, locked: boolean, reason: string | null) => __TAURI_INVOKE<Outcome<null>>("linked_worktree_lock", { repoId, path, locked, reason }),
+	/**  `git lfs locks --verify --json` (falls back to the plain list): who holds which file. */
+	lfsLocks: (repoId: number) => __TAURI_INVOKE<LockOutcome<LockList>>("lfs_locks", { repoId }),
+	/**  `git lfs lock <path>` as the repo's account. */
+	lfsLock: (repoId: number, path: string) => __TAURI_INVOKE<LockOutcome<LfsLock>>("lfs_lock", { repoId, path }),
+	/**  `git lfs unlock [--force]` by path (or lock id when the file is gone). */
+	lfsUnlock: (repoId: number, path: string | null, id: string | null, force: boolean) => __TAURI_INVOKE<LockOutcome<null>>("lfs_unlock", { repoId, path, id, force }),
+	/**  Marks / unmarks an LFS pattern `lockable`; `true` when `.gitattributes` changed. */
+	lfsSetLockable: (repoId: number, pattern: string, lockable: boolean) => __TAURI_INVOKE<boolean>("lfs_set_lockable", { repoId, pattern, lockable }),
+	/**  LFS files of the checkout: size, downloaded / pointer, lockable. */
+	lfsFiles: (repoId: number) => __TAURI_INVOKE<LfsFile[]>("lfs_files", { repoId }),
+	/**  Size of the local LFS object store. */
+	lfsStorage: (repoId: number) => __TAURI_INVOKE<LfsStorage>("lfs_storage", { repoId }),
+	/**  `git lfs prune --dry-run`: what would be deleted and how much it frees. */
+	lfsPrunePreview: (repoId: number, verifyRemote: boolean) => __TAURI_INVOKE<PruneReport>("lfs_prune_preview", { repoId, verifyRemote }),
+	/**  `git lfs prune` (after the user confirmed the preview). */
+	lfsPrune: (repoId: number, verifyRemote: boolean) => __TAURI_INVOKE<PruneReport>("lfs_prune", { repoId, verifyRemote }),
+	/**  `git lfs fsck --dry-run` (objects and/or pointers), read-only. */
+	lfsFsck: (repoId: number, objects: boolean, pointers: boolean) => __TAURI_INVOKE<FsckReport>("lfs_fsck", { repoId, objects, pointers }),
+	/**
+	 *  `git lfs pull --include=<a>,<b>,…`: downloads the selected pointer files in one transfer
+	 *  ("Tải các file đã chọn" in the LFS panel).
+	 */
+	lfsPullFiles: (repoId: number, opId: string, paths: string[], ignoreDiskSpace: boolean, options: {
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
+} | null) => __TAURI_INVOKE<LfsOutcome<TransferSummary>>("lfs_pull_files", { repoId, opId, paths, ignoreDiskSpace, options }),
+	/**
+	 *  GPG secret keys usable for signing, listed with the `gpg` git would run (`gpg.program`, the
+	 *  one bundled with Git for Windows, or `gpg` on PATH). `notInstalled` when it cannot start.
+	 */
+	signingGpgKeys: () => __TAURI_INVOKE<GpgKeyList>("signing_gpg_keys"),
+	/**
+	 *  "Thử ký": signs a throw-away commit with the given key (GPG: gpg-agent may ask for the
+	 *  passphrase in its own window) and verifies it.
+	 */
+	signingTest: (probe: SigningProbe) => __TAURI_INVOKE<SignTestResult>("signing_test", { probe }),
+	/**
+	 *  Verification status of a commit's signature (lazy: the details panel asks only for signed
+	 *  commits, see `CommitDetails.signature`).
+	 */
+	commitSignature: (repoId: number, oid: string) => __TAURI_INVOKE<CommitSignature>("commit_signature", { repoId, oid }),
+	/**  Hosted remotes of an open repository with the account each one uses. */
+	hostedRemoteList: (repoId: number) => __TAURI_INVOKE<HostedRemote[]>("hosted_remote_list", { repoId }),
+	/**
+	 *  A page of issues of the project behind `remote` (default: `origin`, else the first hosted
+	 *  remote) of an open repository.
+	 */
+	issueList: (repoId: number, remote: string | null, query: IssueListQuery) => __TAURI_INVOKE<IssueListResult>("issue_list", { repoId, remote, query }),
+	issueGet: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<IssueDetail>("issue_get", { accountId, fullName, number }),
+	issueComments: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<IssueCommentList>("issue_comments", { accountId, fullName, number }),
+	/**  Posts a comment as `account_id` (the account the user confirmed). */
+	issueCommentCreate: (accountId: string, fullName: string, number: number, body: string) => __TAURI_INVOKE<IssueComment>("issue_comment_create", { accountId, fullName, number, body }),
+	/**
+	 *  Creates an issue on the project behind `remote` of an open repository, as the resolved
+	 *  account or `as_account` ("only for this action").
+	 */
+	issueCreate: (repoId: number, remote: string | null, asAccount: string | null, input: IssueCreate) => __TAURI_INVOKE<IssueCreated>("issue_create", { repoId, remote, asAccount, input }),
+	/**  Close / reopen, replace labels or assignees, as `account_id`. */
+	issueUpdate: (accountId: string, fullName: string, number: number, change: IssueUpdate) => __TAURI_INVOKE<IssueDetail>("issue_update", { accountId, fullName, number, change }),
+	issueLabels: (accountId: string, fullName: string) => __TAURI_INVOKE<IssueLabel[]>("issue_labels", { accountId, fullName }),
+	issueAssignableUsers: (accountId: string, fullName: string) => __TAURI_INVOKE<IssueUser[]>("issue_assignable_users", { accountId, fullName }),
+	/**  Suggested branch name for an issue (the UI lets the user edit it). */
+	issueBranchName: (number: number, title: string) => __TAURI_INVOKE<string>("issue_branch_name", { number, title }),
+	/**
+	 *  Creates local branch `name` (default: [`issue_branch_name`]) at `start` (default: `HEAD`),
+	 *  optionally switching to it. Names are checked with `git check-ref-format --branch`;
+	 *  recorded for Undo like any branch creation. Returns the branch name.
+	 */
+	issueBranchCreate: (repoId: number, number: number, title: string, name: string | null, start: string | null, checkout: boolean) => __TAURI_INVOKE<Outcome<string>>("issue_branch_create", { repoId, number, title, name, start, checkout }),
+	/**
+	 *  The "My work" lists of every account with a token. Answers younger than a minute come from
+	 *  the cache unless `refresh`. A new call cancels the one still running.
+	 */
+	myworkList: (refresh: boolean) => __TAURI_INVOKE<WorkOverview>("mywork_list", { refresh }),
+	/**  Stops the running [`mywork_list`] (it then answers with `cancelled: true`). */
+	myworkCancel: () => __TAURI_INVOKE<boolean>("mywork_cancel"),
+	/**
+	 *  CI of `shas` (full or abbreviated commit ids) of open repository `repo_id`. `remote` is the
+	 *  preferred remote (the current branch's upstream remote); GitLab jobs are only read with
+	 *  `with_jobs` (badges do not need them).
+	 */
+	ciStatuses: (repoId: number, shas: string[], remote: string | null, withJobs: boolean) => __TAURI_INVOKE<CiBatch>("ci_statuses", { repoId, shas, remote, withJobs }),
+	/**
+	 *  CI of one commit of `full_name` read with `account_id` (PR/MR pages, which know the account
+	 *  and project but may have no open repository). Always includes the jobs.
+	 */
+	ciStatusFor: (accountId: string, fullName: string, sha: string) => __TAURI_INVOKE<CiBatch>("ci_status_for", { accountId, fullName, sha }),
+	/**  Where `account_id` may fork to: itself first, then organizations / groups. */
+	forkNamespaces: (accountId: string) => __TAURI_INVOKE<ForkOutcome<ForkNamespace[]>>("fork_namespaces", { accountId }),
+	/**  The account's existing fork of `source` in `namespace` (`None` = the account itself). */
+	forkFind: (accountId: string, source: string, namespace: string | null) => __TAURI_INVOKE<ForkOutcome<ForkRepo | null>>("fork_find", { accountId, source, namespace }),
+	/**
+	 *  Forks `source` with `account_id` (or returns the account's existing fork in that namespace).
+	 *  The data may still be copying: call [`fork_wait`] before cloning / fetching.
+	 */
+	forkCreate: (accountId: string, source: string, options: ForkOptions) => __TAURI_INVOKE<ForkOutcome<ForkRepo>>("fork_create", { accountId, source, options }),
+	/**
+	 *  Waits (≤ 2 minutes) until the fork `full_name` can be cloned. `false` = still copying.
+	 *  Cancel with `transfer_cancel(opId)`.
+	 */
+	forkWait: (opId: string, accountId: string, fullName: string) => __TAURI_INVOKE<ForkOutcome<boolean>>("fork_wait", { opId, accountId, fullName }),
+	/**
+	 *  After cloning a fork: `upstream` = the source (same transport as `origin`), then a
+	 *  best-effort fetch of it is left to the frontend (`remote_fetch`).
+	 */
+	forkAddUpstream: (repoId: number, upstreamHttps: string, upstreamSsh: string) => __TAURI_INVOKE<ForkRemoteChange>("fork_add_upstream", { repoId, upstreamHttps, upstreamSsh }),
+	/**
+	 *  Adds the fork of the open repository as a remote (see [`ForkAttachMode`]) and binds that
+	 *  remote to `account_id`. Fetch it afterwards with `remote_fetch`.
+	 */
+	forkAttach: (repoId: number, accountId: string, sourceRemote: string, forkHttps: string, forkSsh: string, mode: ForkAttachMode) => __TAURI_INVOKE<ForkRemoteChange>("fork_attach", { repoId, accountId, sourceRemote, forkHttps, forkSsh, mode }),
+	/**  Creates an empty repository with `account_id` (see [`NewRepoOptions`]). */
+	publishCreateRepo: (accountId: string, options: NewRepoOptions) => __TAURI_INVOKE<ForkOutcome<ForkRepo>>("publish_create_repo", { accountId, options }),
+	/**
+	 *  Adds remote `name` → `url` to the open repository and, when `account_id` is given, binds
+	 *  that remote to the account so fetch / push use its credentials.
+	 */
+	publishAddRemote: (repoId: number, name: string, url: string, accountId: string | null) => __TAURI_INVOKE<ForkRemoteChange>("publish_add_remote", { repoId, name, url, accountId }),
+	pullList: (accountId: string, fullName: string, query: PullListQuery) => __TAURI_INVOKE<PullPage>("pull_list", { accountId, fullName, query }),
+	pullDetail: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullDetail>("pull_detail", { accountId, fullName, number }),
+	pullReviews: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullReviews>("pull_reviews", { accountId, fullName, number }),
+	pullCommits: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullCommit[]>("pull_commits", { accountId, fullName, number }),
+	pullFiles: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullFiles>("pull_files", { accountId, fullName, number }),
+	pullComments: (accountId: string, fullName: string, number: number) => __TAURI_INVOKE<PullComment[]>("pull_comments", { accountId, fullName, number }),
+	pullCommentCreate: (accountId: string, fullName: string, number: number, target: PullCommentTarget, body: string) => __TAURI_INVOKE<PullComment>("pull_comment_create", { accountId, fullName, number, target, body }),
+	pullReviewSubmit: (accountId: string, fullName: string, number: number, event: PullReviewEvent, body: string) => __TAURI_INVOKE<null>("pull_review_submit", { accountId, fullName, number, event, body }),
+	pullCreate: (accountId: string, fullName: string, create: PullCreate) => __TAURI_INVOKE<PullCreated>("pull_create", { accountId, fullName, create }),
+	pullMerge: (accountId: string, fullName: string, number: number, request: PullMergeRequest) => __TAURI_INVOKE<PullMerged>("pull_merge", { accountId, fullName, number, request }),
+	/**  Closes (`open = false`) or reopens a pull request. */
+	pullSetOpen: (accountId: string, fullName: string, number: number, open: boolean) => __TAURI_INVOKE<null>("pull_set_open", { accountId, fullName, number, open }),
+	/**
+	 *  Context for creating a pull request from `branch` (current branch when `None`) into the
+	 *  project of `target_remote`, branch `target_branch` (default branch when `None`).
+	 */
+	pullCreateContext: (repoId: number, branch: string | null, targetRemote: string | null, targetBranch: string | null) => __TAURI_INVOKE<PullCreateContext>("pull_create_context", { repoId, branch, targetRemote, targetBranch }),
+	/**
+	 *  Checks out the pull request's source branch: a tracking branch for same-project pull
+	 *  requests, a local branch at `refs/pull/N/head` / `refs/merge-requests/N/head` for forks.
+	 */
+	pullCheckout: (repoId: number, request: PullCheckoutRequest, asAccount: {
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
+} | null) => __TAURI_INVOKE<Outcome<PullCheckout>>("pull_checkout", { repoId, request, asAccount }),
+	/**
+	 *  Diff of one file of a pull request computed with local git (fetching the pull request ref
+	 *  first when its commits are not here yet).
+	 */
+	pullLocalDiff: (repoId: number, request: PullLocalDiffRequest) => __TAURI_INVOKE<Outcome<PullLocalDiff>>("pull_local_diff", { repoId, request }),
+	updaterStatus: () => __TAURI_INVOKE<UpdaterStatus>("updater_status"),
+	/**
+	 *  Looks for a newer published release. `startup: true` honours the once-a-day limit; the
+	 *  caller decides what to do with a skipped version (`update.skipped`).
+	 */
+	updaterCheck: (startup: boolean) => __TAURI_INVOKE<UpdateCheck>("updater_check", { startup }),
+	/**
+	 *  Downloads, verifies and installs `version` (found by the last check), then restarts the
+	 *  app. Progress arrives as [`UpdateProgress`]. Only returns on failure: on Windows the
+	 *  installer closes the app and starts it again, elsewhere the app restarts itself.
+	 */
+	updaterInstall: (version: string) => __TAURI_INVOKE<null>("updater_install", { version }),
+	/**  "Bỏ qua bản này": the startup check stays quiet about `version` (`null` clears it). */
+	updaterSkipVersion: (version: string | null) => __TAURI_INVOKE<UpdaterStatus>("updater_skip_version", { version }),
+	updaterSetChannel: (channel: UpdateChannel) => __TAURI_INVOKE<UpdaterStatus>("updater_set_channel", { channel }),
+	/**  Every folder with its size (measured with a time limit), path and free space. */
+	storageOverview: () => __TAURI_INVOKE<StorageOverview>("storage_overview"),
+	/**  Free space of the data drive (low-space warning) and the startup warnings. */
+	storageStatus: () => __TAURI_INVOKE<StorageStatus>("storage_status"),
+	/**
+	 *  Checks a folder before moving there (`path: null` = the default location). Problems the
+	 *  user can fix are returned in `problem`, not as errors.
+	 */
+	storageCheckTarget: (kind: StorageKind, path: string | null) => __TAURI_INVOKE<StorageTargetCheck>("storage_check_target", { kind, path }),
+	/**
+	 *  Moves the log or cache folder now (with [`StorageMoveProgress`]), or schedules the data
+	 *  folder for the next start (`restartRequired`). `path: null` = back to the default.
+	 */
+	storageChange: (kind: StorageKind, path: string | null) => __TAURI_INVOKE<StorageChangeResult>("storage_change", { kind, path }),
+	/**  Drops the data move scheduled for the next start. */
+	storageCancelPending: () => __TAURI_INVOKE<StorageStatus>("storage_cancel_pending"),
+	/**  Opens the folder in the system file manager (created first if missing). */
+	storageOpen: (kind: StorageKind) => __TAURI_INVOKE<null>("storage_open", { kind }),
+	/**  Deletes everything in the cache folder and the in-memory repository lists. */
+	storageClearCache: () => __TAURI_INVOKE<CleanReport>("storage_clear_cache"),
+	/**  Deletes old log files, keeping the one being written today. */
+	storagePruneLogs: () => __TAURI_INVOKE<CleanReport>("storage_prune_logs"),
+	/**  Restarts the app (after the user confirmed, to apply a scheduled data move). */
+	storageRestart: () => __TAURI_INVOKE<void>("storage_restart"),
+	/**  What switching to `target` would run into (reads only). */
+	branchSwitchCheck: (repoId: number, target: SwitchTarget) => __TAURI_INVOKE<BranchSwitchCheck>("branch_switch_check", { repoId, target }),
+	/**  Switches to `target` (see the module docs). `autoRestore` comes from the preferences. */
+	branchSwitchRun: (repoId: number, target: SwitchTarget, mode: SwitchDirtyMode) => __TAURI_INVOKE<BranchSwitchResult>("branch_switch_run", { repoId, target, mode }),
+	/**  Pops the newest autostash of the checked-out `branch`; `None` when there is none. */
+	branchSwitchRestore: (repoId: number, branch: string) => __TAURI_INVOKE<{
+	status: RestoreStatus,
+	/**  Files in the stash entry. */
+	files: number,
+	/**  Conflicted paths (`Conflicts`). */
+	conflicts: string[],
+	/**  The working tree was not clean (`Pending`). */
+	dirty: boolean,
+	/**  git's explanation (`Failed`). */
+	message: string | null,
+} | null>("branch_switch_restore", { repoId, branch }),
+	branchSwitchPrefsGet: () => __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_get"),
+	branchSwitchPrefsSet: (patch: BranchSwitchPrefsPatch) => __TAURI_INVOKE<BranchSwitchPrefs>("branch_switch_prefs_set", { patch }),
+	customThemeList: () => __TAURI_INVOKE<CustomThemes>("custom_theme_list"),
+	customThemeSave: (input: CustomThemeInput) => __TAURI_INVOKE<CustomTheme>("custom_theme_save", { input }),
+	customThemeDelete: (id: string) => __TAURI_INVOKE<CustomThemes>("custom_theme_delete", { id }),
+	customThemeDeleteAll: () => __TAURI_INVOKE<CustomThemes>("custom_theme_delete_all"),
+	customThemeSetActive: (id: string | null) => __TAURI_INVOKE<CustomThemes>("custom_theme_set_active", { id }),
+	customThemeExport: (path: string, input: CustomThemeInput) => __TAURI_INVOKE<null>("custom_theme_export", { path, input }),
+	customThemeImport: (path: string) => __TAURI_INVOKE<ThemeImportResult>("custom_theme_import", { path }),
+	notesLoad: () => __TAURI_INVOKE<NotesData>("notes_load"),
+	notesSave: (input: NoteInput) => __TAURI_INVOKE<NotesData>("notes_save", { input }),
+	notesDelete: (ids: string[]) => __TAURI_INVOKE<NotesData>("notes_delete", { ids }),
+	notesDeleteAll: (withTags: boolean) => __TAURI_INVOKE<NotesData>("notes_delete_all", { withTags }),
+	notesTagSave: (input: NoteTagInput) => __TAURI_INVOKE<NotesData>("notes_tag_save", { input }),
+	notesTagDelete: (id: string) => __TAURI_INVOKE<NotesData>("notes_tag_delete", { id }),
+	/**  `ids: None` exports every note. Returns how many notes were written. */
+	notesExportFile: (path: string, ids: string[] | null) => __TAURI_INVOKE<number>("notes_export_file", { path, ids }),
+	notesImportFile: (path: string) => __TAURI_INVOKE<NotesImportReport>("notes_import_file", { path }),
+	notesExportMarkdown: (path: string, content: string) => __TAURI_INVOKE<null>("notes_export_markdown", { path, content }),
+	userDataSummary: () => __TAURI_INVOKE<UserDataSummary>("user_data_summary"),
+	aiSettings: () => __TAURI_INVOKE<AiSettingsView>("ai_settings"),
+	aiSettingsSave: (config: AiConfig) => __TAURI_INVOKE<AiSettingsView>("ai_settings_save", { config }),
+	/**  Stores the API key of a cloud service in the keychain. */
+	aiKeySet: (provider: AiProvider, key: string) => __TAURI_INVOKE<AiSettingsView>("ai_key_set", { provider, key }),
+	aiKeyDelete: (provider: AiProvider) => __TAURI_INVOKE<AiSettingsView>("ai_key_delete", { provider }),
+	/**  "Kiểm tra kết nối": lists the service's models with `config` (may be unsaved). */
+	aiTest: (config: AiConfig, requestId: string) => __TAURI_INVOKE<AiTestResult>("ai_test", { config, requestId }),
+	/**
+	 *  Suggests a commit message for the staged changes of `repo_id` (or, with `unstaged`, the
+	 *  working-tree changes when nothing is staged). `app_language`: `vi` / `en`.
+	 */
+	aiGenerate: (repoId: number, requestId: string, appLanguage: string, unstaged: boolean) => __TAURI_INVOKE<AiSuggestion>("ai_generate", { repoId, requestId, appLanguage, unstaged }),
+	/**  Cancels a running `ai_generate` / `ai_test` / `ai_ollama_pull` / `ai_ollama_start`. */
+	aiCancel: (requestId: string) => __TAURI_INVOKE<boolean>("ai_cancel", { requestId }),
+	aiOllamaStatus: () => __TAURI_INVOKE<OllamaStatus>("ai_ollama_status"),
+	/**
+	 *  Installs Ollama with winget (Windows) / Homebrew (macOS). Linux / no manager →
+	 *  `managerMissing` (the UI opens the download page).
+	 */
+	aiOllamaInstall: () => __TAURI_INVOKE<AiInstallResult>("ai_ollama_install"),
+	aiOllamaInstallCancel: () => __TAURI_INVOKE<boolean>("ai_ollama_install_cancel"),
+	/**  Starts `ollama serve` in the background (macOS: opens Ollama.app) and waits for it. */
+	aiOllamaStart: (requestId: string) => __TAURI_INVOKE<OllamaStatus>("ai_ollama_start", { requestId }),
+	/**  Downloads an Ollama model; progress arrives as [`AiPullProgress`]. */
+	aiOllamaPull: (model: string, requestId: string) => __TAURI_INVOKE<null>("ai_ollama_pull", { model, requestId }),
+	aiOllamaDelete: (model: string) => __TAURI_INVOKE<null>("ai_ollama_delete", { model }),
+	/**
+	 *  Writes the chosen accounts (all when `accountIds` is empty) to an encrypted file. Tokens and
+	 *  the app's SSH keys only with `includeSecrets`.
+	 */
+	backupAccountsExport: (path: string, password: string, accountIds: string[], includeSecrets: boolean) => __TAURI_INVOKE<BackupWriteResult>("backup_accounts_export", { path, password, accountIds, includeSecrets }),
+	/**  Decrypts an account export and lists its accounts, marking those already on this machine. */
+	backupAccountsOpen: (path: string, password: string) => __TAURI_INVOKE<AccountsFileResult>("backup_accounts_open", { path, password }),
+	/**
+	 *  Imports the accounts named by `keys` (ids inside the file). Existing accounts are skipped,
+	 *  or get only their label/color when `updateExisting`. All or nothing.
+	 */
+	backupAccountsImport: (path: string, password: string, keys: string[], updateExisting: boolean) => __TAURI_INVOKE<AccountsImportResult>("backup_accounts_import", { path, password, keys, updateExisting }),
+	/**
+	 *  Writes an encrypted snapshot of all app data; with `includeSecrets` also the tokens, SSH
+	 *  passphrases, AI keys and the app's SSH key files.
+	 */
+	backupFullCreate: (path: string, password: string, includeSecrets: boolean) => __TAURI_INVOKE<BackupWriteResult>("backup_full_create", { path, password, includeSecrets }),
+	/**  Decrypts a full backup and describes it (counts read from a throw-away copy). */
+	backupFullOpen: (path: string, password: string) => __TAURI_INVOKE<FullBackupFileResult>("backup_full_open", { path, password }),
+	/**
+	 *  Stages the restore (database next to the live one, secrets, key files). The caller then
+	 *  restarts the app (`storage_restart`); the swap happens before the database opens.
+	 */
+	backupFullRestore: (path: string, password: string) => __TAURI_INVOKE<FullRestoreResult>("backup_full_restore", { path, password }),
+	/**  The restore applied at this start, once (later calls return `null`). */
+	backupRestoreNotice: () => __TAURI_INVOKE<{
+	ok: boolean,
+	error: string | null,
+	/**  When the backup was made (Unix ms). */
+	createdAt: number | null,
+	appVersion: string | null,
+	/**  Copy of the replaced database. */
+	previousCopy: string | null,
+} | null>("backup_restore_notice"),
 };
 
 /** Events */
 export const events = {
-  aiPullProgress: makeEvent<AiPullProgress>("ai-pull-progress"),
-  cloneListUpdated: makeEvent<CloneListUpdated>("clone-list-updated"),
-  cloneProgress: makeEvent<CloneProgress>("clone-progress"),
-  lfsTransferProgress: makeEvent<LfsTransferProgress>("lfs-transfer-progress"),
-  repoChanged: makeEvent<RepoChanged>("repo-changed"),
-  storageMoveProgress: makeEvent<StorageMoveProgress>("storage-move-progress"),
-  transferProgress: makeEvent<TransferProgress>("transfer-progress"),
-  updateProgress: makeEvent<UpdateProgress>("update-progress"),
+	aiPullProgress: makeEvent<AiPullProgress>("ai-pull-progress"),
+	cloneListUpdated: makeEvent<CloneListUpdated>("clone-list-updated"),
+	cloneProgress: makeEvent<CloneProgress>("clone-progress"),
+	lfsTransferProgress: makeEvent<LfsTransferProgress>("lfs-transfer-progress"),
+	repoChanged: makeEvent<RepoChanged>("repo-changed"),
+	storageMoveProgress: makeEvent<StorageMoveProgress>("storage-move-progress"),
+	transferProgress: makeEvent<TransferProgress>("transfer-progress"),
+	updateProgress: makeEvent<UpdateProgress>("update-progress"),
 };
 
 /* Types */
 /**  Why access was refused, when the provider tells us enough to suggest a fix. */
-export type AccessHint =
-  /**
-   *  The GitHub organization enabled "OAuth App access restrictions" and has not approved our
-   *  OAuth app (PLAN 4.2). Suggest a fine-grained PAT or asking an org owner to approve it.
-   */
-  | { kind: "oauthAppRestricted"; organization: string | null }
-  /**  The GitHub organization enforces SAML SSO and the token is not authorized for it yet. */
-  | { kind: "samlSsoRequired"; url: string | null }
-  /**  The token lacks a scope; `required` lists scopes of which any one would do. */
-  | { kind: "missingScopes"; required: string[]; granted: string[] | null }
-  /**
-   *  A fine-grained / project token does not carry the permission for this resource
-   *  (GitHub: "Resource not accessible by personal access token").
-   */
-  | { kind: "tokenPermissionMissing" };
+export type AccessHint = 
+/**
+ *  The GitHub organization enabled "OAuth App access restrictions" and has not approved our
+ *  OAuth app (PLAN 4.2). Suggest a fine-grained PAT or asking an org owner to approve it.
+ */
+{ kind: "oauthAppRestricted"; organization: string | null } | 
+/**  The GitHub organization enforces SAML SSO and the token is not authorized for it yet. */
+{ kind: "samlSsoRequired"; url: string | null } | 
+/**  The token lacks a scope; `required` lists scopes of which any one would do. */
+{ kind: "missingScopes"; required: string[]; granted: string[] | null } | 
+/**
+ *  A fine-grained / project token does not carry the permission for this resource
+ *  (GitHub: "Resource not accessible by personal access token").
+ */
+{ kind: "tokenPermissionMissing" };
 
 /**  Effective access of the account to a repository (highest of direct/team/group grants). */
-export type AccessLevel =
-  | "none"
-  /**  GitHub `pull`; GitLab Guest/Reporter (10/20). */
-  | "read"
-  /**  GitHub `triage`. */
-  | "triage"
-  /**  GitHub `push`; GitLab Developer (30). */
-  | "write"
-  /**  GitHub `maintain`; GitLab Maintainer (40). */
-  | "maintain"
-  /**  GitHub `admin`; GitLab Owner (50). */
-  | "admin";
+export type AccessLevel = "none" | 
+/**  GitHub `pull`; GitLab Guest/Reporter (10/20). */
+"read" | 
+/**  GitHub `triage`. */
+"triage" | 
+/**  GitHub `push`; GitLab Developer (30). */
+"write" | 
+/**  GitHub `maintain`; GitLab Maintainer (40). */
+"maintain" | 
+/**  GitHub `admin`; GitLab Owner (50). */
+"admin";
 
 export type Account = {
-  id: string;
-  providerId: string;
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  authMethod: AuthMethod;
-  scopes: string[];
-  /**  Milliseconds since the Unix epoch; `None` for tokens that do not expire. */
-  tokenExpiresAt: number | null;
-  /**  `#rrggbb`, one of [`colors::ACCOUNT_COLORS`] by default. */
-  color: string;
-  /**  Short user label ("Công ty", "Cá nhân"…). */
-  label: string | null;
-  /**  Clone destination root for this account (`{clone_dir}/{owner}/{repo}`). */
-  defaultCloneDir: string | null;
-  /**  Keychain entries present for this account. */
-  secrets: AccountSecret[];
-  /**  Position in the switcher (`Ctrl/Cmd+Alt+1..9`). */
-  sortOrder: number;
-  createdAt: number;
-  updatedAt: number;
+	id: string,
+	providerId: string,
+	username: string,
+	displayName: string | null,
+	avatarUrl: string | null,
+	authMethod: AuthMethod,
+	scopes: string[],
+	/**  Milliseconds since the Unix epoch; `None` for tokens that do not expire. */
+	tokenExpiresAt: number | null,
+	/**  `#rrggbb`, one of [`colors::ACCOUNT_COLORS`] by default. */
+	color: string,
+	/**  Short user label ("Công ty", "Cá nhân"…). */
+	label: string | null,
+	/**  Clone destination root for this account (`{clone_dir}/{owner}/{repo}`). */
+	defaultCloneDir: string | null,
+	/**  Keychain entries present for this account. */
+	secrets: AccountSecret[],
+	/**  Position in the switcher (`Ctrl/Cmd+Alt+1..9`). */
+	sortOrder: number,
+	createdAt: number,
+	updatedAt: number,
 };
 
 /**  A gh/glab account the user wants to sign in to again. */
 export type AccountChoice = {
-  host: string;
-  username?: string | null;
+	host: string,
+	username?: string | null,
 };
 
 /**  Token health of an account (account card badge). */
 export type AccountHealth = {
-  accountId: string;
-  /**  A token is stored in the keychain (false for SSH-only accounts). */
-  hasToken: boolean;
-  /**  The app refreshes this token itself (GitLab OAuth with a refresh token). */
-  autoRefresh: boolean;
-  /**  False for fine-grained PATs: permissions only show up as 403s. */
-  scopesKnown: boolean;
-  /**  Scopes missing for core features (git over HTTPS, repo list, emails, profile). */
-  missingScopes: MissingScope[];
-  /**  Scopes missing for optional features (SSH key upload, workflow edits). */
-  optionalMissing: MissingScope[];
-  /**  Milliseconds since the epoch. */
-  expiresAt: number | null;
-  expired: boolean;
-  expiresSoon: boolean;
-  daysLeft: number | null;
-  /**  The token was rejected or the refresh token revoked: "Re-authenticate". */
-  needsSignIn: boolean;
-  lastError: string | null;
-  tokenKind: TokenKind | null;
+	accountId: string,
+	/**  A token is stored in the keychain (false for SSH-only accounts). */
+	hasToken: boolean,
+	/**  The app refreshes this token itself (GitLab OAuth with a refresh token). */
+	autoRefresh: boolean,
+	/**  False for fine-grained PATs: permissions only show up as 403s. */
+	scopesKnown: boolean,
+	/**  Scopes missing for core features (git over HTTPS, repo list, emails, profile). */
+	missingScopes: MissingScope[],
+	/**  Scopes missing for optional features (SSH key upload, workflow edits). */
+	optionalMissing: MissingScope[],
+	/**  Milliseconds since the epoch. */
+	expiresAt: number | null,
+	expired: boolean,
+	expiresSoon: boolean,
+	daysLeft: number | null,
+	/**  The token was rejected or the refresh token revoked: "Re-authenticate". */
+	needsSignIn: boolean,
+	lastError: string | null,
+	tokenKind: TokenKind | null,
 };
 
 /**  Create (no `id`) or update an account profile. Tokens are saved separately. */
 export type AccountInput = {
-  id?: string | null;
-  providerId: string;
-  username: string;
-  displayName?: string | null;
-  avatarUrl?: string | null;
-  authMethod: AuthMethod;
-  scopes?: string[];
-  tokenExpiresAt?: number | null;
-  /**  `None` on create → next free palette color. */
-  color?: string | null;
-  label?: string | null;
-  defaultCloneDir?: string | null;
+	id?: string | null,
+	providerId: string,
+	username: string,
+	displayName?: string | null,
+	avatarUrl?: string | null,
+	authMethod: AuthMethod,
+	scopes?: string[],
+	tokenExpiresAt?: number | null,
+	/**  `None` on create → next free palette color. */
+	color?: string | null,
+	label?: string | null,
+	defaultCloneDir?: string | null,
 };
 
 /**
@@ -1274,1143 +874,1067 @@ export type AccountInput = {
  *  without touching the repo binding. Sent by the switcher's one-shot override (`asAccount`).
  */
 export type AccountOverride = {
-  accountId: string;
-  /**  Must belong to the account; omitted → its default identity. */
-  identityId?: string | null;
+	accountId: string,
+	/**  Must belong to the account; omitted → its default identity. */
+	identityId?: string | null,
 };
 
 export type AccountPreview = {
-  /**  Id of the account inside the file (what the import selection names). */
-  key: string;
-  username: string;
-  displayName: string | null;
-  label: string | null;
-  color: string;
-  providerName: string;
-  providerKind: ProviderKind;
-  host: string;
-  authMethod: AuthMethod;
-  identities: number;
-  rules: number;
-  sshKeys: number;
-  /**  SSH private keys included in the file. */
-  sshKeyFiles: number;
-  hasToken: boolean;
-  /**  Same provider host + user name already exists on this machine. */
-  existingAccountId: string | null;
-  /**  The provider (self-hosted instance) is not configured here yet. */
-  newProvider: boolean;
+	/**  Id of the account inside the file (what the import selection names). */
+	key: string,
+	username: string,
+	displayName: string | null,
+	label: string | null,
+	color: string,
+	providerName: string,
+	providerKind: ProviderKind,
+	host: string,
+	authMethod: AuthMethod,
+	identities: number,
+	rules: number,
+	sshKeys: number,
+	/**  SSH private keys included in the file. */
+	sshKeyFiles: number,
+	hasToken: boolean,
+	/**  Same provider host + user name already exists on this machine. */
+	existingAccountId: string | null,
+	/**  The provider (self-hosted instance) is not configured here yet. */
+	newProvider: boolean,
 };
 
 /**  One account's part of the list. */
 export type AccountRepos = {
-  accountId: string;
-  repos: CloneRepo[];
-  /**  When the list was fetched (ms since the epoch); `None` = never loaded. */
-  fetchedAt: number | null;
-  /**  The last fetch failed (`repos` may still hold an older successful result). */
-  error: ListError | null;
-  /**  The provider had more repositories than the listing cap. */
-  truncated: boolean;
-  /**  A background refresh is running; [`CloneListUpdated`] follows. */
-  refreshing: boolean;
+	accountId: string,
+	repos: CloneRepo[],
+	/**  When the list was fetched (ms since the epoch); `None` = never loaded. */
+	fetchedAt: number | null,
+	/**  The last fetch failed (`repos` may still hold an older successful result). */
+	error: ListError | null,
+	/**  The provider had more repositories than the listing cap. */
+	truncated: boolean,
+	/**  A background refresh is running; [`CloneListUpdated`] follows. */
+	refreshing: boolean,
 };
 
 /**  Which keychain entries of an account exist (the values never leave the keychain). */
 export type AccountSecret = "token" | "refreshToken";
 
 export type AccountSettings = {
-  /**  `identity.writeToRepoConfig` (default true). */
-  identityWriteToRepoConfig: boolean;
-  /**  `ssh.writeCoreSshCommand` (default false). */
-  sshWriteCoreSshCommand: boolean;
+	/**  `identity.writeToRepoConfig` (default true). */
+	identityWriteToRepoConfig: boolean,
+	/**  `ssh.writeCoreSshCommand` (default false). */
+	sshWriteCoreSshCommand: boolean,
 };
 
 export type AccountSettingsPatch = {
-  identityWriteToRepoConfig?: boolean | null;
-  sshWriteCoreSshCommand?: boolean | null;
+	identityWriteToRepoConfig?: boolean | null,
+	sshWriteCoreSshCommand?: boolean | null,
 };
 
 /**  "[Đổi sang tài khoản X]" candidate. */
 export type AccountSuggestion = {
-  accountId: string;
-  /**  Label, else user name. */
-  label: string;
-  username: string;
-  color: string;
-  /**  Identity the switch would use (rule's identity or the account default). */
-  identityId: string | null;
-  email: string | null;
-  reason: SuggestionReason;
+	accountId: string,
+	/**  Label, else user name. */
+	label: string,
+	username: string,
+	color: string,
+	/**  Identity the switch would use (rule's identity or the account default). */
+	identityId: string | null,
+	email: string | null,
+	reason: SuggestionReason,
 };
 
 export type AccountsFileResult = {
-  problem: BackupProblem | null;
-  info: BackupInfo | null;
-  preview: AccountsPreview | null;
+	problem: BackupProblem | null,
+	info: BackupInfo | null,
+	preview: AccountsPreview | null,
 };
 
 export type AccountsImportReport = {
-  added: number;
-  /**  Existing accounts whose label/color were updated. */
-  updated: number;
-  /**  Selected accounts that already existed (left untouched). */
-  skipped: number;
-  providersAdded: number;
-  /**  New accounts whose token came from the file. */
-  tokens: number;
-  sshKeys: number;
-  /**  New accounts without a token: they must sign in again (ids on this machine). */
-  needSignIn: string[];
-  /**  Identities whose SSH signing key does not exist here: signing was turned off. */
-  signingDisabled: number;
+	added: number,
+	/**  Existing accounts whose label/color were updated. */
+	updated: number,
+	/**  Selected accounts that already existed (left untouched). */
+	skipped: number,
+	providersAdded: number,
+	/**  New accounts whose token came from the file. */
+	tokens: number,
+	sshKeys: number,
+	/**  New accounts without a token: they must sign in again (ids on this machine). */
+	needSignIn: string[],
+	/**  Identities whose SSH signing key does not exist here: signing was turned off. */
+	signingDisabled: number,
 };
 
 export type AccountsImportResult = {
-  problem: BackupProblem | null;
-  report: AccountsImportReport | null;
+	problem: BackupProblem | null,
+	report: AccountsImportReport | null,
 };
 
 export type AccountsPreview = {
-  accounts: AccountPreview[];
-  /**  At least one account carries a token. */
-  hasSecrets: boolean;
+	accounts: AccountPreview[],
+	/**  At least one account carries a token. */
+	hasSecrets: boolean,
 };
 
 /**  Stored under [`KEY_AI_CONFIG`]. Off by default. */
 export type AiConfig = {
-  enabled?: boolean;
-  provider?: AiProvider;
-  models?: AiModels;
-  /**  Base URL of the OpenAI-compatible service, e.g. `https://openrouter.ai/api/v1`. */
-  compatibleBaseUrl?: string;
-  ollamaUrl?: string;
-  language?: AiMessageLanguage;
-  style?: AiMessageStyle;
-  /**  Also write a body under the summary line. */
-  includeBody?: boolean;
+	enabled?: boolean,
+	provider?: AiProvider,
+	models?: AiModels,
+	/**  Base URL of the OpenAI-compatible service, e.g. `https://openrouter.ai/api/v1`. */
+	compatibleBaseUrl?: string,
+	ollamaUrl?: string,
+	language?: AiMessageLanguage,
+	style?: AiMessageStyle,
+	/**  Also write a body under the summary line. */
+	includeBody?: boolean,
 };
 
 /**  Which changes the message describes. */
-export type AiDiffSource =
-  | "staged"
-  /**  Nothing was staged and the user asked to use the unstaged changes. */
-  | "unstaged";
+export type AiDiffSource = "staged" | 
+/**  Nothing was staged and the user asked to use the unstaged changes. */
+"unstaged";
 
 /**
  *  Errors of the AI commands, serialized as `{ kind, message, ... }` (like [`AppError`]) so the
  *  generic `errorMessage()` helper works; the UI explains each kind in plain words.
  */
-export type AiError =
-  | { kind: "notEnabled"; message: string }
-  | { kind: "missingKey"; message: string }
-  | { kind: "missingModel"; message: string }
-  | { kind: "missingBaseUrl"; message: string }
-  /**  Nothing staged; `hasUnstaged` offers "use the unstaged changes". */
-  | { kind: "nothingStaged"; message: string; hasUnstaged: boolean }
-  /**  401 or an "API key not valid" answer. */
-  | { kind: "invalidKey"; message: string }
-  /**  403: the key may not use this model / region. */
-  | { kind: "accessDenied"; message: string }
-  /**  Out of credits / billing. */
-  | { kind: "quotaExceeded"; message: string }
-  /**  429 / overloaded: try again later. */
-  | { kind: "rateLimited"; message: string }
-  | { kind: "modelNotFound"; message: string; model: string }
-  | { kind: "ollamaNotRunning"; message: string }
-  | { kind: "ollamaNotInstalled"; message: string }
-  | { kind: "network"; message: string }
-  | { kind: "timeout"; message: string }
-  | { kind: "cancelled"; message: string }
-  /**  Any other HTTP error of the service. */
-  | { kind: "service"; message: string; status: number }
-  | { kind: "emptyAnswer"; message: string }
-  | { kind: "busy"; message: string }
-  | { kind: "invalidInput"; message: string }
-  | { kind: "git"; message: string }
-  | { kind: "internal"; message: string };
+export type AiError = { kind: "notEnabled"; message: string } | { kind: "missingKey"; message: string } | { kind: "missingModel"; message: string } | { kind: "missingBaseUrl"; message: string } | 
+/**  Nothing staged; `hasUnstaged` offers "use the unstaged changes". */
+{ kind: "nothingStaged"; message: string; hasUnstaged: boolean } | 
+/**  401 or an "API key not valid" answer. */
+{ kind: "invalidKey"; message: string } | 
+/**  403: the key may not use this model / region. */
+{ kind: "accessDenied"; message: string } | 
+/**  Out of credits / billing. */
+{ kind: "quotaExceeded"; message: string } | 
+/**  429 / overloaded: try again later. */
+{ kind: "rateLimited"; message: string } | { kind: "modelNotFound"; message: string; model: string } | { kind: "ollamaNotRunning"; message: string } | { kind: "ollamaNotInstalled"; message: string } | { kind: "network"; message: string } | { kind: "timeout"; message: string } | { kind: "cancelled"; message: string } | 
+/**  Any other HTTP error of the service. */
+{ kind: "service"; message: string; status: number } | { kind: "emptyAnswer"; message: string } | { kind: "busy"; message: string } | { kind: "invalidInput"; message: string } | { kind: "git"; message: string } | { kind: "internal"; message: string };
 
 export type AiHostOs = "windows" | "macos" | "linux";
 
 export type AiInstallResult = {
-  outcome: SetupInstallOutcome;
-  manager: SetupPackageManager | null;
-  command: string | null;
-  exitCode: number | null;
-  output: string;
+	outcome: SetupInstallOutcome,
+	manager: SetupPackageManager | null,
+	command: string | null,
+	exitCode: number | null,
+	output: string,
 };
 
 /**  Whether the API key of each service is stored (values never leave the backend). */
 export type AiKeyStatus = {
-  openai: boolean;
-  anthropic: boolean;
-  gemini: boolean;
-  compatible: boolean;
+	openai: boolean,
+	anthropic: boolean,
+	gemini: boolean,
+	compatible: boolean,
 };
 
-export type AiMessageLanguage =
-  /**  Same language as the app. */
-  "app" | "en" | "vi";
+export type AiMessageLanguage = 
+/**  Same language as the app. */
+"app" | "en" | "vi";
 
-export type AiMessageStyle =
-  /**  `feat: add login page`. */
-  | "conventional"
-  /**  `Add login page`. */
-  | "plain";
+export type AiMessageStyle = 
+/**  `feat: add login page`. */
+"conventional" | 
+/**  `Add login page`. */
+"plain";
 
 /**  Chosen model of each service (kept when switching service). */
 export type AiModels = {
-  ollama?: string;
-  openai?: string;
-  anthropic?: string;
-  gemini?: string;
-  compatible?: string;
+	ollama?: string,
+	openai?: string,
+	anthropic?: string,
+	gemini?: string,
+	compatible?: string,
 };
 
 /**  Where the message is written. */
-export type AiProvider =
-  /**  Ollama on this computer: free, the code never leaves the machine. */
-  | "ollama"
-  | "openai"
-  | "anthropic"
-  | "gemini"
-  /**  Any OpenAI-compatible endpoint (OpenRouter, Groq, LM Studio, vLLM...). */
-  | "compatible";
+export type AiProvider = 
+/**  Ollama on this computer: free, the code never leaves the machine. */
+"ollama" | "openai" | "anthropic" | "gemini" | 
+/**  Any OpenAI-compatible endpoint (OpenRouter, Groq, LM Studio, vLLM...). */
+"compatible";
 
 /**  Download progress of `ai_ollama_pull` (event `ai-pull-progress`). */
 export type AiPullProgress = {
-  requestId: string;
-  model: string;
-  /**
-   *  Ollama's status line (`pulling manifest`, `pulling 2bada8a74506`, `verifying sha256 digest`,
-   *  `success`).
-   */
-  status: string;
-  /**  Bytes over every layer seen so far. */
-  completed: number;
-  total: number;
-  percent: number | null;
-  done: boolean;
+	requestId: string,
+	model: string,
+	/**
+	 *  Ollama's status line (`pulling manifest`, `pulling 2bada8a74506`, `verifying sha256 digest`,
+	 *  `success`).
+	 */
+	status: string,
+	/**  Bytes over every layer seen so far. */
+	completed: number,
+	total: number,
+	percent: number | null,
+	done: boolean,
 };
 
 /**  Settings as the UI sees them: the config plus which keys are stored. */
 export type AiSettingsView = {
-  config: AiConfig;
-  keys: AiKeyStatus;
+	config: AiConfig,
+	keys: AiKeyStatus,
 };
 
 export type AiSuggestion = {
-  summary: string;
-  body: string;
-  source: AiDiffSource;
-  /**  Part of the diff was left out to keep the request small. */
-  truncated: boolean;
-  provider: AiProvider;
-  model: string;
+	summary: string,
+	body: string,
+	source: AiDiffSource,
+	/**  Part of the diff was left out to keep the request small. */
+	truncated: boolean,
+	provider: AiProvider,
+	model: string,
 };
 
 export type AiTestResult = {
-  /**  Models the service offers (sorted, at most 500). */
-  models: string[];
-  /**  The chosen model is among them (`None` when no model is chosen). */
-  modelFound: boolean | null;
+	/**  Models the service offers (sorted, at most 500). */
+	models: string[],
+	/**  The chosen model is among them (`None` when no model is chosen). */
+	modelFound: boolean | null,
 };
 
 /**
  *  Error returned by every IPC command. Serialized as `{ kind, message }` so the
  *  frontend can branch on `kind` and show `message` to the user.
  */
-export type AppError =
-  | { kind: "storage"; message: string }
-  | { kind: "git"; message: string }
-  /**  The folder exists but is not inside a git repository (the UI offers `git init`). */
-  | { kind: "notARepository"; message: string }
-  | { kind: "pathNotFound"; message: string }
-  | { kind: "unsupported"; message: string }
-  | { kind: "invalidInput"; message: string }
-  | { kind: "internal"; message: string };
+export type AppError = { kind: "storage"; message: string } | { kind: "git"; message: string } | 
+/**  The folder exists but is not inside a git repository (the UI offers `git init`). */
+{ kind: "notARepository"; message: string } | { kind: "pathNotFound"; message: string } | { kind: "unsupported"; message: string } | { kind: "invalidInput"; message: string } | { kind: "internal"; message: string };
 
 export type AppInfo = {
-  name: string;
-  version: string;
-  os: string;
-  arch: string;
-  /**  `https://github.com/<owner>/<repo>` of the project, when the build embedded one. */
-  repositoryUrl: string | null;
+	name: string,
+	version: string,
+	os: string,
+	arch: string,
+	/**  `https://github.com/<owner>/<repo>` of the project, when the build embedded one. */
+	repositoryUrl: string | null,
 };
 
 /**  User preferences persisted in SQLite. `language: None` means "follow the OS locale". */
 export type AppSettings = {
-  theme: ThemeMode;
-  language: Language | null;
-  /**
-   *  Show CI results (GitHub Actions / GitLab pipelines). Off by default: most people only
-   *  care whether push / pull worked.
-   */
-  ciEnabled: boolean;
-  /**  Load author avatars for the commit graph from GitHub / Gravatar. */
-  authorAvatars: boolean;
+	theme: ThemeMode,
+	language: Language | null,
+	/**
+	 *  Show CI results (GitHub Actions / GitLab pipelines). Off by default: most people only
+	 *  care whether push / pull worked.
+	 */
+	ciEnabled: boolean,
+	/**  Load author avatars for the commit graph from GitHub / Gravatar. */
+	authorAvatars: boolean,
 };
 
 /**  Result of one ticked suggestion. */
 export type ApplyItem = {
-  kind: ApplyKind;
-  /**  Email / rule condition / key path. */
-  label: string;
-  status: ApplyStatus;
-  /**
-   *  Machine code for failures the UI translates: `passphraseRequired`, `wrongPassphrase`,
-   *  `keyOfAnotherAccount`, `identityNotFound`, `error`.
-   */
-  code: string | null;
-  /**  Technical detail (English). */
-  message: string | null;
-  /**  Id of the created / existing record. */
-  id: string | null;
+	kind: ApplyKind,
+	/**  Email / rule condition / key path. */
+	label: string,
+	status: ApplyStatus,
+	/**
+	 *  Machine code for failures the UI translates: `passphraseRequired`, `wrongPassphrase`,
+	 *  `keyOfAnotherAccount`, `identityNotFound`, `error`.
+	 */
+	code: string | null,
+	/**  Technical detail (English). */
+	message: string | null,
+	/**  Id of the created / existing record. */
+	id: string | null,
 };
 
 export type ApplyKind = "identity" | "rule" | "sshKey";
 
-export type ApplyStatus =
-  | "created"
-  /**  Already in the app; nothing changed. */
-  | "existing"
-  | "failed";
+export type ApplyStatus = "created" | 
+/**  Already in the app; nothing changed. */
+"existing" | "failed";
 
 /**
  *  Errors of the auth commands. Serialized as `{ kind, message, ... }` (like [`AppError`]) so
  *  the generic `errorMessage()` helper still works; the UI branches on `kind`.
  */
-export type AuthCommandError =
-  /**
-   *  The provider has no OAuth client id (the project has not registered its OAuth apps yet,
-   *  or a self-hosted instance needs its own): sign in with a PAT instead.
-   */
-  | {
-      kind: "missingClientId";
-      message: string;
-      providerId: string;
-      /**  Token creation page with the needed scopes pre-selected. */
-      patUrl: string;
-      patScopes: string[];
-    }
-  /**  The flow is not supported for this provider (e.g. PKCE on GitHub). */
-  | { kind: "unsupported"; message: string }
-  /**  A sign-in / token error from `nanomgg_auth` (denied, expired, cancelled, provider...). */
-  | { kind: "auth"; message: string; error: AuthError }
-  /**  The flow id is unknown (finished, cancelled or expired). */
-  | { kind: "unknownFlow"; message: string }
-  /**  Re-authentication produced a token of another user. */
-  | { kind: "wrongAccount"; message: string; expected: string; actual: string }
-  /**  Storage / keychain / validation failure. */
-  | { kind: "app"; message: string; error: AppError };
+export type AuthCommandError = 
+/**
+ *  The provider has no OAuth client id (the project has not registered its OAuth apps yet,
+ *  or a self-hosted instance needs its own): sign in with a PAT instead.
+ */
+{ kind: "missingClientId"; message: string; providerId: string; 
+/**  Token creation page with the needed scopes pre-selected. */
+patUrl: string; patScopes: string[] } | 
+/**  The flow is not supported for this provider (e.g. PKCE on GitHub). */
+{ kind: "unsupported"; message: string } | 
+/**  A sign-in / token error from `nanomgg_auth` (denied, expired, cancelled, provider...). */
+{ kind: "auth"; message: string; error: AuthError } | 
+/**  The flow id is unknown (finished, cancelled or expired). */
+{ kind: "unknownFlow"; message: string } | 
+/**  Re-authentication produced a token of another user. */
+{ kind: "wrongAccount"; message: string; expected: string; actual: string } | 
+/**  Storage / keychain / validation failure. */
+{ kind: "app"; message: string; error: AppError };
 
 /**  Errors of the login flows and token validation. Serialized as `{ "kind": "...", ... }`. */
-export type AuthError =
-  /**  The user refused the authorization (`access_denied`). */
-  | { kind: "denied" }
-  /**  The device code expired before the user approved it — start again. */
-  | { kind: "expired" }
-  /**  The loopback login waited longer than its timeout for the browser redirect. */
-  | { kind: "timedOut" }
-  | { kind: "cancelled" }
-  /**
-   *  The instance/app does not offer the device flow (404 or `device_flow_disabled`):
-   *  fall back to PKCE or a PAT.
-   */
-  | { kind: "deviceFlowUnsupported"; message: string }
-  /**
-   *  The browser redirect carried a missing/foreign `state` (possible CSRF) — nothing was
-   *  exchanged.
-   */
-  | { kind: "stateMismatch" }
-  /**  The refresh token was rejected (`invalid_grant`): the user must sign in again. */
-  | { kind: "refreshRejected"; message: string }
-  /**  The token exists but is revoked or inactive (GitLab `/personal_access_tokens/self`). */
-  | { kind: "tokenRevoked" }
-  /**  Any other OAuth error response (`invalid_client`, `unsupported_grant_type`, ...). */
-  | { kind: "oAuth"; error: string; description: string | null }
-  /**  Could not bind or serve the loopback redirect listener. */
-  | { kind: "loopback"; message: string }
-  | { kind: "invalidConfig"; message: string }
-  | { kind: "internal"; message: string }
-  /**  HTTP/API failure (network, rate limit, 401/403, ...), see [`ProviderError`]. */
-  | { kind: "provider"; error: ProviderError };
+export type AuthError = 
+/**  The user refused the authorization (`access_denied`). */
+{ kind: "denied" } | 
+/**  The device code expired before the user approved it — start again. */
+{ kind: "expired" } | 
+/**  The loopback login waited longer than its timeout for the browser redirect. */
+{ kind: "timedOut" } | { kind: "cancelled" } | 
+/**
+ *  The instance/app does not offer the device flow (404 or `device_flow_disabled`):
+ *  fall back to PKCE or a PAT.
+ */
+{ kind: "deviceFlowUnsupported"; message: string } | 
+/**
+ *  The browser redirect carried a missing/foreign `state` (possible CSRF) — nothing was
+ *  exchanged.
+ */
+{ kind: "stateMismatch" } | 
+/**  The refresh token was rejected (`invalid_grant`): the user must sign in again. */
+{ kind: "refreshRejected"; message: string } | 
+/**  The token exists but is revoked or inactive (GitLab `/personal_access_tokens/self`). */
+{ kind: "tokenRevoked" } | 
+/**  Any other OAuth error response (`invalid_client`, `unsupported_grant_type`, ...). */
+{ kind: "oAuth"; error: string; description: string | null } | 
+/**  Could not bind or serve the loopback redirect listener. */
+{ kind: "loopback"; message: string } | { kind: "invalidConfig"; message: string } | { kind: "internal"; message: string } | 
+/**  HTTP/API failure (network, rate limit, 401/403, ...), see [`ProviderError`]. */
+{ kind: "provider"; error: ProviderError };
 
-export type AuthMethod =
-  | "oauth"
-  | "pat"
-  /**  No HTTPS token: the account is only used over SSH (e.g. imported from `~/.ssh/config`). */
-  | "sshOnly"
-  /**
-   *  Token copied from the `gh` / `glab` CLI (PLAN 3B.1). Treated like a PAT: validated and
-   *  re-validated, never refreshed by the app; the CLI's own config is never modified.
-   */
-  | "importedCli";
+export type AuthMethod = "oauth" | "pat" | 
+/**  No HTTPS token: the account is only used over SSH (e.g. imported from `~/.ssh/config`). */
+"sshOnly" | 
+/**
+ *  Token copied from the `gh` / `glab` CLI (PLAN 3B.1). Treated like a PAT: validated and
+ *  re-validated, never refreshed by the app; the CLI's own config is never modified.
+ */
+"importedCli";
 
 /**  The autostash of the branch that was just checked out. */
 export type AutostashRestore = {
-  status: RestoreStatus;
-  /**  Files in the stash entry. */
-  files: number;
-  /**  Conflicted paths (`Conflicts`). */
-  conflicts: string[];
-  /**  The working tree was not clean (`Pending`). */
-  dirty: boolean;
-  /**  git's explanation (`Failed`). */
-  message: string | null;
+	status: RestoreStatus,
+	/**  Files in the stash entry. */
+	files: number,
+	/**  Conflicted paths (`Conflicts`). */
+	conflicts: string[],
+	/**  The working tree was not clean (`Pending`). */
+	dirty: boolean,
+	/**  git's explanation (`Failed`). */
+	message: string | null,
 };
 
 export type AvailableUpdate = {
-  version: string;
-  /**  Unix seconds, from the manifest's `pub_date`. */
-  date: number | null;
-  /**  Plain text (Markdown source) — never rendered as HTML. */
-  notes: string | null;
-  /**  The user chose "Bỏ qua bản này" for this version. */
-  skipped: boolean;
-  releaseUrl: string | null;
+	version: string,
+	/**  Unix seconds, from the manifest's `pub_date`. */
+	date: number | null,
+	/**  Plain text (Markdown source) — never rendered as HTML. */
+	notes: string | null,
+	/**  The user chose "Bỏ qua bản này" for this version. */
+	skipped: boolean,
+	releaseUrl: string | null,
 };
 
 /**  Facts readable without the password. */
 export type BackupInfo = {
-  kind: BackupKind;
-  /**  Unix milliseconds. */
-  createdAt: number;
-  appVersion: string;
+	kind: BackupKind,
+	/**  Unix milliseconds. */
+	createdAt: number,
+	appVersion: string,
 };
 
 /**
  *  What the file holds. Stored in clear (and authenticated) so the UI can refuse the wrong
  *  kind of file before asking for the password.
  */
-export type BackupKind =
-  /**  Account configuration (Phase 6.3). */
-  | "accounts"
-  /**  The whole app (Phase 6.6). */
-  | "full";
+export type BackupKind = 
+/**  Account configuration (Phase 6.3). */
+"accounts" | 
+/**  The whole app (Phase 6.6). */
+"full";
 
 /**  What is wrong with a chosen file or password, for the dialog to explain. */
-export type BackupProblem =
-  /**  Wrong password, or the file was modified (cannot be told apart). */
-  | "wrongPassword"
-  | "notABackup"
-  /**  An account export where a full backup is expected, or the reverse. */
-  | "wrongKind"
-  /**  Made by a newer app version (file format or database schema). */
-  | "newerVersion"
-  | "tooLarge"
-  /**  Decrypted, but the content is damaged. */
-  | "corrupt"
-  | "weakPassword";
+export type BackupProblem = 
+/**  Wrong password, or the file was modified (cannot be told apart). */
+"wrongPassword" | "notABackup" | 
+/**  An account export where a full backup is expected, or the reverse. */
+"wrongKind" | 
+/**  Made by a newer app version (file format or database schema). */
+"newerVersion" | "tooLarge" | 
+/**  Decrypted, but the content is damaged. */
+"corrupt" | "weakPassword";
 
 /**  A backup ref made before a rewrite. */
 export type BackupRef = {
-  /**  `refs/nanomgg/backup/<unix-ts>[-n]`. */
-  name: string;
-  oid: string;
-  /**  Branch it was taken from (from the reflog note; `None` if unknown). */
-  branch: string | null;
-  /**  `fix-authors`, `lfs-migrate`, `undo`… */
-  operation: string | null;
-  /**  Unix seconds, from the ref name. */
-  createdAt: number;
-  summary: string;
+	/**  `refs/nanomgg/backup/<unix-ts>[-n]`. */
+	name: string,
+	oid: string,
+	/**  Branch it was taken from (from the reflog note; `None` if unknown). */
+	branch: string | null,
+	/**  `fix-authors`, `lfs-migrate`, `undo`… */
+	operation: string | null,
+	/**  Unix seconds, from the ref name. */
+	createdAt: number,
+	summary: string,
 };
 
 export type BackupWriteResult = {
-  path: string;
-  bytes: number;
-  /**  Accounts in the file. */
-  accounts: number;
+	path: string,
+	bytes: number,
+	/**  Accounts in the file. */
+	accounts: number,
 };
 
 /**  "Use for this repo": binds the repo (or one remote) to an account. */
 export type BindingInput = {
-  /**  `None` = repo-level default. */
-  remote?: string | null;
-  accountId: string;
-  identityId?: string | null;
-  transport?: Transport | null;
-  /**  "Ghi nhớ": pin it above clone bindings and rules. */
-  locked?: boolean;
-  /**  Defaults to `manual` (the clone flow passes `clone`). */
-  source?: BindingSource | null;
+	/**  `None` = repo-level default. */
+	remote?: string | null,
+	accountId: string,
+	identityId?: string | null,
+	transport?: Transport | null,
+	/**  "Ghi nhớ": pin it above clone bindings and rules. */
+	locked?: boolean,
+	/**  Defaults to `manual` (the clone flow passes `clone`). */
+	source?: BindingSource | null,
 };
 
-export type BindingSource =
-  /**  Remembered result of the rule engine. */
-  | "autoRule"
-  /**  Chosen by the user ("Dùng cho repo này"). */
-  | "manual"
-  /**  Created when the repo was cloned through the app. */
-  | "clone";
+export type BindingSource = 
+/**  Remembered result of the rule engine. */
+"autoRule" | 
+/**  Chosen by the user ("Dùng cho repo này"). */
+"manual" | 
+/**  Created when the repo was cloned through the app. */
+"clone";
 
 export type BlameCommit = {
-  oid: string;
-  author: string;
-  email: string;
-  /**  Author time, seconds since the Unix epoch. */
-  time: number;
-  summary: string;
-  /**  Path of the file in this commit (differs after a rename). */
-  filename: string;
-  /**  Parent commit and the file's path there, to blame "before this change". */
-  previous: string | null;
-  previousPath: string | null;
-  /**  Root / boundary commit: there is nothing older to blame. */
-  boundary: boolean;
-  /**  Lines changed in the working tree that are not committed yet. */
-  uncommitted: boolean;
+	oid: string,
+	author: string,
+	email: string,
+	/**  Author time, seconds since the Unix epoch. */
+	time: number,
+	summary: string,
+	/**  Path of the file in this commit (differs after a rename). */
+	filename: string,
+	/**  Parent commit and the file's path there, to blame "before this change". */
+	previous: string | null,
+	previousPath: string | null,
+	/**  Root / boundary commit: there is nothing older to blame. */
+	boundary: boolean,
+	/**  Lines changed in the working tree that are not committed yet. */
+	uncommitted: boolean,
 };
 
 export type BlameResult = {
-  path: string;
-  /**  Revision blamed; `None` = working tree. */
-  rev: string | null;
-  /**  Text of each line (without line ending). */
-  lines: string[];
-  /**  For each line: index into `commits`. */
-  lineCommits: number[];
-  /**  For each line: its line number in that commit's version of the file. */
-  origLines: number[];
-  commits: BlameCommit[];
-  tooLarge: boolean;
-  binary: boolean;
+	path: string,
+	/**  Revision blamed; `None` = working tree. */
+	rev: string | null,
+	/**  Text of each line (without line ending). */
+	lines: string[],
+	/**  For each line: index into `commits`. */
+	lineCommits: number[],
+	/**  For each line: its line number in that commit's version of the file. */
+	origLines: number[],
+	commits: BlameCommit[],
+	tooLarge: boolean,
+	binary: boolean,
 };
 
 /**  Preview of one side of a file. */
 export type BlobPreview = {
-  /**  Size of the real content (of the LFS object for a pointer). */
-  size: number;
-  /**  MIME type guessed from the file extension. */
-  mime: string;
-  /**  Base64 content; `None` when too large or the LFS object is not downloaded. */
-  data: string | null;
-  /**  Set when the stored file is an LFS pointer. */
-  lfs: LfsPointer | null;
-  /**  LFS pointer whose object is not in the local LFS store (needs a download). */
-  lfsMissing: boolean;
-  tooLarge: boolean;
-  /**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
-  binary: boolean;
+	/**  Size of the real content (of the LFS object for a pointer). */
+	size: number,
+	/**  MIME type guessed from the file extension. */
+	mime: string,
+	/**  Base64 content; `None` when too large or the LFS object is not downloaded. */
+	data: string | null,
+	/**  Set when the stored file is an LFS pointer. */
+	lfs: LfsPointer | null,
+	/**  LFS pointer whose object is not in the local LFS store (needs a download). */
+	lfsMissing: boolean,
+	tooLarge: boolean,
+	/**  Contains NUL bytes in its first 8000 bytes (git's heuristic). */
+	binary: boolean,
 };
 
 /**  Where a file's bytes come from. */
-export type BlobSource =
-  /**  The file as of a commit. */
-  | { kind: "commit"; oid: string }
-  /**  The index: stage 0 normally, 1 (base) / 2 (ours) / 3 (theirs) during a conflict. */
-  | { kind: "index"; stage: number }
-  /**  The file on disk. */
-  | { kind: "worktree" };
+export type BlobSource = 
+/**  The file as of a commit. */
+{ kind: "commit"; oid: string } | 
+/**  The index: stage 0 normally, 1 (base) / 2 (ours) / 3 (theirs) during a conflict. */
+{ kind: "index"; stage: number } | 
+/**  The file on disk. */
+{ kind: "worktree" };
 
 /**  How two local branches relate (for the drop menu). */
 export type BranchRelation = {
-  source: string;
-  target: string;
-  /**  Commits on `source` that `target` lacks. */
-  ahead: number;
-  /**  Commits on `target` that `source` lacks. */
-  behind: number;
-  /**  `target` can be fast-forwarded to `source` (it is an ancestor and they differ). */
-  canFastForward: boolean;
-  current: string | null;
+	source: string,
+	target: string,
+	/**  Commits on `source` that `target` lacks. */
+	ahead: number,
+	/**  Commits on `target` that `source` lacks. */
+	behind: number,
+	/**  `target` can be fast-forwarded to `source` (it is an ancestor and they differ). */
+	canFastForward: boolean,
+	current: string | null,
 };
 
 /**  Read-only pre-flight of a switch. */
 export type BranchSwitchCheck = {
-  /**  Local branch that will be checked out. */
-  branch: string;
-  /**  It does not exist yet: it will be created from the remote branch, tracking it. */
-  create: boolean;
-  /**  Checked-out branch; `None` when HEAD is detached. */
-  current: string | null;
-  /**  Already on `branch`: nothing to do. */
-  alreadyCurrent: boolean;
-  /**  Merge / rebase / cherry-pick / revert… stopped half-way. */
-  operation: RepoOperation | null;
-  /**  Files still in conflict. */
-  conflicts: number;
-  /**
-   *  Files with uncommitted changes (staged, unstaged and untracked; changes inside
-   *  submodules are not counted: a stash cannot hold them and checkout leaves them alone).
-   */
-  changes: number;
-  /**  Folder of another worktree where `branch` is checked out. */
-  checkedOutAt: string | null;
-  /**
-   *  HEAD is detached on a commit that no branch contains: leaving it makes those commits
-   *  hard to find.
-   */
-  detachedOrphan: boolean;
-  /**  Short id of the detached commit. */
-  headShort: string | null;
-  /**  No commit yet (stashing is impossible). */
-  unborn: boolean;
+	/**  Local branch that will be checked out. */
+	branch: string,
+	/**  It does not exist yet: it will be created from the remote branch, tracking it. */
+	create: boolean,
+	/**  Checked-out branch; `None` when HEAD is detached. */
+	current: string | null,
+	/**  Already on `branch`: nothing to do. */
+	alreadyCurrent: boolean,
+	/**  Merge / rebase / cherry-pick / revert… stopped half-way. */
+	operation: RepoOperation | null,
+	/**  Files still in conflict. */
+	conflicts: number,
+	/**
+	 *  Files with uncommitted changes (staged, unstaged and untracked; changes inside
+	 *  submodules are not counted: a stash cannot hold them and checkout leaves them alone).
+	 */
+	changes: number,
+	/**  Folder of another worktree where `branch` is checked out. */
+	checkedOutAt: string | null,
+	/**
+	 *  HEAD is detached on a commit that no branch contains: leaving it makes those commits
+	 *  hard to find.
+	 */
+	detachedOrphan: boolean,
+	/**  Short id of the detached commit. */
+	headShort: string | null,
+	/**  No commit yet (stashing is impossible). */
+	unborn: boolean,
 };
 
 export type BranchSwitchPrefs = {
-  dirtyAction: DirtyAction;
-  /**  Pop the autostash of a branch when coming back to it. */
-  autoRestore: boolean;
+	dirtyAction: DirtyAction,
+	/**  Pop the autostash of a branch when coming back to it. */
+	autoRestore: boolean,
 };
 
 /**  Partial update of [`BranchSwitchPrefs`]. */
 export type BranchSwitchPrefsPatch = {
-  dirtyAction?: DirtyAction | null;
-  autoRestore?: boolean | null;
+	dirtyAction?: DirtyAction | null,
+	autoRestore?: boolean | null,
 };
 
 export type BranchSwitchResult = {
-  status: SwitchStatus;
-  /**  Local branch switched to (or the one that was asked for). */
-  branch: string;
-  /**  Branch (or `None` = detached HEAD) we came from. */
-  from: string | null;
-  /**  The local branch was created from the remote branch. */
-  created: boolean;
-  /**  The uncommitted changes were stashed (autostash of `from`). */
-  stashed: boolean;
-  /**  Files with uncommitted changes before the switch (see [`BranchSwitchCheck::changes`]). */
-  changes: number;
-  restore: AutostashRestore | null;
-  /**  Submodules now checked out at another commit than the one the branch records. */
-  submodules: string[];
-  reason: FailureKind | null;
-  message: string | null;
-  /**  `checkedOutElsewhere`: folder of that worktree. */
-  worktree: string | null;
-  /**
-   *  Blocked after stashing and the stash could not be popped back: the changes are in the
-   *  newest stash entry.
-   */
-  stashKept: boolean;
+	status: SwitchStatus,
+	/**  Local branch switched to (or the one that was asked for). */
+	branch: string,
+	/**  Branch (or `None` = detached HEAD) we came from. */
+	from: string | null,
+	/**  The local branch was created from the remote branch. */
+	created: boolean,
+	/**  The uncommitted changes were stashed (autostash of `from`). */
+	stashed: boolean,
+	/**  Files with uncommitted changes before the switch (see [`BranchSwitchCheck::changes`]). */
+	changes: number,
+	restore: AutostashRestore | null,
+	/**  Submodules now checked out at another commit than the one the branch records. */
+	submodules: string[],
+	reason: FailureKind | null,
+	message: string | null,
+	/**  `checkedOutElsewhere`: folder of that worktree. */
+	worktree: string | null,
+	/**
+	 *  Blocked after stashing and the stash could not be popped back: the changes are in the
+	 *  newest stash entry.
+	 */
+	stashKept: boolean,
 };
 
-export type ChangeKind =
-  | "added"
-  | "modified"
-  | "deleted"
-  | "renamed"
-  | "copied"
-  | "typeChanged"
-  | "untracked"
-  | "conflicted";
+export type ChangeKind = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "untracked" | "conflicted";
 
 export type ChangedFile = {
-  status: FileStatus;
-  path: string;
-  /**  Previous path for renames and copies. */
-  oldPath: string | null;
-  /**  `None` for binary files. */
-  additions: number | null;
-  deletions: number | null;
+	status: FileStatus,
+	path: string,
+	/**  Previous path for renames and copies. */
+	oldPath: string | null,
+	/**  `None` for binary files. */
+	additions: number | null,
+	deletions: number | null,
 };
 
 /**  Result of [`ci_statuses`] / [`ci_status_for`]. */
 export type CiBatch = {
-  /**  One entry per commit that could be read, in request order. */
-  entries: CiEntry[];
-  /**  Set when nothing (or not everything) could be read. */
-  problem: CiProblem | null;
+	/**  One entry per commit that could be read, in request order. */
+	entries: CiEntry[],
+	/**  Set when nothing (or not everything) could be read. */
+	problem: CiProblem | null,
 };
 
 /**  CI of one commit and where it was found. */
 export type CiEntry = {
-  remote: string | null;
-  fullName: string;
-  accountId: string;
-  status: CiStatus;
+	remote: string | null,
+	fullName: string,
+	accountId: string,
+	status: CiStatus,
 };
 
 /**  One job of the commit's CI. */
 export type CiJob = {
-  name: string;
-  kind: CiJobKind;
-  state: CiJobState;
-  /**  GitLab stage, GitHub app name (`GitHub Actions`). */
-  group: string | null;
-  /**  Status text of the provider (status description, raw conclusion), when useful. */
-  description: string | null;
-  /**  Unix seconds. */
-  startedAt: number | null;
-  finishedAt: number | null;
-  /**  Page with the log / details (https). */
-  url: string | null;
-  /**  GitLab `allow_failure`: a failure does not fail the pipeline. */
-  allowFailure: boolean;
+	name: string,
+	kind: CiJobKind,
+	state: CiJobState,
+	/**  GitLab stage, GitHub app name (`GitHub Actions`). */
+	group: string | null,
+	/**  Status text of the provider (status description, raw conclusion), when useful. */
+	description: string | null,
+	/**  Unix seconds. */
+	startedAt: number | null,
+	finishedAt: number | null,
+	/**  Page with the log / details (https). */
+	url: string | null,
+	/**  GitLab `allow_failure`: a failure does not fail the pipeline. */
+	allowFailure: boolean,
 };
 
 /**  Where a job comes from. */
-export type CiJobKind =
-  /**  GitHub check run (GitHub Actions and other apps). */
-  | "check"
-  /**  GitHub commit status (external CI posting statuses). */
-  | "status"
-  /**  GitLab pipeline job. */
-  | "job";
+export type CiJobKind = 
+/**  GitHub check run (GitHub Actions and other apps). */
+"check" | 
+/**  GitHub commit status (external CI posting statuses). */
+"status" | 
+/**  GitLab pipeline job. */
+"job";
 
 /**  State of one job / check / status. */
-export type CiJobState =
-  | "queued"
-  | "running"
-  | "success"
-  | "failure"
-  | "cancelled"
-  | "skipped"
-  | "neutral"
-  /**  GitLab manual job / GitHub `action_required`: waits for someone to act. */
-  | "manual";
+export type CiJobState = "queued" | "running" | "success" | "failure" | "cancelled" | "skipped" | "neutral" | 
+/**  GitLab manual job / GitHub `action_required`: waits for someone to act. */
+"manual";
 
 /**  Why no CI can be shown for a repository (rendered as a quiet hint, not an error). */
-export type CiProblem =
-  /**  No remote points at GitHub / GitLab. */
-  | { kind: "noHostedRemote" }
-  /**  The remote is not bound to an account. */
-  | { kind: "unbound"; remote: string }
-  /**  The account has no token (sign in again). */
-  | { kind: "noToken"; accountId: string }
-  /**  The provider refused / failed (missing scope, 404 for a private repo, rate limit…). */
-  | { kind: "provider"; accountId: string; error: ProviderError };
+export type CiProblem = 
+/**  No remote points at GitHub / GitLab. */
+{ kind: "noHostedRemote" } | 
+/**  The remote is not bound to an account. */
+{ kind: "unbound"; remote: string } | 
+/**  The account has no token (sign in again). */
+{ kind: "noToken"; accountId: string } | 
+/**  The provider refused / failed (missing scope, 404 for a private repo, rate limit…). */
+{ kind: "provider"; accountId: string; error: ProviderError };
 
 /**  Overall CI result of a commit. */
-export type CiState =
-  | "success"
-  /**  At least one required job failed, errored, timed out or was cancelled. */
-  | "failure"
-  /**  Something is queued or running. */
-  | "pending"
-  /**  Finished without a verdict (skipped / neutral / manual-only). */
-  | "neutral"
-  /**  No CI ran for this commit (or the provider does not know the commit). */
-  | "none";
+export type CiState = "success" | 
+/**  At least one required job failed, errored, timed out or was cancelled. */
+"failure" | 
+/**  Something is queued or running. */
+"pending" | 
+/**  Finished without a verdict (skipped / neutral / manual-only). */
+"neutral" | 
+/**  No CI ran for this commit (or the provider does not know the commit). */
+"none";
 
 /**  CI of one commit. */
 export type CiStatus = {
-  sha: string;
-  state: CiState;
-  /**  Empty when jobs were not requested (GitLab) or none ran. */
-  jobs: CiJob[];
-  /**  GitLab pipeline page; GitHub has no single page for all checks. */
-  pipelineUrl: string | null;
-  /**  More check runs than were read. */
-  truncated: boolean;
-  /**
-   *  GitHub: the check runs could not be read (typically a fine-grained token without
-   *  `checks:read`); the state then only reflects commit statuses.
-   */
-  checksError: ProviderError | null;
+	sha: string,
+	state: CiState,
+	/**  Empty when jobs were not requested (GitLab) or none ran. */
+	jobs: CiJob[],
+	/**  GitLab pipeline page; GitHub has no single page for all checks. */
+	pipelineUrl: string | null,
+	/**  More check runs than were read. */
+	truncated: boolean,
+	/**
+	 *  GitHub: the check runs could not be read (typically a fine-grained token without
+	 *  `checks:read`); the state then only reflects commit statuses.
+	 */
+	checksError: ProviderError | null,
 };
 
 /**  Outcome of a cleanup. */
 export type CleanReport = {
-  removedFiles: number;
-  removedBytes: number;
-  /**  Entries that could not be deleted (in use by another program?). */
-  failed: number;
+	removedFiles: number,
+	removedBytes: number,
+	/**  Entries that could not be deleted (in use by another program?). */
+	failed: number,
 };
 
 /**  One account found in a CLI config. */
 export type CliAccountEntry = {
-  /**  Stable id `tool|host|user` (lower case) used for selection and "dismiss". */
-  key: string;
-  tool: CliTool;
-  provider: ImportProviderKind;
-  host: string;
-  /**  glab `api_host` when it differs from `host`. */
-  apiHost: string | null;
-  /**  `None` when the config does not record the user (the CLI's active account is used). */
-  username: string | null;
-  /**  The CLI's active account for this host. */
-  active: boolean;
-  tokenStorage: TokenStorage;
-  /**  App account with the same provider host + user name. */
-  existingAccountId: string | null;
-  /**
-   *  The existing account was itself imported from the CLI: importing again copies the
-   *  CLI's current token (after `gh auth refresh -s …`).
-   */
-  canUpdate: boolean;
-  /**  Provider row whose host matches (`None` → created on import). */
-  providerId: string | null;
+	/**  Stable id `tool|host|user` (lower case) used for selection and "dismiss". */
+	key: string,
+	tool: CliTool,
+	provider: ImportProviderKind,
+	host: string,
+	/**  glab `api_host` when it differs from `host`. */
+	apiHost: string | null,
+	/**  `None` when the config does not record the user (the CLI's active account is used). */
+	username: string | null,
+	/**  The CLI's active account for this host. */
+	active: boolean,
+	tokenStorage: TokenStorage,
+	/**  App account with the same provider host + user name. */
+	existingAccountId: string | null,
+	/**
+	 *  The existing account was itself imported from the CLI: importing again copies the
+	 *  CLI's current token (after `gh auth refresh -s …`).
+	 */
+	canUpdate: boolean,
+	/**  Provider row whose host matches (`None` → created on import). */
+	providerId: string | null,
 };
 
 /**  An account the user ticked. */
 export type CliAccountRef = {
-  tool: CliTool;
-  host: string;
-  username?: string | null;
+	tool: CliTool,
+	host: string,
+	username?: string | null,
 };
 
 export type CliAccountsScan = {
-  accounts: CliAccountEntry[];
-  tools: CliToolStatus[];
-  warnings: ImportWarning[];
-  /**  Number of accounts not in the app yet. */
-  newCount: number;
-  /**  Some new account is outside the dismissed set: show the startup notice. */
-  shouldNotify: boolean;
+	accounts: CliAccountEntry[],
+	tools: CliToolStatus[],
+	warnings: ImportWarning[],
+	/**  Number of accounts not in the app yet. */
+	newCount: number,
+	/**  Some new account is outside the dismissed set: show the startup notice. */
+	shouldNotify: boolean,
 };
 
 /**  Result of one ticked account. */
 export type CliImportItem = {
-  key: string;
-  tool: CliTool;
-  host: string;
-  /**  User name from the CLI config, or the token owner once known. */
-  username: string | null;
-  status: CliImportStatus;
-  /**  Created / existing account. */
-  accountId: string | null;
-  /**  Scope names to add (one per missing feature). */
-  missingScopes: string[];
-  /**  Command that adds the missing scopes (gh only). */
-  fixCommand: string | null;
-  /**  Owner of the token for [`CliImportStatus::WrongUser`]. */
-  actualUsername: string | null;
-  /**  Technical detail (English, redacted). */
-  message: string | null;
+	key: string,
+	tool: CliTool,
+	host: string,
+	/**  User name from the CLI config, or the token owner once known. */
+	username: string | null,
+	status: CliImportStatus,
+	/**  Created / existing account. */
+	accountId: string | null,
+	/**  Scope names to add (one per missing feature). */
+	missingScopes: string[],
+	/**  Command that adds the missing scopes (gh only). */
+	fixCommand: string | null,
+	/**  Owner of the token for [`CliImportStatus::WrongUser`]. */
+	actualUsername: string | null,
+	/**  Technical detail (English, redacted). */
+	message: string | null,
 };
 
-export type CliImportStatus =
-  /**  Added with every checked scope. */
-  | "added"
-  /**  Added, but some scopes are missing (`missingScopes`, `fixCommand`). */
-  | "missingScopes"
-  /**  The provider rejected the token (revoked / expired): sign in to the CLI again. */
-  | "invalidToken"
-  /**  The token belongs to another user than the CLI config says. */
-  | "wrongUser"
-  /**  The CLI did not give a token (signed out, old gh with several accounts, timeout). */
-  | "noToken"
-  /**  gh / glab is not installed: its token cannot be read. */
-  | "cliMissing"
-  /**  Already in the app (signed in another way); nothing changed. */
-  | "alreadyExists"
-  /**  The account is no longer in the CLI config (scan again). */
-  | "notFound"
-  /**  Network / storage error (`message`). */
-  | "failed";
+export type CliImportStatus = 
+/**  Added with every checked scope. */
+"added" | 
+/**  Added, but some scopes are missing (`missingScopes`, `fixCommand`). */
+"missingScopes" | 
+/**  The provider rejected the token (revoked / expired): sign in to the CLI again. */
+"invalidToken" | 
+/**  The token belongs to another user than the CLI config says. */
+"wrongUser" | 
+/**  The CLI did not give a token (signed out, old gh with several accounts, timeout). */
+"noToken" | 
+/**  gh / glab is not installed: its token cannot be read. */
+"cliMissing" | 
+/**  Already in the app (signed in another way); nothing changed. */
+"alreadyExists" | 
+/**  The account is no longer in the CLI config (scan again). */
+"notFound" | 
+/**  Network / storage error (`message`). */
+"failed";
 
 export type CliTool = "gh" | "glab";
 
 /**  Whether a CLI is installed (its token can only be read through the executable). */
 export type CliToolStatus = {
-  tool: CliTool;
-  installed: boolean;
-  /**  Executable found. */
-  path: string | null;
-  /**  Config file that was read. */
-  configFile: string | null;
+	tool: CliTool,
+	installed: boolean,
+	/**  Executable found. */
+	path: string | null,
+	/**  Config file that was read. */
+	configFile: string | null,
 };
 
 export type CloneCandidate = {
-  accountId: string;
-  /**  Identity chosen by the matching rule. */
-  identityId: string | null;
-  reason: GuessReason;
-  ruleId: string | null;
+	accountId: string,
+	/**  Identity chosen by the matching rule. */
+	identityId: string | null,
+	reason: GuessReason,
+	ruleId: string | null,
 };
 
 export type CloneDestination = {
-  /**  Suggested (or the given) destination folder. */
-  path: string;
-  /**  Template used for the suggestion. */
-  template: string;
-  /**  The account's clone folder (or `~/Source`). */
-  cloneDir: string;
-  owner: string;
-  repo: string;
-  host: string;
-  /**  Account user name (`{account}`). */
-  account: string;
-  /**  Free bytes on the destination volume (`None` if unknown). */
-  freeBytes: number | null;
-  /**  The folder exists. */
-  exists: boolean;
-  /**  Usable: missing or an empty folder. */
-  usable: boolean;
-  /**  Repository size reported by the provider, when the URL is in the cached list. */
-  sizeBytes: number | null;
-  lfsSizeBytes: number | null;
+	/**  Suggested (or the given) destination folder. */
+	path: string,
+	/**  Template used for the suggestion. */
+	template: string,
+	/**  The account's clone folder (or `~/Source`). */
+	cloneDir: string,
+	owner: string,
+	repo: string,
+	host: string,
+	/**  Account user name (`{account}`). */
+	account: string,
+	/**  Free bytes on the destination volume (`None` if unknown). */
+	freeBytes: number | null,
+	/**  The folder exists. */
+	exists: boolean,
+	/**  Usable: missing or an empty folder. */
+	usable: boolean,
+	/**  Repository size reported by the provider, when the URL is in the cached list. */
+	sizeBytes: number | null,
+	lfsSizeBytes: number | null,
 };
 
 export type CloneGuess = {
-  /**  Git can clone this (URL or local path). */
-  valid: boolean;
-  /**  Local path or `file://` URL: no account needed. */
-  local: boolean;
-  host: string | null;
-  /**  Owner / group path (`acme/platform` for `acme/platform/api`). */
-  owner: string | null;
-  repo: string | null;
-  transport: Transport | null;
-  /**  The URL in HTTPS form (`None` for local paths). */
-  httpsUrl: string | null;
-  /**  The URL in SSH form (`git@host:owner/repo.git`). */
-  sshUrl: string | null;
-  /**  Best first: rule matches, then accounts on the host. Empty = unknown host. */
-  candidates: CloneCandidate[];
+	/**  Git can clone this (URL or local path). */
+	valid: boolean,
+	/**  Local path or `file://` URL: no account needed. */
+	local: boolean,
+	host: string | null,
+	/**  Owner / group path (`acme/platform` for `acme/platform/api`). */
+	owner: string | null,
+	repo: string | null,
+	transport: Transport | null,
+	/**  The URL in HTTPS form (`None` for local paths). */
+	httpsUrl: string | null,
+	/**  The URL in SSH form (`git@host:owner/repo.git`). */
+	sshUrl: string | null,
+	/**  Best first: rule matches, then accounts on the host. Empty = unknown host. */
+	candidates: CloneCandidate[],
 };
 
 /**  A background refresh finished: re-read [`clone_repo_list`]. */
 export type CloneListUpdated = {
-  accountIds: string[];
+	accountIds: string[],
 };
 
 /**  Progress of a running clone, at most ~10 per second (phase changes always sent). */
 export type CloneProgress = {
-  /**  Id chosen by the frontend when it started the clone. */
-  opId: string;
-  phase: ProgressPhase;
-  label: string;
-  remote: boolean;
-  percent: number | null;
-  current: number | null;
-  total: number | null;
-  /**  e.g. `1.20 MiB`. */
-  bytes: string | null;
-  /**  e.g. `2.00 MiB/s`. */
-  throughput: string | null;
-  done: boolean;
+	/**  Id chosen by the frontend when it started the clone. */
+	opId: string,
+	phase: ProgressPhase,
+	label: string,
+	remote: boolean,
+	percent: number | null,
+	current: number | null,
+	total: number | null,
+	/**  e.g. `1.20 MiB`. */
+	bytes: string | null,
+	/**  e.g. `2.00 MiB/s`. */
+	throughput: string | null,
+	done: boolean,
 };
 
 /**  A repository row of the clone browser. */
 export type CloneRepo = {
-  accountId: string;
-  /**  Provider id of the repository. */
-  id: string;
-  /**  `owner/name` or `group/sub/project`. */
-  fullName: string;
-  owner: string;
-  name: string;
-  description: string | null;
-  private: boolean;
-  fork: boolean;
-  /**  `full_name` of the fork parent, when known. */
-  parentFullName: string | null;
-  archived: boolean;
-  defaultBranch: string | null;
-  cloneHttps: string;
-  cloneSsh: string;
-  webUrl: string;
-  /**  Unix seconds. */
-  updatedAt: number | null;
-  stars: number;
-  sizeBytes: number | null;
-  lfsEnabled: boolean | null;
-  lfsSizeBytes: number | null;
-  canPush: boolean;
+	accountId: string,
+	/**  Provider id of the repository. */
+	id: string,
+	/**  `owner/name` or `group/sub/project`. */
+	fullName: string,
+	owner: string,
+	name: string,
+	description: string | null,
+	private: boolean,
+	fork: boolean,
+	/**  `full_name` of the fork parent, when known. */
+	parentFullName: string | null,
+	archived: boolean,
+	defaultBranch: string | null,
+	cloneHttps: string,
+	cloneSsh: string,
+	webUrl: string,
+	/**  Unix seconds. */
+	updatedAt: number | null,
+	stars: number,
+	sizeBytes: number | null,
+	lfsEnabled: boolean | null,
+	lfsSizeBytes: number | null,
+	canPush: boolean,
 };
 
 export type CloneRepoList = {
-  accounts: AccountRepos[];
+	accounts: AccountRepos[],
 };
 
 export type CloneRequest = {
-  /**  URL in the chosen transport (HTTPS or SSH form), or a local path. */
-  url: string;
-  /**  Account to clone as; `None` = git's own configuration (local / public repositories). */
-  accountId?: string | null;
-  identityId?: string | null;
-  dest: string;
-  branch?: string | null;
-  /**  `Some(1)` = shallow clone. */
-  depth?: number | null;
-  recurseSubmodules?: boolean;
-  lfs?: LfsMode;
-  /**  Copy the identity's name/email into the new repository's `.git/config`. */
-  writeIdentity?: boolean;
+	/**  URL in the chosen transport (HTTPS or SSH form), or a local path. */
+	url: string,
+	/**  Account to clone as; `None` = git's own configuration (local / public repositories). */
+	accountId?: string | null,
+	identityId?: string | null,
+	dest: string,
+	branch?: string | null,
+	/**  `Some(1)` = shallow clone. */
+	depth?: number | null,
+	recurseSubmodules?: boolean,
+	lfs?: LfsMode,
+	/**  Copy the identity's name/email into the new repository's `.git/config`. */
+	writeIdentity?: boolean,
 };
 
 export type CloneResult = {
-  tab: RepoTab;
-  /**  LFS files were left as pointers ("download later"): start `lfs_pull`. */
-  lfsPending: boolean;
-  usesLfs: boolean;
-  /**  The partial LFS download failed after a successful clone (retry from the LFS panel). */
-  lfsError: string | null;
-  identityWritten: boolean;
+	tab: RepoTab,
+	/**  LFS files were left as pointers ("download later"): start `lfs_pull`. */
+	lfsPending: boolean,
+	usesLfs: boolean,
+	/**  The partial LFS download failed after a successful clone (retry from the LFS panel). */
+	lfsError: string | null,
+	identityWritten: boolean,
 };
 
 export type CommitDetails = {
-  hash: string;
-  parents: string[];
-  author: Person;
-  committer: Person;
-  summary: string;
-  /**  Message after the summary line, trimmed. */
-  body: string;
-  files: ChangedFile[];
-  additions: number;
-  deletions: number;
-  /**  For merge commits, files are listed against this (first) parent. */
-  comparedTo: string | null;
-  /**
-   *  Kind of signature the commit carries (not verified: see
-   *  [`signature::commit_signature`](crate::signature::commit_signature)).
-   */
-  signature: SignatureKind;
+	hash: string,
+	parents: string[],
+	author: Person,
+	committer: Person,
+	summary: string,
+	/**  Message after the summary line, trimmed. */
+	body: string,
+	files: ChangedFile[],
+	additions: number,
+	deletions: number,
+	/**  For merge commits, files are listed against this (first) parent. */
+	comparedTo: string | null,
+	/**
+	 *  Kind of signature the commit carries (not verified: see
+	 *  [`signature::commit_signature`](crate::signature::commit_signature)).
+	 */
+	signature: SignatureKind,
 };
 
-export type CommitFinding =
-  | {
-      kind: "emailMismatch";
-      email: string;
-      reason: MismatchReason;
-      expectedEmail: string | null;
-      expectedAccountId: string | null;
-      suggestions: AccountSuggestion[];
-    }
-  /**
-   *  Not (or not verified) in the provider's email list: the commit will not link to the
-   *  profile. Only reported when the list could be fetched.
-   */
-  | { kind: "emailNotVerified"; email: string; accountId: string; accountLabel: string }
-  /**  `commit.gpgsign=true` but no signing key configured (git would fail or sign wrongly). */
-  | { kind: "signingMissing"; gpgSign: boolean; identitySigning: SigningMethod }
-  | { kind: "unbound"; suggestions: AccountSuggestion[] };
+export type CommitFinding = { kind: "emailMismatch"; email: string; reason: MismatchReason; expectedEmail: string | null; expectedAccountId: string | null; suggestions: AccountSuggestion[] } | 
+/**
+ *  Not (or not verified) in the provider's email list: the commit will not link to the
+ *  profile. Only reported when the list could be fetched.
+ */
+{ kind: "emailNotVerified"; email: string; accountId: string; accountLabel: string } | 
+/**  `commit.gpgsign=true` but no signing key configured (git would fail or sign wrongly). */
+{ kind: "signingMissing"; gpgSign: boolean; identitySigning: SigningMethod } | { kind: "unbound"; suggestions: AccountSuggestion[] };
 
 export type CommitGuardReport = {
-  repoId: number;
-  identity: GuardIdentity | null;
-  /**  Account bound to the repo (default context), if any. */
-  accountId: string | null;
-  findings: CommitFinding[];
-  /**  Provider emails were checked (false when offline / no token). */
-  emailsChecked: boolean;
+	repoId: number,
+	identity: GuardIdentity | null,
+	/**  Account bound to the repo (default context), if any. */
+	accountId: string | null,
+	findings: CommitFinding[],
+	/**  Provider emails were checked (false when offline / no token). */
+	emailsChecked: boolean,
 };
 
 export type CommitOptions = {
-  /**  Replace the last commit instead of creating a new one. */
-  amend: boolean;
-  /**  Add a `Signed-off-by:` trailer. */
-  signoff: boolean;
-  /**  Allow a commit without changes (amending only the message needs this off). */
-  allowEmpty?: boolean;
+	/**  Replace the last commit instead of creating a new one. */
+	amend: boolean,
+	/**  Add a `Signed-off-by:` trailer. */
+	signoff: boolean,
+	/**  Allow a commit without changes (amending only the message needs this off). */
+	allowEmpty?: boolean,
 };
 
 export type CommitResult = {
-  hash: string;
-  summary: string;
+	hash: string,
+	summary: string,
 };
 
 /**  Signature details of one commit. */
 export type CommitSignature = {
-  status: SignatureStatus;
-  kind: SignatureKind;
-  /**  `%GS`: signer (GPG user id, or the principal/email for SSH). */
-  signer: string | null;
-  /**  `%GK`: key id used to sign (SSH: key fingerprint). */
-  key: string | null;
-  /**  `%GF`: fingerprint of the signing key. */
-  fingerprint: string | null;
-  /**  `%GT`: trust level (`ultimate`, `fully`, `marginal`, `undefined`, `never`). */
-  trust: string | null;
-  /**  Verification messages printed by gpg / ssh-keygen / git (e.g. allowedSignersFile missing). */
-  message: string | null;
+	status: SignatureStatus,
+	kind: SignatureKind,
+	/**  `%GS`: signer (GPG user id, or the principal/email for SSH). */
+	signer: string | null,
+	/**  `%GK`: key id used to sign (SSH: key fingerprint). */
+	key: string | null,
+	/**  `%GF`: fingerprint of the signing key. */
+	fingerprint: string | null,
+	/**  `%GT`: trust level (`ultimate`, `fully`, `marginal`, `undefined`, `never`). */
+	trust: string | null,
+	/**  Verification messages printed by gpg / ssh-keygen / git (e.g. allowedSignersFile missing). */
+	message: string | null,
 };
 
 export type ConflictCommit = {
-  oid: string;
-  summary: string;
-  /**  Local / remote branches pointing at it. */
-  refs: string[];
+	oid: string,
+	summary: string,
+	/**  Local / remote branches pointing at it. */
+	refs: string[],
 };
 
 export type ConflictContext = {
-  origin: ConflictOrigin;
-  /**  Branch checked out (`None` when HEAD is detached, e.g. during a rebase). */
-  currentBranch: string | null;
-  /**  HEAD (git's "ours"). */
-  ours: ConflictCommit | null;
-  /**  The commit merged / replayed / reverted (git's "theirs"). */
-  theirs: ConflictCommit | null;
-  /**  Merge: the branch name from `MERGE_MSG`. */
-  theirsName: string | null;
-  /**  Rebase: the user's branch being rebased (`refs/heads/` stripped). */
-  rebaseBranch: string | null;
-  /**  Rebase: branches pointing at the commit rebased onto. */
-  rebaseOnto: string[];
-  conflicts: string[];
+	origin: ConflictOrigin,
+	/**  Branch checked out (`None` when HEAD is detached, e.g. during a rebase). */
+	currentBranch: string | null,
+	/**  HEAD (git's "ours"). */
+	ours: ConflictCommit | null,
+	/**  The commit merged / replayed / reverted (git's "theirs"). */
+	theirs: ConflictCommit | null,
+	/**  Merge: the branch name from `MERGE_MSG`. */
+	theirsName: string | null,
+	/**  Rebase: the user's branch being rebased (`refs/heads/` stripped). */
+	rebaseBranch: string | null,
+	/**  Rebase: branches pointing at the commit rebased onto. */
+	rebaseOnto: string[],
+	conflicts: string[],
 };
 
 /**  Everything the conflict editor needs for one file. */
 export type ConflictFile = {
-  path: string;
-  /**  No unmerged entry any more (resolved meanwhile). */
-  resolved: boolean;
-  kind: ConflictKind;
-  /**  Stage 1 (common ancestor). */
-  base: ConflictStage | null;
-  /**  Stage 2 (HEAD's version). */
-  ours: ConflictStage | null;
-  /**  Stage 3 (the version being merged in / replayed). */
-  theirs: ConflictStage | null;
-  /**  Working tree file exists. */
-  workingExists: boolean;
-  workingSize: number | null;
-  /**  Working-tree text (with conflict markers), without BOM. */
-  working: string | null;
-  /**  Some side is binary or an LFS pointer: resolve by picking a whole side. */
-  binary: boolean;
-  /**  Some side is too large to edit. */
-  tooLarge: boolean;
-  /**  The result can be edited as text. */
-  editable: boolean;
-  /**  The file uses CRLF line endings (kept when saving). */
-  crlf: boolean;
-  /**  The file starts with a UTF-8 BOM (kept when saving). */
-  bom: boolean;
-  /**  Conflict blocks (`<<<<<<<` … `>>>>>>>`) left in the working file. */
-  blocks: number;
-  image: boolean;
+	path: string,
+	/**  No unmerged entry any more (resolved meanwhile). */
+	resolved: boolean,
+	kind: ConflictKind,
+	/**  Stage 1 (common ancestor). */
+	base: ConflictStage | null,
+	/**  Stage 2 (HEAD's version). */
+	ours: ConflictStage | null,
+	/**  Stage 3 (the version being merged in / replayed). */
+	theirs: ConflictStage | null,
+	/**  Working tree file exists. */
+	workingExists: boolean,
+	workingSize: number | null,
+	/**  Working-tree text (with conflict markers), without BOM. */
+	working: string | null,
+	/**  Some side is binary or an LFS pointer: resolve by picking a whole side. */
+	binary: boolean,
+	/**  Some side is too large to edit. */
+	tooLarge: boolean,
+	/**  The result can be edited as text. */
+	editable: boolean,
+	/**  The file uses CRLF line endings (kept when saving). */
+	crlf: boolean,
+	/**  The file starts with a UTF-8 BOM (kept when saving). */
+	bom: boolean,
+	/**  Conflict blocks (`<<<<<<<` … `>>>>>>>`) left in the working file. */
+	blocks: number,
+	image: boolean,
 };
 
 /**  What happened to the file on each side (porcelain `UU`, `AA`, `DU`…). */
-export type ConflictKind =
-  | "bothModified"
-  | "bothAdded"
-  /**  Deleted on our side, modified on theirs. */
-  | "deletedByUs"
-  /**  Modified on our side, deleted on theirs. */
-  | "deletedByThem"
-  | "addedByUs"
-  | "addedByThem"
-  | "bothDeleted";
+export type ConflictKind = "bothModified" | "bothAdded" | 
+/**  Deleted on our side, modified on theirs. */
+"deletedByUs" | 
+/**  Modified on our side, deleted on theirs. */
+"deletedByThem" | "addedByUs" | "addedByThem" | "bothDeleted";
 
 /**  What kind of operation produced the conflicts (for the explanation of ours/theirs). */
-export type ConflictOrigin =
-  | "merge"
-  /**  `merge --squash` (no merge state, only `SQUASH_MSG`). */
-  | "mergeSquash"
-  | "rebase"
-  | "cherryPick"
-  | "revert"
-  /**  `stash apply` / `stash pop`. */
-  | "stash"
-  | "applyMailbox"
-  | "unknown";
+export type ConflictOrigin = "merge" | 
+/**  `merge --squash` (no merge state, only `SQUASH_MSG`). */
+"mergeSquash" | "rebase" | "cherryPick" | "revert" | 
+/**  `stash apply` / `stash pop`. */
+"stash" | "applyMailbox" | "unknown";
 
 /**  Which side to keep for a whole file. */
-export type ConflictSide =
-  /**  Stage 2 (git's `--ours`). */
-  | "ours"
-  /**  Stage 3 (git's `--theirs`). */
-  | "theirs";
+export type ConflictSide = 
+/**  Stage 2 (git's `--ours`). */
+"ours" | 
+/**  Stage 3 (git's `--theirs`). */
+"theirs";
 
 /**  One index stage of a conflicted file. */
 export type ConflictStage = {
-  /**  Blob id. */
-  oid: string;
-  mode: string;
-  /**  Size of the stored blob (of the pointer file for LFS). */
-  size: number;
-  binary: boolean;
-  lfs: LfsPointer | null;
-  /**  UTF-8 text without BOM; `None` for binary, LFS, non-UTF-8 or too large content. */
-  text: string | null;
+	/**  Blob id. */
+	oid: string,
+	mode: string,
+	/**  Size of the stored blob (of the pointer file for LFS). */
+	size: number,
+	binary: boolean,
+	lfs: LfsPointer | null,
+	/**  UTF-8 text without BOM; `None` for binary, LFS, non-UTF-8 or too large content. */
+	text: string | null,
 };
 
 /**  Where a resolved account came from, for the account pill and banner. */
@@ -2418,436 +1942,429 @@ export type ContextSource = "locked" | "manual" | "clone" | "rule" | "none";
 
 /**  A theme the user made: a light or dark base plus overridden color tokens. */
 export type CustomTheme = {
-  id: string;
-  name: string;
-  base: ThemeBase;
-  /**  `--token` → `#rrggbb`. Tokens left out fall back to the base theme. */
-  colors: { [key in string]: string };
-  /**  Unix time in milliseconds. */
-  createdAt: number;
-  updatedAt: number;
+	id: string,
+	name: string,
+	base: ThemeBase,
+	/**  `--token` → `#rrggbb`. Tokens left out fall back to the base theme. */
+	colors: { [key in string]: string },
+	/**  Unix time in milliseconds. */
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type CustomThemeInput = {
-  /**  `None` creates a new theme. */
-  id?: string | null;
-  name: string;
-  base: ThemeBase;
-  colors: { [key in string]: string };
+	/**  `None` creates a new theme. */
+	id?: string | null,
+	name: string,
+	base: ThemeBase,
+	colors: { [key in string]: string },
 };
 
 export type CustomThemes = {
-  themes: CustomTheme[];
-  /**  Theme used when the theme mode is "custom": a preset id, a theme id or `None`. */
-  activeId: string | null;
+	themes: CustomTheme[],
+	/**  Theme used when the theme mode is "custom": a preset id, a theme id or `None`. */
+	activeId: string | null,
 };
 
 /**  What the UI shows while waiting: the code to type and where. */
 export type DevicePrompt = {
-  /**  e.g. `WDJB-MJHT` — show large, offer "copy". */
-  userCode: string;
-  verificationUri: string;
-  /**  URL with the code pre-filled (GitLab); open this one when present. */
-  verificationUriComplete: string | null;
-  /**  Unix seconds after which the code is useless. */
-  expiresAt: number;
-  intervalSecs: number;
+	/**  e.g. `WDJB-MJHT` — show large, offer "copy". */
+	userCode: string,
+	verificationUri: string,
+	/**  URL with the code pre-filled (GitLab); open this one when present. */
+	verificationUriComplete: string | null,
+	/**  Unix seconds after which the code is useless. */
+	expiresAt: number,
+	intervalSecs: number,
 };
 
 /**  Answer of `auth_device_start`. */
 export type DeviceStart = {
-  flowId: string;
-  prompt: DevicePrompt;
+	flowId: string,
+	prompt: DevicePrompt,
 };
 
 export type DiffLine = {
-  kind: LineKind;
-  /**  Line text without the `+`/`-`/` ` prefix and without the line ending. */
-  text: string;
-  oldLine: number | null;
-  newLine: number | null;
-  /**  Followed by `\ No newline at end of file`. */
-  noNewline: boolean;
+	kind: LineKind,
+	/**  Line text without the `+`/`-`/` ` prefix and without the line ending. */
+	text: string,
+	oldLine: number | null,
+	newLine: number | null,
+	/**  Followed by `\ No newline at end of file`. */
+	noNewline: boolean,
 };
 
 export type DiffRequest = {
-  side: DiffSide;
-  path: string;
-  /**  Previous path of a rename (staged or in a commit). */
-  oldPath?: string | null;
-  /**  Commit id, for [`DiffSide::Commit`]. */
-  commit?: string | null;
+	side: DiffSide,
+	path: string,
+	/**  Previous path of a rename (staged or in a commit). */
+	oldPath?: string | null,
+	/**  Commit id, for [`DiffSide::Commit`]. */
+	commit?: string | null,
 };
 
-export type DiffSide =
-  /**  Working tree against the index. */
-  | "unstaged"
-  /**  Index against HEAD. */
-  | "staged"
-  /**  A file git does not track yet. */
-  | "untracked"
-  /**  A commit against its first parent. */
-  | "commit";
+export type DiffSide = 
+/**  Working tree against the index. */
+"unstaged" | 
+/**  Index against HEAD. */
+"staged" | 
+/**  A file git does not track yet. */
+"untracked" | 
+/**  A commit against its first parent. */
+"commit";
 
 /**  Saved answer to "you have uncommitted changes". */
 export type DirtyAction = "ask" | "stash" | "carry";
 
 /**  What a download would transfer, and whether it fits on the disk. */
 export type DownloadEstimate = {
-  /**  Objects not downloaded yet. */
-  objects: LfsObject[];
-  /**  Bytes to download. */
-  missingBytes: number;
-  /**  Disk space needed: the objects, plus their working-tree copies for a pull. */
-  neededBytes: number;
-  /**  Free bytes on the repository's volume (`None` if unknown). */
-  freeBytes: number | null;
-  enoughSpace: boolean;
+	/**  Objects not downloaded yet. */
+	objects: LfsObject[],
+	/**  Bytes to download. */
+	missingBytes: number,
+	/**  Disk space needed: the objects, plus their working-tree copies for a pull. */
+	neededBytes: number,
+	/**  Free bytes on the repository's volume (`None` if unknown). */
+	freeBytes: number | null,
+	enoughSpace: boolean,
 };
 
 /**  What to download. */
 export type DownloadRequest = {
-  /**  Remote to download from; `None` = git-lfs' default (upstream remote or `origin`). */
-  remote?: string | null;
-  /**  Single repository path (or `lfs.fetchinclude`-style pattern) for `git lfs pull`. */
-  include?: string | null;
-  /**
-   *  Several repository paths ("Tải các file đã chọn"); combined with `include`. Paths
-   *  containing a comma are refused (git-lfs splits include lists on commas).
-   */
-  paths?: string[];
-  /**  `git lfs fetch --all`: every object of every ref, without checkout. */
-  all?: boolean;
-  /**  Start even when the estimate says the disk is too small. */
-  ignoreDiskSpace?: boolean;
+	/**  Remote to download from; `None` = git-lfs' default (upstream remote or `origin`). */
+	remote?: string | null,
+	/**  Single repository path (or `lfs.fetchinclude`-style pattern) for `git lfs pull`. */
+	include?: string | null,
+	/**
+	 *  Several repository paths ("Tải các file đã chọn"); combined with `include`. Paths
+	 *  containing a comma are refused (git-lfs splits include lists on commas).
+	 */
+	paths?: string[],
+	/**  `git lfs fetch --all`: every object of every ref, without checkout. */
+	all?: boolean,
+	/**  Start even when the estimate says the disk is too small. */
+	ignoreDiskSpace?: boolean,
 };
 
 /**  Recognisable reasons a write operation was refused. */
-export type FailureKind =
-  /**  Branch / tag / remote name rejected by `git check-ref-format` or our own checks. */
-  | "invalidName"
-  /**  Other invalid argument (malformed commit id, empty tag message…). */
-  | "invalidInput"
-  /**  Branch, tag, remote, commit or remote repository does not exist. */
-  | "notFound"
-  | "alreadyExists"
-  /**  The branch is checked out (here or in another worktree). */
-  | "currentBranch"
-  /**  `git branch -d` refused: the branch has commits not merged anywhere (use force). */
-  | "notFullyMerged"
-  /**  Local modifications would be overwritten (checkout, merge, cherry-pick, pull…). */
-  | "localChanges"
-  /**  Untracked files would be overwritten. */
-  | "untrackedFiles"
-  /**  The index has unresolved conflicts. */
-  | "unmergedFiles"
-  /**  A merge / rebase / cherry-pick / revert is already in progress. */
-  | "operationInProgress"
-  /**  Abort / continue requested but nothing is in progress. */
-  | "noOperation"
-  /**  The change is already present (empty cherry-pick) or there is nothing to commit. */
-  | "nothingToCommit"
-  /**  Push rejected because the remote has new commits, or a fast-forward is impossible. */
-  | "nonFastForward"
-  /**  `--force-with-lease` refused: the remote branch moved since the last fetch. */
-  | "staleLease"
-  /**  Refused by the server (hook declined, protected branch…). */
-  | "remoteRejected"
-  | "authFailed"
-  | "connectionFailed"
-  /**  The branch has no upstream configured. */
-  | "noUpstream"
-  /**  The operation needs a branch but HEAD is detached. */
-  | "detachedHead"
-  /**  Signed in, but the account may not read/write this repository (HTTP 403). */
-  | "permissionDenied"
-  /**
-   *  GitHub refused a change under `.github/workflows/` because the token lacks the
-   *  `workflow` scope.
-   */
-  | "workflowScope"
-  /**  The branch is protected (no direct / force push, required reviews, rulesets). */
-  | "protectedBranch"
-  /**  GitHub "Block command line pushes that expose my email" (GH007). */
-  | "emailPrivacy"
-  /**  Push protection found a secret (token, key) in the pushed commits. */
-  | "secretDetected"
-  /**  A pushed file exceeds the server's size limit (GitHub GH001: 100 MB). */
-  | "fileTooLarge"
-  /**
-   *  The branch is checked out in another (linked) worktree, so it cannot be checked out
-   *  here too.
-   */
-  | "checkedOutElsewhere"
-  /**  The worktree / submodule folder still has modified or untracked files (needs force). */
-  | "dirtyWorktree"
-  /**  The linked worktree is locked (`git worktree lock`); unlock it first. */
-  | "worktreeLocked"
-  /**  GPG / SSH signing failed (missing key, gpg not installed, passphrase refused…). */
-  | "signingFailed"
-  /**
-   *  A rebase / history rewrite would change commits that are already on a remote; the
-   *  user has to confirm explicitly (only local history changes).
-   */
-  | "pushedCommits";
+export type FailureKind = 
+/**  Branch / tag / remote name rejected by `git check-ref-format` or our own checks. */
+"invalidName" | 
+/**  Other invalid argument (malformed commit id, empty tag message…). */
+"invalidInput" | 
+/**  Branch, tag, remote, commit or remote repository does not exist. */
+"notFound" | "alreadyExists" | 
+/**  The branch is checked out (here or in another worktree). */
+"currentBranch" | 
+/**  `git branch -d` refused: the branch has commits not merged anywhere (use force). */
+"notFullyMerged" | 
+/**  Local modifications would be overwritten (checkout, merge, cherry-pick, pull…). */
+"localChanges" | 
+/**  Untracked files would be overwritten. */
+"untrackedFiles" | 
+/**  The index has unresolved conflicts. */
+"unmergedFiles" | 
+/**  A merge / rebase / cherry-pick / revert is already in progress. */
+"operationInProgress" | 
+/**  Abort / continue requested but nothing is in progress. */
+"noOperation" | 
+/**  The change is already present (empty cherry-pick) or there is nothing to commit. */
+"nothingToCommit" | 
+/**  Push rejected because the remote has new commits, or a fast-forward is impossible. */
+"nonFastForward" | 
+/**  `--force-with-lease` refused: the remote branch moved since the last fetch. */
+"staleLease" | 
+/**  Refused by the server (hook declined, protected branch…). */
+"remoteRejected" | "authFailed" | "connectionFailed" | 
+/**  The branch has no upstream configured. */
+"noUpstream" | 
+/**  The operation needs a branch but HEAD is detached. */
+"detachedHead" | 
+/**  Signed in, but the account may not read/write this repository (HTTP 403). */
+"permissionDenied" | 
+/**
+ *  GitHub refused a change under `.github/workflows/` because the token lacks the
+ *  `workflow` scope.
+ */
+"workflowScope" | 
+/**  The branch is protected (no direct / force push, required reviews, rulesets). */
+"protectedBranch" | 
+/**  GitHub "Block command line pushes that expose my email" (GH007). */
+"emailPrivacy" | 
+/**  Push protection found a secret (token, key) in the pushed commits. */
+"secretDetected" | 
+/**  A pushed file exceeds the server's size limit (GitHub GH001: 100 MB). */
+"fileTooLarge" | 
+/**
+ *  The branch is checked out in another (linked) worktree, so it cannot be checked out
+ *  here too.
+ */
+"checkedOutElsewhere" | 
+/**  The worktree / submodule folder still has modified or untracked files (needs force). */
+"dirtyWorktree" | 
+/**  The linked worktree is locked (`git worktree lock`); unlock it first. */
+"worktreeLocked" | 
+/**  GPG / SSH signing failed (missing key, gpg not installed, passphrase refused…). */
+"signingFailed" | 
+/**
+ *  A rebase / history rewrite would change commits that are already on a remote; the
+ *  user has to confirm explicitly (only local history changes).
+ */
+"pushedCommits";
 
 /**  App features that need specific scopes. */
-export type Feature =
-  /**  Clone/fetch/push private repositories over HTTPS (incl. LFS). */
-  | "gitHttps"
-  /**  Unified clone browser. */
-  | "listRepositories"
-  /**  Verified emails for Commit Guard. */
-  | "readEmails"
-  /**  Profile (name, avatar). */
-  | "readUser"
-  | "uploadSshKey"
-  /**  Push changes to GitHub Actions workflow files. */
-  | "editWorkflows";
+export type Feature = 
+/**  Clone/fetch/push private repositories over HTTPS (incl. LFS). */
+"gitHttps" | 
+/**  Unified clone browser. */
+"listRepositories" | 
+/**  Verified emails for Commit Guard. */
+"readEmails" | 
+/**  Profile (name, avatar). */
+"readUser" | "uploadSshKey" | 
+/**  Push changes to GitHub Actions workflow files. */
+"editWorkflows";
 
 export type FetchSummary = {
-  /**  Ref updates git reported (new, updated, pruned branches and tags). */
-  updatedRefs: number;
+	/**  Ref updates git reported (new, updated, pruned branches and tags). */
+	updatedRefs: number,
 };
 
 /**  A file as of one commit, for the read-only viewer. */
 export type FileAtCommit = {
-  exists: boolean;
-  size: number;
-  /**  UTF-8 (lossy) text; `None` for binary or too large files. */
-  text: string | null;
-  binary: boolean;
-  tooLarge: boolean;
-  /**  Stored as a Git LFS pointer (the text is the pointer). */
-  lfs: LfsPointer | null;
-  image: boolean;
+	exists: boolean,
+	size: number,
+	/**  UTF-8 (lossy) text; `None` for binary or too large files. */
+	text: string | null,
+	binary: boolean,
+	tooLarge: boolean,
+	/**  Stored as a Git LFS pointer (the text is the pointer). */
+	lfs: LfsPointer | null,
+	image: boolean,
 };
 
 export type FileContents = {
-  /**  `None` when the file does not exist on that side. */
-  original: string | null;
-  modified: string | null;
-  binary: boolean;
-  tooLarge: boolean;
+	/**  `None` when the file does not exist on that side. */
+	original: string | null,
+	modified: string | null,
+	binary: boolean,
+	tooLarge: boolean,
 };
 
 export type FileDiff = {
-  path: string;
-  oldPath: string | null;
-  binary: boolean;
-  /**  Too big to show as hunks. */
-  tooLarge: boolean;
-  newFile: boolean;
-  deletedFile: boolean;
-  oldMode: string | null;
-  newMode: string | null;
-  /**  Individual hunks and lines can be staged/unstaged/discarded. */
-  partial: boolean;
-  hunks: Hunk[];
-  additions: number;
-  deletions: number;
-  /**  Identifies the exact diff shown, so line operations can refuse a stale view. */
-  fingerprint: string;
+	path: string,
+	oldPath: string | null,
+	binary: boolean,
+	/**  Too big to show as hunks. */
+	tooLarge: boolean,
+	newFile: boolean,
+	deletedFile: boolean,
+	oldMode: string | null,
+	newMode: string | null,
+	/**  Individual hunks and lines can be staged/unstaged/discarded. */
+	partial: boolean,
+	hunks: Hunk[],
+	additions: number,
+	deletions: number,
+	/**  Identifies the exact diff shown, so line operations can refuse a stale view. */
+	fingerprint: string,
 };
 
 export type FileHistoryEntry = {
-  oid: string;
-  parents: string[];
-  author: Person;
-  summary: string;
-  status: FileStatus;
-  /**  The file's path in this commit. */
-  path: string;
-  /**  Previous path when this commit renamed / copied the file. */
-  oldPath: string | null;
+	oid: string,
+	parents: string[],
+	author: Person,
+	summary: string,
+	status: FileStatus,
+	/**  The file's path in this commit. */
+	path: string,
+	/**  Previous path when this commit renamed / copied the file. */
+	oldPath: string | null,
 };
 
 export type FileHistoryPage = {
-  entries: FileHistoryEntry[];
-  /**  More commits after this page. */
-  hasMore: boolean;
+	entries: FileHistoryEntry[],
+	/**  More commits after this page. */
+	hasMore: boolean,
 };
 
-export type FileStatus =
-  "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "unknown";
+export type FileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "unknown";
 
-export type FixAuthorMode =
-  /**  `git commit --amend --reset-author` on the last commit. */
-  | "amendLast"
-  /**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
-  | "rewriteUnpushed";
+export type FixAuthorMode = 
+/**  `git commit --amend --reset-author` on the last commit. */
+"amendLast" | 
+/**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
+"rewriteUnpushed";
 
 /**  What [`fork_attach`] does with the remotes of the open repository. */
-export type ForkAttachMode =
-  /**  Add the fork as a new remote (`fork` by default); `origin` stays as it is. */
-  | { kind: "addRemote"; name: string }
-  /**
-   *  Rename `origin` → `upstream`, then add the fork as `origin` (branches keep tracking the
-   *  source through `upstream`).
-   */
-  | { kind: "swapOrigin" };
+export type ForkAttachMode = 
+/**  Add the fork as a new remote (`fork` by default); `origin` stays as it is. */
+{ kind: "addRemote"; name: string } | 
+/**
+ *  Rename `origin` → `upstream`, then add the fork as `origin` (branches keep tracking the
+ *  source through `upstream`).
+ */
+{ kind: "swapOrigin" };
 
 /**  A place the account may fork into. */
 export type ForkNamespace = {
-  kind: ForkNamespaceKind;
-  /**  Login / org login / group full path — what [`ForkOptions::namespace`] takes. */
-  path: string;
-  /**  Display name when the provider has one. */
-  name: string | null;
-  avatarUrl: string | null;
+	kind: ForkNamespaceKind,
+	/**  Login / org login / group full path — what [`ForkOptions::namespace`] takes. */
+	path: string,
+	/**  Display name when the provider has one. */
+	name: string | null,
+	avatarUrl: string | null,
 };
 
 /**  Kind of a fork destination. */
-export type ForkNamespaceKind =
-  /**  The account's own namespace. */
-  | "user"
-  /**  GitHub organization. */
-  | "organization"
-  /**  GitLab group / subgroup. */
-  | "group";
+export type ForkNamespaceKind = 
+/**  The account's own namespace. */
+"user" | 
+/**  GitHub organization. */
+"organization" | 
+/**  GitLab group / subgroup. */
+"group";
 
 /**  Options of [`ProviderClient::create_fork`]. */
 export type ForkOptions = {
-  /**  Organization (GitHub) / namespace path (GitLab); `None` = the account itself. */
-  namespace?: string | null;
-  /**  New repository name; `None` = same as the source. */
-  name?: string | null;
-  /**  GitHub only: copy just the default branch. */
-  defaultBranchOnly?: boolean;
+	/**  Organization (GitHub) / namespace path (GitLab); `None` = the account itself. */
+	namespace?: string | null,
+	/**  New repository name; `None` = same as the source. */
+	name?: string | null,
+	/**  GitHub only: copy just the default branch. */
+	defaultBranchOnly?: boolean,
 };
 
 /**  Result of a fork command. */
-export type ForkOutcome<T> =
-  | { status: "done"; value: T }
-  /**  The account has no token stored: sign in again. */
-  | { status: "noToken"; accountId: string }
-  /**  The provider refused or failed. */
-  | { status: "failed"; error: ProviderError; problem: ForkProblem | null };
+export type ForkOutcome<T> = { status: "done"; value: T } | 
+/**  The account has no token stored: sign in again. */
+{ status: "noToken"; accountId: string } | 
+/**  The provider refused or failed. */
+{ status: "failed"; error: ProviderError; problem: ForkProblem | null };
 
 /**  Why a fork request failed, when the provider's message says it (for a helpful UI text). */
-export type ForkProblem =
-  /**  The organization / project does not allow forking (often: private repositories). */
-  | "forkingDisabled"
-  /**  A repository with that name already exists in the destination. */
-  | "nameTaken"
-  /**  Forking your own repository into the same namespace. */
-  | "ownRepository";
+export type ForkProblem = 
+/**  The organization / project does not allow forking (often: private repositories). */
+"forkingDisabled" | 
+/**  A repository with that name already exists in the destination. */
+"nameTaken" | 
+/**  Forking your own repository into the same namespace. */
+"ownRepository";
 
 /**  Remote changes made by [`fork_add_upstream`] / [`fork_attach`]. */
 export type ForkRemoteChange = {
-  /**  The remote that was added (`upstream` after a clone, the fork remote otherwise). */
-  remote: string;
-  url: string;
-  /**  `false` when the remote already existed with this URL. */
-  added: boolean;
-  /**  `origin` was renamed to this (swap mode). */
-  renamedTo: string | null;
+	/**  The remote that was added (`upstream` after a clone, the fork remote otherwise). */
+	remote: string,
+	url: string,
+	/**  `false` when the remote already existed with this URL. */
+	added: boolean,
+	/**  `origin` was renamed to this (swap mode). */
+	renamedTo: string | null,
 };
 
 /**  A fork (new or existing) of the account. */
 export type ForkRepo = {
-  fullName: string;
-  cloneHttps: string;
-  cloneSsh: string;
-  webUrl: string;
-  defaultBranch: string | null;
-  private: boolean;
-  /**  The account already had this fork: nothing was created. */
-  existed: boolean;
+	fullName: string,
+	cloneHttps: string,
+	cloneSsh: string,
+	webUrl: string,
+	defaultBranch: string | null,
+	private: boolean,
+	/**  The account already had this fork: nothing was created. */
+	existed: boolean,
 };
 
 export type FsckProblem = {
-  kind: FsckProblemKind;
-  path: string | null;
-  oid: string | null;
-  /**  The line git-lfs printed. */
-  detail: string;
+	kind: FsckProblemKind,
+	path: string | null,
+	oid: string | null,
+	/**  The line git-lfs printed. */
+	detail: string,
 };
 
-export type FsckProblemKind =
-  /**  The object is missing from the local store (not downloaded, or deleted). */
-  | "missing"
-  /**  The object's content does not match its hash. */
-  | "corrupt"
-  /**  A pointer file is not in canonical form. */
-  | "nonCanonicalPointer"
-  /**
-   *  A file that should be an LFS pointer (matches an LFS pattern) was committed as a
-   *  normal git file.
-   */
-  | "notAPointer"
-  | "other";
+export type FsckProblemKind = 
+/**  The object is missing from the local store (not downloaded, or deleted). */
+"missing" | 
+/**  The object's content does not match its hash. */
+"corrupt" | 
+/**  A pointer file is not in canonical form. */
+"nonCanonicalPointer" | 
+/**
+ *  A file that should be an LFS pointer (matches an LFS pattern) was committed as a
+ *  normal git file.
+ */
+"notAPointer" | "other";
 
 export type FsckReport = {
-  ok: boolean;
-  problems: FsckProblem[];
+	ok: boolean,
+	problems: FsckProblem[],
 };
 
 export type FullBackupFileResult = {
-  problem: BackupProblem | null;
-  info: BackupInfo | null;
-  preview: FullPreview | null;
+	problem: BackupProblem | null,
+	info: BackupInfo | null,
+	preview: FullPreview | null,
 };
 
 export type FullPreview = {
-  accounts: number;
-  repos: number;
-  /**  `None` when the backup has no such setting. */
-  notes: number | null;
-  customThemes: number | null;
-  includesSecrets: boolean;
-  secrets: number;
-  sshKeyFiles: number;
-  /**  Data folder of the source machine. */
-  dataDir: string;
+	accounts: number,
+	repos: number,
+	/**  `None` when the backup has no such setting. */
+	notes: number | null,
+	customThemes: number | null,
+	includesSecrets: boolean,
+	secrets: number,
+	sshKeyFiles: number,
+	/**  Data folder of the source machine. */
+	dataDir: string,
 };
 
 export type FullRestoreResult = {
-  problem: BackupProblem | null;
-  /**  Staged: restart the app to finish. */
-  staged: StagedRestore | null;
+	problem: BackupProblem | null,
+	/**  Staged: restart the app to finish. */
+	staged: StagedRestore | null,
 };
 
 /**  The identity git will record, as configured for this repository. */
 export type GitIdentity = {
-  name: string | null;
-  email: string | null;
+	name: string | null,
+	email: string | null,
 };
 
 /**  A GPG secret key usable for signing (`gpg --list-secret-keys --with-colons`). */
 export type GpgKey = {
-  /**  Long key id (16 hex digits). */
-  keyId: string;
-  fingerprint: string | null;
-  /**  User ids (`Name <email>`). */
-  uids: string[];
-  /**  Creation time (Unix seconds). */
-  created: number | null;
-  /**  Expiry time (Unix seconds), `None` = never. */
-  expires: number | null;
-  /**  The key (or one of its subkeys) can sign and is not expired / revoked. */
-  canSign: boolean;
-  /**  Revoked (`r`) or expired (`e`). */
-  invalid: boolean;
+	/**  Long key id (16 hex digits). */
+	keyId: string,
+	fingerprint: string | null,
+	/**  User ids (`Name <email>`). */
+	uids: string[],
+	/**  Creation time (Unix seconds). */
+	created: number | null,
+	/**  Expiry time (Unix seconds), `None` = never. */
+	expires: number | null,
+	/**  The key (or one of its subkeys) can sign and is not expired / revoked. */
+	canSign: boolean,
+	/**  Revoked (`r`) or expired (`e`). */
+	invalid: boolean,
 };
 
 /**  Outcome of listing GPG secret keys. */
-export type GpgKeyList =
-  /**  gpg ran; `keys` may be empty (no secret key yet). */
-  | { status: "found"; program: string; keys: GpgKey[] }
-  /**  gpg could not be started (not installed / `gpg.program` wrong). */
-  | { status: "notInstalled"; program: string; message: string };
+export type GpgKeyList = 
+/**  gpg ran; `keys` may be empty (no secret key yet). */
+{ status: "found"; program: string; keys: GpgKey[] } | 
+/**  gpg could not be started (not installed / `gpg.program` wrong). */
+{ status: "notInstalled"; program: string; message: string };
 
 export type GraphBenchmark = {
-  totalRows: number;
-  firstPaintMs: number | null;
-  frames: number;
-  avgFps: number | null;
-  p95FrameMs: number | null;
-  maxFrameMs: number | null;
-  slowFrames: number;
-  avgDrawMs: number | null;
-  maxDrawMs: number | null;
+	totalRows: number,
+	firstPaintMs: number | null,
+	frames: number,
+	avgFps: number | null,
+	p95FrameMs: number | null,
+	maxFrameMs: number | null,
+	slowFrames: number,
+	avgDrawMs: number | null,
+	maxDrawMs: number | null,
 };
 
 /**
@@ -2855,292 +2372,287 @@ export type GraphBenchmark = {
  *  the upper half (top edge → node) and kind 1 the lower half (node → bottom edge).
  */
 export type GraphRow = {
-  index: number;
-  hash: string;
-  subject: string;
-  authorName: string;
-  authorEmail: string;
-  authorTime: number;
-  refs: string[];
-  isMerge: boolean;
-  lane: number;
-  color: number;
-  segments: number[];
+	index: number,
+	hash: string,
+	subject: string,
+	authorName: string,
+	authorEmail: string,
+	authorTime: number,
+	refs: string[],
+	isMerge: boolean,
+	lane: number,
+	color: number,
+	segments: number[],
 };
 
 export type GraphSummary = {
-  path: string;
-  total: number;
-  maxLanes: number;
-  /**  Time spent loading or refreshing, in milliseconds. */
-  loadMs: number;
-  refresh: RefreshKind;
-  /**  Commits read by this call (all of them for a full load). */
-  added: number;
-  /**  Changes whenever rows or labels change; the UI re-fetches rows when it does. */
-  version: number;
+	path: string,
+	total: number,
+	maxLanes: number,
+	/**  Time spent loading or refreshing, in milliseconds. */
+	loadMs: number,
+	refresh: RefreshKind,
+	/**  Commits read by this call (all of them for a full load). */
+	added: number,
+	/**  Changes whenever rows or labels change; the UI re-fetches rows when it does. */
+	version: number,
 };
 
 export type GuardFinding = {
-  /**  Repository-relative path with `/` separators. */
-  path: string;
-  /**
-   *  Bytes the commit would store for this path (see module docs); `None` when the path is
-   *  neither in the index nor a file on disk (deleted).
-   */
-  size: number | null;
-  /**  Size of the file in the working tree. */
-  diskSize: number | null;
-  /**  Size of the staged blob (`git cat-file -s :<path>`), when the path is in the index. */
-  stagedSize: number | null;
-  level: GuardLevel;
-  /**  `.gitattributes` routes this path through LFS (`filter=lfs`). */
-  alreadyLfs: boolean;
-  /**  The staged blob is an LFS pointer. */
-  stagedPointer: boolean;
-  /**
-   *  LFS-tracked but staged as full content (staged before tracking): needs
-   *  `git add --renormalize`.
-   */
-  needsRenormalize: boolean;
-  /**  Known binary/media/archive extension, or a NUL byte in the first 8000 bytes. */
-  looksBinary: boolean;
-  /**  Under `build/`, `dist/`, `out/`, `bin/`, `obj/`, `target/`, or a `.zip` / `.exe`. */
-  looksLikeBuildOutput: boolean;
-  /**  `*.<ext>` pattern for "track by extension"; `None` without an extension. */
-  patternByExtension: string | null;
-  /**  Anchored pattern matching exactly this path, for "track by path". */
-  patternByPath: string;
+	/**  Repository-relative path with `/` separators. */
+	path: string,
+	/**
+	 *  Bytes the commit would store for this path (see module docs); `None` when the path is
+	 *  neither in the index nor a file on disk (deleted).
+	 */
+	size: number | null,
+	/**  Size of the file in the working tree. */
+	diskSize: number | null,
+	/**  Size of the staged blob (`git cat-file -s :<path>`), when the path is in the index. */
+	stagedSize: number | null,
+	level: GuardLevel,
+	/**  `.gitattributes` routes this path through LFS (`filter=lfs`). */
+	alreadyLfs: boolean,
+	/**  The staged blob is an LFS pointer. */
+	stagedPointer: boolean,
+	/**
+	 *  LFS-tracked but staged as full content (staged before tracking): needs
+	 *  `git add --renormalize`.
+	 */
+	needsRenormalize: boolean,
+	/**  Known binary/media/archive extension, or a NUL byte in the first 8000 bytes. */
+	looksBinary: boolean,
+	/**  Under `build/`, `dist/`, `out/`, `bin/`, `obj/`, `target/`, or a `.zip` / `.exe`. */
+	looksLikeBuildOutput: boolean,
+	/**  `*.<ext>` pattern for "track by extension"; `None` without an extension. */
+	patternByExtension: string | null,
+	/**  Anchored pattern matching exactly this path, for "track by path". */
+	patternByPath: string,
 };
 
 /**  A heavy blob with its verdict against the provider limits. */
 export type GuardHeavyBlob = {
-  oid: string;
-  path: string;
-  size: number;
-  commits: string[];
-  /**  Introduced by an already-pushed commit: explain, never rewrite. */
-  inSharedCommit: boolean;
-  /**  `warn` or `block`. */
-  level: GuardLevel;
+	oid: string,
+	path: string,
+	size: number,
+	commits: string[],
+	/**  Introduced by an already-pushed commit: explain, never rewrite. */
+	inSharedCommit: boolean,
+	/**  `warn` or `block`. */
+	level: GuardLevel,
 };
 
 /**  The identity git will record. */
 export type GuardIdentity = {
-  name: string;
-  email: string;
-  source: IdentitySource;
-  accountId: string | null;
-  signing: SigningMethod;
+	name: string,
+	email: string,
+	source: IdentitySource,
+	accountId: string | null,
+	signing: SigningMethod,
 };
 
 /**  Verdict for one path, from least to most severe. */
-export type GuardLevel =
-  | "none"
-  /**  Below the thresholds but looks binary and is not in LFS: suggest tracking it. */
-  | "suggest"
-  | "warn"
-  /**  Over the provider's hard limit: the push would be rejected. */
-  | "block";
+export type GuardLevel = "none" | 
+/**  Below the thresholds but looks binary and is not in LFS: suggest tracking it. */
+"suggest" | "warn" | 
+/**  Over the provider's hard limit: the push would be rejected. */
+"block";
 
-export type GuardProvider =
-  | "github"
-  | "gitlab"
-  /**  Any other host: warn like GitLab, never block. */
-  | "other";
+export type GuardProvider = "github" | "gitlab" | 
+/**  Any other host: warn like GitLab, never block. */
+"other";
 
 export type GuardReport = {
-  thresholds: GuardThresholds;
-  /**  One finding per distinct input path, in input order. */
-  findings: GuardFinding[];
-  suggestCount: number;
-  warnCount: number;
-  blockCount: number;
+	thresholds: GuardThresholds,
+	/**  One finding per distinct input path, in input order. */
+	findings: GuardFinding[],
+	suggestCount: number,
+	warnCount: number,
+	blockCount: number,
 };
 
 /**  Size limits in bytes: warn above `warn_bytes`, block above `block_bytes` (if any). */
 export type GuardThresholds = {
-  warnBytes: number;
-  blockBytes: number | null;
+	warnBytes: number,
+	blockBytes: number | null,
 };
 
-export type GuessReason =
-  /**  A rule of the rule engine matches the URL. */
-  | "rule"
-  /**  The account's provider is on the URL's host. */
-  | "host";
+export type GuessReason = 
+/**  A rule of the rule engine matches the URL. */
+"rule" | 
+/**  The account's provider is on the URL's host. */
+"host";
 
 export type Head = {
-  /**  Current branch, also set for an unborn branch in a fresh repository. */
-  branch: string | null;
-  oid: string | null;
-  detached: boolean;
-  /**  No commit yet. */
-  unborn: boolean;
+	/**  Current branch, also set for an unborn branch in a fresh repository. */
+	branch: string | null,
+	oid: string | null,
+	detached: boolean,
+	/**  No commit yet. */
+	unborn: boolean,
 };
 
 /**  A remote of an open repository that points at a hosting provider. */
 export type HostedRemote = {
-  remote: string;
-  /**  Lower-cased host name, e.g. `github.com`. */
-  host: string;
-  /**  `owner/repo` (GitHub) or `group/sub/project` (GitLab). */
-  fullName: string;
-  /**  Account the resolver uses for this remote; `None` when unbound. */
-  accountId: string | null;
-  /**  Provider family of that account (`None` when unbound). */
-  family: ProviderFamily | null;
-  /**  Whether that account has a token stored (API calls need one). */
-  hasToken: boolean;
+	remote: string,
+	/**  Lower-cased host name, e.g. `github.com`. */
+	host: string,
+	/**  `owner/repo` (GitHub) or `group/sub/project` (GitLab). */
+	fullName: string,
+	/**  Account the resolver uses for this remote; `None` when unbound. */
+	accountId: string | null,
+	/**  Provider family of that account (`None` when unbound). */
+	family: ProviderFamily | null,
+	/**  Whether that account has a token stored (API calls need one). */
+	hasToken: boolean,
 };
 
 export type Hunk = {
-  /**  The `@@ -a,b +c,d @@ context` line. */
-  header: string;
-  oldStart: number;
-  oldLines: number;
-  newStart: number;
-  newLines: number;
-  lines: DiffLine[];
+	/**  The `@@ -a,b +c,d @@ context` line. */
+	header: string,
+	oldStart: number,
+	oldLines: number,
+	newStart: number,
+	newLines: number,
+	lines: DiffLine[],
 };
 
 /**  Commit author identity; an account can have several (work and personal email…). */
 export type Identity = {
-  id: string;
-  accountId: string;
-  name: string;
-  email: string;
-  signing: SigningMethod;
-  /**  GPG key id, or SSH public key path / `key::ssh-ed25519 …` for SSH signing. */
-  signingKeyRef: string | null;
-  /**  Used when a binding or rule does not name an identity. */
-  isDefault: boolean;
-  createdAt: number;
+	id: string,
+	accountId: string,
+	name: string,
+	email: string,
+	signing: SigningMethod,
+	/**  GPG key id, or SSH public key path / `key::ssh-ed25519 …` for SSH signing. */
+	signingKeyRef: string | null,
+	/**  Used when a binding or rule does not name an identity. */
+	isDefault: boolean,
+	createdAt: number,
 };
 
 export type IdentityChoice = {
-  accountId: string;
-  name: string;
-  email: string;
-  makeDefault?: boolean;
+	accountId: string,
+	name: string,
+	email: string,
+	makeDefault?: boolean,
 };
 
 export type IdentityInput = {
-  id?: string | null;
-  accountId: string;
-  name: string;
-  email: string;
-  signing?: SigningMethod;
-  signingKeyRef?: string | null;
-  isDefault?: boolean;
+	id?: string | null,
+	accountId: string,
+	name: string,
+	email: string,
+	signing?: SigningMethod,
+	signingKeyRef?: string | null,
+	isDefault?: boolean,
 };
 
-export type IdentityScope =
-  /**  From the global config (applies everywhere unless a rule matches). */
-  | "global"
-  /**  From a file included by `includeIf` — see the rule pointing at it. */
-  | "conditional";
+export type IdentityScope = 
+/**  From the global config (applies everywhere unless a rule matches). */
+"global" | 
+/**  From a file included by `includeIf` — see the rule pointing at it. */
+"conditional";
 
-export type IdentitySource =
-  /**  Injected from the bound account's identity. */
-  | "account"
-  /**  The repo is unbound (or the account has no identity): git's own `user.email`. */
-  | "gitConfig";
+export type IdentitySource = 
+/**  Injected from the bound account's identity. */
+"account" | 
+/**  The repo is unbound (or the account has no identity): git's own `user.email`. */
+"gitConfig";
 
 /**  Old and new version of an image file of a diff, for the image diff view. */
 export type ImagePair = {
-  /**  `None` when the file does not exist on that side (added / deleted). */
-  original: BlobPreview | null;
-  modified: BlobPreview | null;
+	/**  `None` when the file does not exist on that side (added / deleted). */
+	original: BlobPreview | null,
+	modified: BlobPreview | null,
 };
 
 export type ImportApplyResult = {
-  items: ApplyItem[];
-  /**  gh/glab accounts to add through the sign-in flow (never created automatically). */
-  signIn: AccountChoice[];
-  importDone: boolean;
+	items: ApplyItem[],
+	/**  gh/glab accounts to add through the sign-in flow (never created automatically). */
+	signIn: AccountChoice[],
+	importDone: boolean,
 };
 
 /**  `nanomgg_import::cli_hosts::SuggestedAccount` with [`ImportProviderKind`]. */
 export type ImportCliAccount = {
-  tool: CliTool;
-  provider: ImportProviderKind;
-  host: string;
-  apiHost: string | null;
-  username: string | null;
-  active: boolean;
-  gitProtocol: string | null;
-  tokenStorage: TokenStorage;
-  notes: SuggestionNote[];
-  source: SourceRef;
+	tool: CliTool,
+	provider: ImportProviderKind,
+	host: string,
+	apiHost: string | null,
+	username: string | null,
+	active: boolean,
+	gitProtocol: string | null,
+	tokenStorage: TokenStorage,
+	notes: SuggestionNote[],
+	source: SourceRef,
 };
 
 /**
  *  `nanomgg_import::ProviderKind` under a TypeScript name that does not clash with the accounts
  *  model's `ProviderKind` (specta exports types by their Rust name).
  */
-export type ImportProviderKind =
-  "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted" | "unknown";
+export type ImportProviderKind = "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted" | "unknown";
 
 /**  [`nanomgg_import::ImportReport`] as sent to the wizard. */
 export type ImportReport = {
-  identities: SuggestedIdentity[];
-  rules: SuggestedRule[];
-  sshHosts: ImportSshHost[];
-  accounts: ImportCliAccount[];
-  warnings: ImportWarning[];
-  scannedFiles: string[];
+	identities: SuggestedIdentity[],
+	rules: SuggestedRule[],
+	sshHosts: ImportSshHost[],
+	accounts: ImportCliAccount[],
+	warnings: ImportWarning[],
+	scannedFiles: string[],
 };
 
 /**  Scan result plus what the app already knows (to pre-untick duplicates). */
 export type ImportScan = {
-  report: ImportReport;
-  /**  Home directory that was scanned. */
-  home: string;
-  /**  Fingerprints of SSH keys already in the app. */
-  knownFingerprints: string[];
+	report: ImportReport,
+	/**  Home directory that was scanned. */
+	home: string,
+	/**  Fingerprints of SSH keys already in the app. */
+	knownFingerprints: string[],
 };
 
 /**  What the user ticked in the wizard. */
 export type ImportSelection = {
-  identities?: IdentityChoice[];
-  rules?: RuleChoice[];
-  sshKeys?: KeyChoice[];
-  accounts?: AccountChoice[];
-  /**  Set `onboarding.importDone`. */
-  markDone?: boolean;
+	identities?: IdentityChoice[],
+	rules?: RuleChoice[],
+	sshKeys?: KeyChoice[],
+	accounts?: AccountChoice[],
+	/**  Set `onboarding.importDone`. */
+	markDone?: boolean,
 };
 
 /**  `nanomgg_import::ssh_config::SuggestedSshHost` with [`ImportProviderKind`]. */
 export type ImportSshHost = {
-  alias: string;
-  hostName: string;
-  user: string | null;
-  port: number | null;
-  identityFiles: SuggestedKeyFile[];
-  identitiesOnly: boolean | null;
-  provider: ImportProviderKind;
-  isAlias: boolean;
-  wildcard: boolean;
-  notes: SuggestionNote[];
-  source: SourceRef;
+	alias: string,
+	hostName: string,
+	user: string | null,
+	port: number | null,
+	identityFiles: SuggestedKeyFile[],
+	identitiesOnly: boolean | null,
+	provider: ImportProviderKind,
+	isAlias: boolean,
+	wildcard: boolean,
+	notes: SuggestionNote[],
+	source: SourceRef,
 };
 
 /**  Non-fatal problem found while scanning. */
 export type ImportWarning = {
-  kind: WarningKind;
-  source: SourceRef;
-  /**  English technical detail (the UI localises by `kind`). */
-  message: string;
+	kind: WarningKind,
+	source: SourceRef,
+	/**  English technical detail (the UI localises by `kind`). */
+	message: string,
 };
 
 export type InteractiveRebaseRequest = {
-  /**  Exclusive base: the rows are the commits after it. */
-  base: string;
-  /**  Every commit of `base..HEAD` exactly once, in the new order (oldest first). */
-  steps: TodoStep[];
-  autostash?: boolean;
-  allowPushed?: boolean;
+	/**  Exclusive base: the rows are the commits after it. */
+	base: string,
+	/**  Every commit of `base..HEAD` exactly once, in the new order (oldest first). */
+	steps: TodoStep[],
+	autostash?: boolean,
+	allowPushed?: boolean,
 };
 
 /**
@@ -3148,56 +2660,54 @@ export type InteractiveRebaseRequest = {
  *  scopes, 404 on private repositories, rate limits…) or an app error (no hosted remote, no
  *  token, storage).
  */
-export type IssueCommandError =
-  | { kind: "provider"; message: string; error: ProviderError }
-  | { kind: "app"; message: string; error: AppError };
+export type IssueCommandError = { kind: "provider"; message: string; error: ProviderError } | { kind: "app"; message: string; error: AppError };
 
 export type IssueComment = {
-  id: string;
-  author: IssueUser | null;
-  body: string;
-  createdAt: number | null;
-  updatedAt: number | null;
-  webUrl: string | null;
-  /**  GitLab system note ("changed the description", "added ~bug label"…). */
-  system: boolean;
+	id: string,
+	author: IssueUser | null,
+	body: string,
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string | null,
+	/**  GitLab system note ("changed the description", "added ~bug label"…). */
+	system: boolean,
 };
 
 export type IssueCommentList = {
-  comments: IssueComment[];
-  /**  More comments exist than were read. */
-  truncated: boolean;
+	comments: IssueComment[],
+	/**  More comments exist than were read. */
+	truncated: boolean,
 };
 
 export type IssueCreate = {
-  title: string;
-  body?: string;
-  labels?: string[];
-  /**  Usernames. */
-  assignees?: string[];
+	title: string,
+	body?: string,
+	labels?: string[],
+	/**  Usernames. */
+	assignees?: string[],
 };
 
 export type IssueCreated = {
-  issue: IssueDetail;
-  accountId: string;
-  fullName: string;
+	issue: IssueDetail,
+	accountId: string,
+	fullName: string,
 };
 
 export type IssueDetail = {
-  issue: IssueSummary;
-  /**  Markdown source as written (untrusted). */
-  body: string;
-  closedAt: number | null;
-  closedBy: IssueUser | null;
-  /**  Comments are limited to collaborators. */
-  locked: boolean;
+	issue: IssueSummary,
+	/**  Markdown source as written (untrusted). */
+	body: string,
+	closedAt: number | null,
+	closedBy: IssueUser | null,
+	/**  Comments are limited to collaborators. */
+	locked: boolean,
 };
 
 export type IssueLabel = {
-  name: string;
-  /**  `#rrggbb` when the provider sent a valid color. */
-  color: string | null;
-  description: string | null;
+	name: string,
+	/**  `#rrggbb` when the provider sent a valid color. */
+	color: string | null,
+	description: string | null,
 };
 
 /**
@@ -3205,31 +2715,31 @@ export type IssueLabel = {
  *  lists unassigned issues.
  */
 export type IssueListQuery = {
-  state?: IssueStateFilter;
-  labels?: string[];
-  assignee?: string | null;
-  author?: string | null;
-  /**  Free text (title / description). */
-  search?: string | null;
-  /**  1-based. */
-  page?: number;
-  /**  1..=100 (0 = 30). */
-  perPage?: number;
+	state?: IssueStateFilter,
+	labels?: string[],
+	assignee?: string | null,
+	author?: string | null,
+	/**  Free text (title / description). */
+	search?: string | null,
+	/**  1-based. */
+	page?: number,
+	/**  1..=100 (0 = 30). */
+	perPage?: number,
 };
 
 /**  Which project and account a repository-scoped answer used. */
 export type IssueListResult = {
-  page: IssuePage;
-  accountId: string;
-  fullName: string;
-  remote: string;
+	page: IssuePage,
+	accountId: string,
+	fullName: string,
+	remote: string,
 };
 
 export type IssuePage = {
-  items: IssueSummary[];
-  nextPage: number | null;
-  /**  Total matches when the provider reports it. */
-  total: number | null;
+	items: IssueSummary[],
+	nextPage: number | null,
+	/**  Total matches when the provider reports it. */
+	total: number | null,
 };
 
 export type IssueState = "open" | "closed";
@@ -3239,250 +2749,246 @@ export type IssueStateFilter = "open" | "closed" | "all";
 
 /**  One row of an issue listing. */
 export type IssueSummary = {
-  /**  GitHub issue number / GitLab `iid`. */
-  number: number;
-  title: string;
-  state: IssueState;
-  author: IssueUser | null;
-  labels: IssueLabel[];
-  assignees: IssueUser[];
-  comments: number;
-  createdAt: number | null;
-  updatedAt: number | null;
-  webUrl: string;
-  /**
-   *  GitHub numbers are shared by issues and pull requests; `true` when this number is a PR
-   *  (only possible from [`ProviderClient::issue`]; listings drop pull requests).
-   */
-  isPullRequest: boolean;
+	/**  GitHub issue number / GitLab `iid`. */
+	number: number,
+	title: string,
+	state: IssueState,
+	author: IssueUser | null,
+	labels: IssueLabel[],
+	assignees: IssueUser[],
+	comments: number,
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string,
+	/**
+	 *  GitHub numbers are shared by issues and pull requests; `true` when this number is a PR
+	 *  (only possible from [`ProviderClient::issue`]; listings drop pull requests).
+	 */
+	isPullRequest: boolean,
 };
 
 /**  Fields to change; `None` keeps the current value, an empty list clears it. */
 export type IssueUpdate = {
-  state?: IssueState | null;
-  labels?: string[] | null;
-  /**  Usernames. */
-  assignees?: string[] | null;
+	state?: IssueState | null,
+	labels?: string[] | null,
+	/**  Usernames. */
+	assignees?: string[] | null,
 };
 
 /**  A user as shown on an issue (author, assignee, commenter). */
 export type IssueUser = {
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
+	username: string,
+	displayName: string | null,
+	avatarUrl: string | null,
 };
 
 export type KeyChoice = {
-  /**  Private key file (`IdentityFile`), copied into the app key store. */
-  path: string;
-  /**  `None` imports the key unassigned (an account can adopt it later). */
-  accountId?: string | null;
-  passphrase?: string | null;
+	/**  Private key file (`IdentityFile`), copied into the app key store. */
+	path: string,
+	/**  `None` imports the key unassigned (an account can adopt it later). */
+	accountId?: string | null,
+	passphrase?: string | null,
 };
 
 export type Language = "vi" | "en";
 
 /**  Direction of an LFS transfer. */
-export type LfsDirection =
-  | "upload"
-  | "download"
-  /**  Writing downloaded objects into the working tree (smudge during `git lfs pull`). */
-  | "checkout";
+export type LfsDirection = "upload" | "download" | 
+/**  Writing downloaded objects into the working tree (smudge during `git lfs pull`). */
+"checkout";
 
 /**  A translated LFS failure. */
 export type LfsFailure = {
-  kind: LfsFailureKind;
-  /**  git-lfs' own output (the app redacts it before showing it). */
-  message: string;
-  /**  Trying again may succeed (network, rate limit, server errors). */
-  retryable: boolean;
-  /**  Where to buy more LFS storage/bandwidth, for [`LfsFailureKind::QuotaExceeded`]. */
-  billingUrl: string | null;
-  /**  Project settings page where LFS can be enabled, for [`LfsFailureKind::LfsDisabled`]. */
-  settingsUrl: string | null;
-  /**  Size limit mentioned by the server, for [`LfsFailureKind::ObjectTooLarge`]. */
-  limitBytes: number | null;
-  /**  Path or oid of the offending object, when the message names one. */
-  object: string | null;
+	kind: LfsFailureKind,
+	/**  git-lfs' own output (the app redacts it before showing it). */
+	message: string,
+	/**  Trying again may succeed (network, rate limit, server errors). */
+	retryable: boolean,
+	/**  Where to buy more LFS storage/bandwidth, for [`LfsFailureKind::QuotaExceeded`]. */
+	billingUrl: string | null,
+	/**  Project settings page where LFS can be enabled, for [`LfsFailureKind::LfsDisabled`]. */
+	settingsUrl: string | null,
+	/**  Size limit mentioned by the server, for [`LfsFailureKind::ObjectTooLarge`]. */
+	limitBytes: number | null,
+	/**  Path or oid of the offending object, when the message names one. */
+	object: string | null,
 };
 
 /**  Recognisable reasons an LFS transfer failed. */
-export type LfsFailureKind =
-  /**  401/403: the account bound to the repository may not read/write its LFS storage. */
-  | "noPermission"
-  /**  No usable credential (missing, expired or rejected token): sign in again. */
-  | "authRequired"
-  /**  LFS storage or bandwidth quota of the account/organisation is used up. */
-  | "quotaExceeded"
-  /**  An object is larger than the server accepts. */
-  | "objectTooLarge"
-  /**  LFS is turned off for the project (GitLab) or the whole server. */
-  | "lfsDisabled"
-  /**  Repository (or LFS endpoint) not found, or not visible to this account. */
-  | "notFound"
-  /**  The server is throttling requests. */
-  | "rateLimited"
-  /**  Connection problems, timeouts, 5xx: retry, maybe with fewer parallel transfers. */
-  | "network"
-  /**  An object to push is missing from the local LFS store. */
-  | "missingObject"
-  /**  Not enough free space on the local disk. */
-  | "insufficientDiskSpace"
-  | "other";
+export type LfsFailureKind = 
+/**  401/403: the account bound to the repository may not read/write its LFS storage. */
+"noPermission" | 
+/**  No usable credential (missing, expired or rejected token): sign in again. */
+"authRequired" | 
+/**  LFS storage or bandwidth quota of the account/organisation is used up. */
+"quotaExceeded" | 
+/**  An object is larger than the server accepts. */
+"objectTooLarge" | 
+/**  LFS is turned off for the project (GitLab) or the whole server. */
+"lfsDisabled" | 
+/**  Repository (or LFS endpoint) not found, or not visible to this account. */
+"notFound" | 
+/**  The server is throttling requests. */
+"rateLimited" | 
+/**  Connection problems, timeouts, 5xx: retry, maybe with fewer parallel transfers. */
+"network" | 
+/**  An object to push is missing from the local LFS store. */
+"missingObject" | 
+/**  Not enough free space on the local disk. */
+"insufficientDiskSpace" | "other";
 
 /**  One LFS-tracked file of HEAD. */
 export type LfsFile = {
-  /**  Repository-relative path. */
-  path: string;
-  oid: string;
-  /**  Size of the real content in bytes. */
-  size: number;
-  /**  The object is in the local LFS store. */
-  downloaded: boolean;
-  /**  The working-tree file holds the real content (not the small pointer text). */
-  checkedOut: boolean;
-  /**  Matches a `lockable` pattern (read-only until locked). */
-  lockable: boolean;
+	/**  Repository-relative path. */
+	path: string,
+	oid: string,
+	/**  Size of the real content in bytes. */
+	size: number,
+	/**  The object is in the local LFS store. */
+	downloaded: boolean,
+	/**  The working-tree file holds the real content (not the small pointer text). */
+	checkedOut: boolean,
+	/**  Matches a `lockable` pattern (read-only until locked). */
+	lockable: boolean,
 };
 
 /**  Progress of one file being transferred. */
 export type LfsFileProgress = {
-  name: string;
-  bytesDone: number;
-  /**  `None` when neither git-lfs nor the estimate knows the size. */
-  bytesTotal: number | null;
+	name: string,
+	bytesDone: number,
+	/**  `None` when neither git-lfs nor the estimate knows the size. */
+	bytesTotal: number | null,
 };
 
 export type LfsHook = {
-  name: string;
-  exists: boolean;
-  /**
-   *  The hook calls git-lfs (`git lfs …` / `git-lfs …`). A hook that exists but does not
-   *  makes `git lfs install` refuse to overwrite it.
-   */
-  lfs: boolean;
+	name: string,
+	exists: boolean,
+	/**
+	 *  The hook calls git-lfs (`git lfs …` / `git-lfs …`). A hook that exists but does not
+	 *  makes `git lfs install` refuse to overwrite it.
+	 */
+	lfs: boolean,
 };
 
 /**  One lock on the server. */
 export type LfsLock = {
-  id: string;
-  /**  Repository-relative path. */
-  path: string;
-  /**  Name of the user holding the lock as the server reports it. */
-  owner: string | null;
-  /**  RFC 3339 timestamp. */
-  lockedAt: string | null;
-  /**  Held by the account the command ran as. */
-  ours: boolean;
+	id: string,
+	/**  Repository-relative path. */
+	path: string,
+	/**  Name of the user holding the lock as the server reports it. */
+	owner: string | null,
+	/**  RFC 3339 timestamp. */
+	lockedAt: string | null,
+	/**  Held by the account the command ran as. */
+	ours: boolean,
 };
 
 /**  How LFS files are downloaded by a clone. */
-export type LfsMode =
-  /**  Download every LFS file during checkout (git-lfs default, with progress). */
-  | { mode: "all" }
-  /**  Clone pointer files only (`GIT_LFS_SKIP_SMUDGE=1`); run `git lfs pull` afterwards. */
-  | { mode: "later" }
-  /**
-   *  Only download files matching `include` (and not `exclude`): comma-separated
-   *  `lfs.fetchinclude` / `lfs.fetchexclude` patterns, e.g. `Assets/UI/**`.
-   */
-  | { mode: "partial"; include: string; exclude?: string | null };
+export type LfsMode = 
+/**  Download every LFS file during checkout (git-lfs default, with progress). */
+{ mode: "all" } | 
+/**  Clone pointer files only (`GIT_LFS_SKIP_SMUDGE=1`); run `git lfs pull` afterwards. */
+{ mode: "later" } | 
+/**
+ *  Only download files matching `include` (and not `exclude`): comma-separated
+ *  `lfs.fetchinclude` / `lfs.fetchexclude` patterns, e.g. `Assets/UI/**`.
+ */
+{ mode: "partial"; include: string; exclude?: string | null };
 
 /**  One LFS object. */
 export type LfsObject = {
-  oid: string;
-  /**  Bytes; `0` when unknown (object missing from the local store). */
-  size: number;
-  /**  Repository path the object was found at. */
-  path: string;
+	oid: string,
+	/**  Bytes; `0` when unknown (object missing from the local store). */
+	size: number,
+	/**  Repository path the object was found at. */
+	path: string,
 };
 
 /**  Result of an LFS command. */
-export type LfsOutcome<T> =
-  | { status: "done"; value: T }
-  /**  git-lfs failed; `failure.kind` says why (permission, quota, size limit…). */
-  | { status: "failed"; failure: LfsFailure }
-  /**  Stopped by `transfer_cancel`. */
-  | { status: "cancelled" };
+export type LfsOutcome<T> = { status: "done"; value: T } | 
+/**  git-lfs failed; `failure.kind` says why (permission, quota, size limit…). */
+{ status: "failed"; failure: LfsFailure } | 
+/**  Stopped by `transfer_cancel`. */
+{ status: "cancelled" };
 
 /**  A pattern routed through Git LFS by a `.gitattributes` line. */
 export type LfsPattern = {
-  /**  Pattern as written (unquoted), relative to the directory of `file`. */
-  pattern: string;
-  /**
-   *  Repository-relative path of the attributes file (`.gitattributes`,
-   *  `assets/.gitattributes`), or `$GIT_DIR/info/attributes`.
-   */
-  file: string;
-  /**  1-based line number in `file`. */
-  line: number;
-  /**  Files matching the pattern are read-only until locked (`git lfs lock`). */
-  lockable: boolean;
+	/**  Pattern as written (unquoted), relative to the directory of `file`. */
+	pattern: string,
+	/**
+	 *  Repository-relative path of the attributes file (`.gitattributes`,
+	 *  `assets/.gitattributes`), or `$GIT_DIR/info/attributes`.
+	 */
+	file: string,
+	/**  1-based line number in `file`. */
+	line: number,
+	/**  Files matching the pattern are read-only until locked (`git lfs lock`). */
+	lockable: boolean,
 };
 
 /**  A Git LFS pointer (`oid sha256:…`, `size …`). */
 export type LfsPointer = {
-  /**  SHA-256 of the real content (64 hex digits). */
-  oid: string;
-  /**  Size of the real content in bytes. */
-  size: number;
+	/**  SHA-256 of the real content (64 hex digits). */
+	oid: string,
+	/**  Size of the real content in bytes. */
+	size: number,
 };
 
 export type LfsStatus = {
-  gitLfs: ToolInfo;
-  /**
-   *  LFS patterns from every `.gitattributes` (root and nested, tracked or not) and
-   *  `$GIT_DIR/info/attributes`, in file then line order.
-   */
-  patterns: LfsPattern[];
-  /**  At least one LFS pattern is declared. */
-  usesLfs: boolean;
-  /**  Effective hooks directory (`git rev-parse --git-path hooks`, honours `core.hooksPath`). */
-  hooksDir: string;
-  hooks: LfsHook[];
-  /**  Every hook in [`LFS_HOOKS`] exists and calls git-lfs. */
-  hooksInstalled: boolean;
-  /**  `filter.lfs.process` or `filter.lfs.clean` is set (any config level). */
-  filterConfigured: boolean;
-  /**
-   *  The repo uses LFS, git-lfs is available and hooks or filters are missing: offer
-   *  `git lfs install --local`.
-   */
-  needsInstall: boolean;
+	gitLfs: ToolInfo,
+	/**
+	 *  LFS patterns from every `.gitattributes` (root and nested, tracked or not) and
+	 *  `$GIT_DIR/info/attributes`, in file then line order.
+	 */
+	patterns: LfsPattern[],
+	/**  At least one LFS pattern is declared. */
+	usesLfs: boolean,
+	/**  Effective hooks directory (`git rev-parse --git-path hooks`, honours `core.hooksPath`). */
+	hooksDir: string,
+	hooks: LfsHook[],
+	/**  Every hook in [`LFS_HOOKS`] exists and calls git-lfs. */
+	hooksInstalled: boolean,
+	/**  `filter.lfs.process` or `filter.lfs.clean` is set (any config level). */
+	filterConfigured: boolean,
+	/**
+	 *  The repo uses LFS, git-lfs is available and hooks or filters are missing: offer
+	 *  `git lfs install --local`.
+	 */
+	needsInstall: boolean,
 };
 
 /**  The local LFS object store. */
 export type LfsStorage = {
-  /**  `LocalMediaDir` of `git lfs env` (honours `lfs.storage`). */
-  mediaDir: string | null;
-  objects: number;
-  bytes: number;
+	/**  `LocalMediaDir` of `git lfs env` (honours `lfs.storage`). */
+	mediaDir: string | null,
+	objects: number,
+	bytes: number,
 };
 
 /**  Progress of a running LFS transfer, at most ~10 per second per operation. */
 export type LfsTransferProgress = {
-  repoId: number;
-  /**  Id chosen by the frontend when it started the command. */
-  opId: string;
-  direction: LfsDirection;
-  filesDone: number;
-  filesTotal: number;
-  bytesDone: number;
-  bytesTotal: number;
-  currentFile: string | null;
-  bytesPerSec: number;
-  etaSecs: number | null;
-  /**  Files in flight with their own progress. */
-  active: LfsFileProgress[];
-  done: boolean;
+	repoId: number,
+	/**  Id chosen by the frontend when it started the command. */
+	opId: string,
+	direction: LfsDirection,
+	filesDone: number,
+	filesTotal: number,
+	bytesDone: number,
+	bytesTotal: number,
+	currentFile: string | null,
+	bytesPerSec: number,
+	etaSecs: number | null,
+	/**  Files in flight with their own progress. */
+	active: LfsFileProgress[],
+	done: boolean,
 };
 
 export type LineKind = "context" | "add" | "delete";
 
 /**  Lines picked in one hunk (indices into [`Hunk::lines`]). */
 export type LineSelection = {
-  hunk: number;
-  lines: number[];
+	hunk: number,
+	lines: number[],
 };
 
 /**
@@ -3490,105 +2996,100 @@ export type LineSelection = {
  *  provider error code (`unauthorized`, `forbidden`, `rateLimited`, `network`…).
  */
 export type ListError = {
-  code: string;
-  message: string;
+	code: string,
+	message: string,
 };
 
 export type LocalBranch = {
-  name: string;
-  oid: string;
-  /**  Short upstream name, e.g. `origin/main`. */
-  upstream: string | null;
-  ahead: number;
-  behind: number;
-  /**  The upstream is configured but no longer exists on the remote. */
-  upstreamGone: boolean;
-  isHead: boolean;
+	name: string,
+	oid: string,
+	/**  Short upstream name, e.g. `origin/main`. */
+	upstream: string | null,
+	ahead: number,
+	behind: number,
+	/**  The upstream is configured but no longer exists on the remote. */
+	upstreamGone: boolean,
+	isHead: boolean,
 };
 
 export type LockFailure = {
-  kind: LockFailureKind;
-  /**  git-lfs output (redacted by the app). */
-  message: string;
+	kind: LockFailureKind,
+	/**  git-lfs output (redacted by the app). */
+	message: string,
 };
 
-export type LockFailureKind =
-  /**  Somebody (maybe you, from another clone) already holds the lock. */
-  | "alreadyLocked"
-  /**  The lock belongs to another user: only a force unlock (with permission) removes it. */
-  | "notOwner"
-  /**  The account may not lock / force-unlock (needs write / maintainer access). */
-  | "noPermission"
-  /**  Sign-in required or rejected. */
-  | "authRequired"
-  /**  The server (or a local / file remote) has no LFS lock API. */
-  | "unsupported"
-  /**  No such lock / file. */
-  | "notFound"
-  | "network"
-  | "other";
+export type LockFailureKind = 
+/**  Somebody (maybe you, from another clone) already holds the lock. */
+"alreadyLocked" | 
+/**  The lock belongs to another user: only a force unlock (with permission) removes it. */
+"notOwner" | 
+/**  The account may not lock / force-unlock (needs write / maintainer access). */
+"noPermission" | 
+/**  Sign-in required or rejected. */
+"authRequired" | 
+/**  The server (or a local / file remote) has no LFS lock API. */
+"unsupported" | 
+/**  No such lock / file. */
+"notFound" | "network" | "other";
 
 /**  Locks of a repository. */
 export type LockList = {
-  locks: LfsLock[];
-  /**
-   *  The server confirmed which locks are ours (`--verify`). When `false`, `ours` was guessed
-   *  by comparing the owner with the account's user name.
-   */
-  verified: boolean;
+	locks: LfsLock[],
+	/**
+	 *  The server confirmed which locks are ours (`--verify`). When `false`, `ours` was guessed
+	 *  by comparing the owner with the account's user name.
+	 */
+	verified: boolean,
 };
 
 /**  Result of a lock command. */
-export type LockOutcome<T> =
-  | { status: "done"; value: T }
-  /**  git-lfs refused; `failure.kind` says why (already locked, not owner, no permission…). */
-  | { status: "failed"; failure: LockFailure };
+export type LockOutcome<T> = { status: "done"; value: T } | 
+/**  git-lfs refused; `failure.kind` says why (already locked, not owner, no permission…). */
+{ status: "failed"; failure: LockFailure };
 
-export type MergeMode =
-  /**  Only fast-forward; refuse when a merge commit would be needed. */
-  | "fastForwardOnly"
-  /**  Fast-forward when possible, otherwise create a merge commit (`--ff`, overrides config). */
-  | "fastForward"
-  /**  Always create a merge commit. */
-  | "noFastForward"
-  /**  Stage the combined changes without committing (`--squash`). */
-  | "squash";
+export type MergeMode = 
+/**  Only fast-forward; refuse when a merge commit would be needed. */
+"fastForwardOnly" | 
+/**  Fast-forward when possible, otherwise create a merge commit (`--ff`, overrides config). */
+"fastForward" | 
+/**  Always create a merge commit. */
+"noFastForward" | 
+/**  Stage the combined changes without committing (`--squash`). */
+"squash";
 
 export type MergeOutcome = {
-  result: MergeResult;
-  /**  Unmerged paths when `result` is `conflicts`. */
-  conflicts: string[];
-  /**  Operation left in progress (`merge` or `rebase`; `None` after a conflicting squash). */
-  pending: RepoOperation | null;
-  /**  HEAD afterwards. */
-  head: string | null;
+	result: MergeResult,
+	/**  Unmerged paths when `result` is `conflicts`. */
+	conflicts: string[],
+	/**  Operation left in progress (`merge` or `rebase`; `None` after a conflicting squash). */
+	pending: RepoOperation | null,
+	/**  HEAD afterwards. */
+	head: string | null,
 };
 
-export type MergeResult =
-  | "upToDate"
-  | "fastForward"
-  /**  A merge commit was created. */
-  | "merged"
-  /**  Local commits were replayed on top (pull with rebase). */
-  | "rebased"
-  /**  `--squash`: changes are staged, nothing committed yet. */
-  | "squashStaged"
-  /**  Stopped on conflicts: see `conflicts` and `pending`. */
-  | "conflicts";
+export type MergeResult = "upToDate" | "fastForward" | 
+/**  A merge commit was created. */
+"merged" | 
+/**  Local commits were replayed on top (pull with rebase). */
+"rebased" | 
+/**  `--squash`: changes are staged, nothing committed yet. */
+"squashStaged" | 
+/**  Stopped on conflicts: see `conflicts` and `pending`. */
+"conflicts";
 
-export type MismatchReason =
-  /**  A rule assigns this repo to another account (binding overrides it). */
-  | "ruleAccount"
-  /**  The email belongs to none of the bound account's identities / provider emails. */
-  | "notAccountEmail"
-  /**  Webmail address on an organisation's repo while an account with a matching domain exists. */
-  | "personalEmailOnOrgRepo";
+export type MismatchReason = 
+/**  A rule assigns this repo to another account (binding overrides it). */
+"ruleAccount" | 
+/**  The email belongs to none of the bound account's identities / provider emails. */
+"notAccountEmail" | 
+/**  Webmail address on an organisation's repo while an account with a matching domain exists. */
+"personalEmailOnOrgRepo";
 
 /**  A feature the token cannot serve. */
 export type MissingScope = {
-  feature: Feature;
-  /**  Any one of these would do. */
-  anyOf: string[];
+	feature: Feature,
+	/**  Any one of these would do. */
+	anyOf: string[],
 };
 
 /**  Stage of a move, for progress events. */
@@ -3596,441 +3097,416 @@ export type MovePhase = "copying" | "verifying" | "cleaning";
 
 /**  Options of [`ProviderClient::create_repository`]. */
 export type NewRepoOptions = {
-  /**  Repository name (GitHub) / project path (GitLab). */
-  name: string;
-  /**  Organization (GitHub) / group path (GitLab); `None` = the account itself. */
-  namespace?: string | null;
-  description?: string | null;
-  private?: boolean;
+	/**  Repository name (GitHub) / project path (GitLab). */
+	name: string,
+	/**  Organization (GitHub) / group path (GitLab); `None` = the account itself. */
+	namespace?: string | null,
+	description?: string | null,
+	private?: boolean,
 };
 
 export type Note = {
-  id: string;
-  title: string;
-  /**  Plain text, shown as-is (never rendered as HTML / Markdown). */
-  body: string;
-  /**  Tag ids (built-in or user-defined). */
-  tags: string[];
-  priority: NotePriority;
-  done: boolean;
-  pinned: boolean;
-  /**  Due date `YYYY-MM-DD`. */
-  due: string | null;
-  /**  Repository the note is about (path + display name). */
-  repoPath: string | null;
-  repoName: string | null;
-  /**  Unix time in milliseconds. */
-  createdAt: number;
-  updatedAt: number;
+	id: string,
+	title: string,
+	/**  Plain text, shown as-is (never rendered as HTML / Markdown). */
+	body: string,
+	/**  Tag ids (built-in or user-defined). */
+	tags: string[],
+	priority: NotePriority,
+	done: boolean,
+	pinned: boolean,
+	/**  Due date `YYYY-MM-DD`. */
+	due: string | null,
+	/**  Repository the note is about (path + display name). */
+	repoPath: string | null,
+	repoName: string | null,
+	/**  Unix time in milliseconds. */
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type NoteInput = {
-  /**  `None` creates a new note. */
-  id?: string | null;
-  title: string;
-  body: string;
-  tags: string[];
-  priority: NotePriority;
-  done: boolean;
-  pinned: boolean;
-  due: string | null;
-  repoPath: string | null;
-  repoName: string | null;
+	/**  `None` creates a new note. */
+	id?: string | null,
+	title: string,
+	body: string,
+	tags: string[],
+	priority: NotePriority,
+	done: boolean,
+	pinned: boolean,
+	due: string | null,
+	repoPath: string | null,
+	repoName: string | null,
 };
 
 export type NotePriority = "low" | "normal" | "high" | "urgent";
 
 export type NoteTag = {
-  id: string;
-  name: string;
-  /**  `#rrggbb` background of the label. */
-  color: string;
+	id: string,
+	name: string,
+	/**  `#rrggbb` background of the label. */
+	color: string,
 };
 
 export type NoteTagInput = {
-  id?: string | null;
-  name: string;
-  color: string;
+	id?: string | null,
+	name: string,
+	color: string,
 };
 
 export type NotesData = {
-  notes: Note[];
-  /**  User-defined tags (built-in tags are not stored). */
-  tags: NoteTag[];
+	notes: Note[],
+	/**  User-defined tags (built-in tags are not stored). */
+	tags: NoteTag[],
 };
 
 export type NotesImportReport = {
-  problem: UserFileProblem | null;
-  added: number;
-  updated: number;
-  /**  Notes not newer than the copy already here, or damaged. */
-  skipped: number;
-  tagsAdded: number;
-  data: NotesData;
+	problem: UserFileProblem | null,
+	added: number,
+	updated: number,
+	/**  Notes not newer than the copy already here, or damaged. */
+	skipped: number,
+	tagsAdded: number,
+	data: NotesData,
 };
 
 export type OllamaModel = {
-  name: string;
-  /**  Bytes on disk. */
-  size: number;
-  parameterSize: string | null;
-  quantization: string | null;
+	name: string,
+	/**  Bytes on disk. */
+	size: number,
+	parameterSize: string | null,
+	quantization: string | null,
 };
 
 export type OllamaStatus = {
-  /**  The server answers on the configured address. */
-  running: boolean;
-  version: string | null;
-  /**  The program was found (CLI or, on macOS, Ollama.app). */
-  installed: boolean;
-  cliPath: string | null;
-  /**  macOS `Ollama.app`. */
-  appPath: string | null;
-  /**  Models already downloaded (empty while the server is down). */
-  models: OllamaModel[];
-  /**  "Cài Ollama giúp tôi" is possible with this package manager. */
-  installer: SetupPackageManager | null;
-  os: AiHostOs;
-  downloadUrl: string;
+	/**  The server answers on the configured address. */
+	running: boolean,
+	version: string | null,
+	/**  The program was found (CLI or, on macOS, Ollama.app). */
+	installed: boolean,
+	cliPath: string | null,
+	/**  macOS `Ollama.app`. */
+	appPath: string | null,
+	/**  Models already downloaded (empty while the server is down). */
+	models: OllamaModel[],
+	/**  "Cài Ollama giúp tôi" is possible with this package manager. */
+	installer: SetupPackageManager | null,
+	os: AiHostOs,
+	downloadUrl: string,
 };
 
 export type OnboardingStatus = {
-  importDone: boolean;
-  accountCount: number;
-  /**  First run: no account and the wizard was neither completed nor skipped. */
-  shouldOpenWizard: boolean;
+	importDone: boolean,
+	accountCount: number,
+	/**  First run: no account and the wizard was neither completed nor skipped. */
+	shouldOpenWizard: boolean,
 };
 
 /**  Result of an operation that can stop on conflicts. */
 export type OpOutcome = {
-  /**  Unmerged paths; empty when the operation went through. */
-  conflicts: string[];
-  /**  Operation left in progress (resolve, then continue or abort); `None` when finished. */
-  pending: RepoOperation | null;
-  /**  HEAD afterwards. */
-  head: string | null;
+	/**  Unmerged paths; empty when the operation went through. */
+	conflicts: string[],
+	/**  Operation left in progress (resolve, then continue or abort); `None` when finished. */
+	pending: RepoOperation | null,
+	/**  HEAD afterwards. */
+	head: string | null,
 };
 
 export type OperationState = {
-  operation: RepoOperation | null;
-  /**  Unmerged paths (also filled after a conflicting `merge --squash`, which has no state). */
-  conflicts: string[];
-  /**  Rebase / am progress: current step (1-based) and total. */
-  step: number | null;
-  totalSteps: number | null;
+	operation: RepoOperation | null,
+	/**  Unmerged paths (also filled after a conflicting `merge --squash`, which has no state). */
+	conflicts: string[],
+	/**  Rebase / am progress: current step (1-based) and total. */
+	step: number | null,
+	totalSteps: number | null,
 };
 
 /**  Result of a write command. */
-export type Outcome<T> =
-  | { status: "done"; value: T }
-  /**  Refused for a recognisable reason; `message` is git's (redacted) explanation. */
-  | { status: "rejected"; reason: FailureKind; message: string }
-  /**  Stopped by `transfer_cancel`. */
-  | { status: "cancelled" };
+export type Outcome<T> = { status: "done"; value: T } | 
+/**  Refused for a recognisable reason; `message` is git's (redacted) explanation. */
+{ status: "rejected"; reason: FailureKind; message: string } | 
+/**  Stopped by `transfer_cancel`. */
+{ status: "cancelled" };
 
-export type PatchAction =
-  /**  Unstaged lines → index. */
-  | "stage"
-  /**  Staged lines → back out of the index. */
-  | "unstage"
-  /**  Unstaged lines → removed from the working tree. */
-  | "discard";
+export type PatchAction = 
+/**  Unstaged lines → index. */
+"stage" | 
+/**  Staged lines → back out of the index. */
+"unstage" | 
+/**  Unstaged lines → removed from the working tree. */
+"discard";
 
-export type PermissionStatus =
-  | "allowed"
-  /**  The provider says the account cannot push: block early. */
-  | "denied"
-  /**  Not checked (unbound, no token, other host) or the check failed (network…). */
-  | "unknown";
+export type PermissionStatus = "allowed" | 
+/**  The provider says the account cannot push: block early. */
+"denied" | 
+/**  Not checked (unbound, no token, other host) or the check failed (network…). */
+"unknown";
 
 export type Person = {
-  name: string;
-  email: string;
-  /**  Seconds since the Unix epoch. */
-  time: number;
+	name: string,
+	email: string,
+	/**  Seconds since the Unix epoch. */
+	time: number,
 };
 
 /**  Answer of `auth_pkce_start`. */
 export type PkceStart = {
-  flowId: string;
-  /**  Open in the system browser. */
-  authorizeUrl: string;
-  /**  `http://127.0.0.1:<port>/callback` — must be registered in the GitLab application. */
-  redirectUri: string;
+	flowId: string,
+	/**  Open in the system browser. */
+	authorizeUrl: string,
+	/**  `http://127.0.0.1:<port>/callback` — must be registered in the GitLab application. */
+	redirectUri: string,
 };
 
 /**  Stage of a transfer, derived from the label git prints. */
-export type ProgressPhase =
-  | "enumerating"
-  | "counting"
-  | "compressing"
-  | "receiving"
-  | "resolving"
-  | "writing"
-  | "unpacking"
-  /**  `Updating files` / `Checking out files`. */
-  | "checkingOut"
-  /**  `Filtering content` (LFS smudge during checkout). */
-  | "filtering"
-  /**  `Uploading LFS objects` / `Downloading LFS objects`. */
-  | "lfs"
-  | "other";
+export type ProgressPhase = "enumerating" | "counting" | "compressing" | "receiving" | "resolving" | "writing" | "unpacking" | 
+/**  `Updating files` / `Checking out files`. */
+"checkingOut" | 
+/**  `Filtering content` (LFS smudge during checkout). */
+"filtering" | 
+/**  `Uploading LFS objects` / `Downloading LFS objects`. */
+"lfs" | "other";
 
 /**  A GitHub/GitLab instance. `github.com` and `gitlab.com` are built in (ids `github`, `gitlab`). */
 export type Provider = {
-  id: string;
-  kind: ProviderKind;
-  name: string;
-  /**  Web root, e.g. `https://github.com` or `https://gitlab.acme.dev:8443`. */
-  baseUrl: string;
-  apiUrl: string;
-  oauthClientId: string | null;
-  largeFileWarnMb: number;
-  largeFileBlockMb: number | null;
-  builtin: boolean;
+	id: string,
+	kind: ProviderKind,
+	name: string,
+	/**  Web root, e.g. `https://github.com` or `https://gitlab.acme.dev:8443`. */
+	baseUrl: string,
+	apiUrl: string,
+	oauthClientId: string | null,
+	largeFileWarnMb: number,
+	largeFileBlockMb: number | null,
+	builtin: boolean,
 };
 
 /**  Sign-in options of a provider for the add-account wizard and the Providers tab. */
 export type ProviderAuthConfig = {
-  providerId: string;
-  /**  A client id is available (provider row or built-in). */
-  hasClientId: boolean;
-  /**  The client id comes from the app build, not from the provider row. */
-  builtinClientId: boolean;
-  deviceFlow: boolean;
-  pkce: boolean;
-  loopbackPort: number;
-  redirectUri: string;
-  /**  Personal access token page with the scopes pre-selected. */
-  patUrl: string;
-  /**  Scopes to tick when creating a PAT. */
-  patScopes: string[];
-  /**  Where to register an OAuth application on this instance. */
-  oauthAppsUrl: string;
+	providerId: string,
+	/**  A client id is available (provider row or built-in). */
+	hasClientId: boolean,
+	/**  The client id comes from the app build, not from the provider row. */
+	builtinClientId: boolean,
+	deviceFlow: boolean,
+	pkce: boolean,
+	loopbackPort: number,
+	redirectUri: string,
+	/**  Personal access token page with the scopes pre-selected. */
+	patUrl: string,
+	/**  Scopes to tick when creating a PAT. */
+	patScopes: string[],
+	/**  Where to register an OAuth application on this instance. */
+	oauthAppsUrl: string,
 };
 
 /**  One email address of the account. */
 export type ProviderEmail = {
-  email: string;
-  /**  Commits authored with an unverified email are not linked to the profile (Commit Guard). */
-  verified: boolean;
-  primary: boolean;
-  /**  GitLab `commit_email` — the address the web UI uses for commits. */
-  commitEmail: boolean;
+	email: string,
+	/**  Commits authored with an unverified email are not linked to the profile (Commit Guard). */
+	verified: boolean,
+	primary: boolean,
+	/**  GitLab `commit_email` — the address the web UI uses for commits. */
+	commitEmail: boolean,
 };
 
 /**
  *  Errors from provider API calls. Serialized as `{ "kind": "...", ...fields }` so the
  *  frontend can pick a translated message per `kind`.
  */
-export type ProviderError =
-  /**  401: token invalid, expired or revoked — sign in again / replace the PAT. */
-  | { kind: "unauthorized"; message: string }
-  /**  403 that is not a rate limit. */
-  | { kind: "forbidden"; message: string; hint: AccessHint | null }
-  /**
-   *  HTTP 404: GitHub and GitLab also answer 404 for private resources the token cannot see, so a
-   *  hint may be attached (missing scope, OAuth app restriction).
-   */
-  | { kind: "notFound"; message: string; hint: AccessHint | null }
-  /**  Primary or secondary rate limit. `reset_at` is a Unix timestamp (seconds). */
-  | { kind: "rateLimited"; resetAt: number | null; retryAfterSecs: number | null }
-  /**  The object already exists (e.g. SSH key already registered). */
-  | { kind: "alreadyExists"; message: string }
-  /**  400 / 409 / 422 validation failures. */
-  | { kind: "rejected"; status: number; message: string }
-  /**  HTTP 5xx. */
-  | { kind: "server"; status: number; message: string }
-  | { kind: "unexpectedStatus"; status: number; message: string }
-  | { kind: "timeout" }
-  /**  DNS, connect, TLS or connection reset. */
-  | { kind: "network"; message: string }
-  /**  Body was not the JSON we expected. */
-  | { kind: "invalidResponse"; message: string }
-  | { kind: "invalidInput"; message: string }
-  /**  A remote URL points at a different host than the account's provider. */
-  | { kind: "hostMismatch"; expected: string; actual: string }
-  /**  Feature not available on this server/version. */
-  | { kind: "unsupported"; message: string }
-  | { kind: "cancelled" };
+export type ProviderError = 
+/**  401: token invalid, expired or revoked — sign in again / replace the PAT. */
+{ kind: "unauthorized"; message: string } | 
+/**  403 that is not a rate limit. */
+{ kind: "forbidden"; message: string; hint: AccessHint | null } | 
+/**
+ *  HTTP 404: GitHub and GitLab also answer 404 for private resources the token cannot see, so a
+ *  hint may be attached (missing scope, OAuth app restriction).
+ */
+{ kind: "notFound"; message: string; hint: AccessHint | null } | 
+/**  Primary or secondary rate limit. `reset_at` is a Unix timestamp (seconds). */
+{ kind: "rateLimited"; resetAt: number | null; retryAfterSecs: number | null } | 
+/**  The object already exists (e.g. SSH key already registered). */
+{ kind: "alreadyExists"; message: string } | 
+/**  400 / 409 / 422 validation failures. */
+{ kind: "rejected"; status: number; message: string } | 
+/**  HTTP 5xx. */
+{ kind: "server"; status: number; message: string } | { kind: "unexpectedStatus"; status: number; message: string } | { kind: "timeout" } | 
+/**  DNS, connect, TLS or connection reset. */
+{ kind: "network"; message: string } | 
+/**  Body was not the JSON we expected. */
+{ kind: "invalidResponse"; message: string } | { kind: "invalidInput"; message: string } | 
+/**  A remote URL points at a different host than the account's provider. */
+{ kind: "hostMismatch"; expected: string; actual: string } | 
+/**  Feature not available on this server/version. */
+{ kind: "unsupported"; message: string } | { kind: "cancelled" };
 
 /**  GitHub-flavoured or GitLab-flavoured API, regardless of hosting. */
 export type ProviderFamily = "github" | "gitlab";
 
 /**  Create (no `id`) or update a provider. Omitted API URL / thresholds use the kind's defaults. */
 export type ProviderInput = {
-  id?: string | null;
-  kind: ProviderKind;
-  name: string;
-  baseUrl: string;
-  apiUrl?: string | null;
-  oauthClientId?: string | null;
-  largeFileWarnMb?: number | null;
-  largeFileBlockMb?: number | null;
+	id?: string | null,
+	kind: ProviderKind,
+	name: string,
+	baseUrl: string,
+	apiUrl?: string | null,
+	oauthClientId?: string | null,
+	largeFileWarnMb?: number | null,
+	largeFileBlockMb?: number | null,
 };
 
 export type ProviderKind = "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted";
 
 /**  One object `git lfs prune` would delete. */
 export type PruneObject = {
-  oid: string;
-  size: number;
+	oid: string,
+	size: number,
 };
 
 /**  What `git lfs prune` would do (or did). */
 export type PruneReport = {
-  localObjects: number;
-  /**  Objects kept (recent, unpushed, referenced by the checkout / stashes). */
-  retained: number;
-  /**  Objects to delete (dry run) or deleted. */
-  objects: PruneObject[];
-  /**  Bytes freed by deleting `objects`. */
-  bytes: number;
-  /**  Objects confirmed present on the remote (`--verify-remote`). */
-  verified: number | null;
-  /**
-   *  `objects` / `bytes` are an upper bound: git-lfs did not say exactly which objects go
-   *  (its verbose list is incomplete), so every local object not in the checkout is counted.
-   */
-  approximate: boolean;
+	localObjects: number,
+	/**  Objects kept (recent, unpushed, referenced by the checkout / stashes). */
+	retained: number,
+	/**  Objects to delete (dry run) or deleted. */
+	objects: PruneObject[],
+	/**  Bytes freed by deleting `objects`. */
+	bytes: number,
+	/**  Objects confirmed present on the remote (`--verify-remote`). */
+	verified: number | null,
+	/**
+	 *  `objects` / `bytes` are an upper bound: git-lfs did not say exactly which objects go
+	 *  (its verbose list is incomplete), so every local object not in the checkout is counted.
+	 */
+	approximate: boolean,
 };
 
 /**  Result of a checkout. */
 export type PullCheckout = {
-  branch: string;
-  /**  A new local branch was created (else an existing one was switched to). */
-  created: boolean;
-  /**  Upstream set for the branch (same-project pull requests only). */
-  upstream: string | null;
+	branch: string,
+	/**  A new local branch was created (else an existing one was switched to). */
+	created: boolean,
+	/**  Upstream set for the branch (same-project pull requests only). */
+	upstream: string | null,
 };
 
 /**  What to check out. */
 export type PullCheckoutRequest = {
-  /**  Project of the pull request (its target). */
-  fullName: string;
-  number: number;
-  sourceBranch: string;
-  fromFork: boolean;
-  /**  Provider family (which ref namespace holds the pull request head). */
-  family: ProviderFamily;
-  /**  Local branch name; `None` = the source branch name, with a suffix when taken. */
-  localName?: string | null;
+	/**  Project of the pull request (its target). */
+	fullName: string,
+	number: number,
+	sourceBranch: string,
+	fromFork: boolean,
+	/**  Provider family (which ref namespace holds the pull request head). */
+	family: ProviderFamily,
+	/**  Local branch name; `None` = the source branch name, with a suffix when taken. */
+	localName?: string | null,
 };
 
 /**
  *  Error of the pull request commands: a provider answer (with the account that made the call,
  *  so the UI can offer "sign in again" / "use another account") or an app error.
  */
-export type PullCommandError =
-  | {
-      kind: "provider";
-      message: string;
-      accountId: string;
-      /**  Boxed: keeps `Result<_, PullCommandError>` small. */
-      error: ProviderError;
-    }
-  | { kind: "app"; message: string; error: AppError };
+export type PullCommandError = { kind: "provider"; message: string; accountId: string; 
+/**  Boxed: keeps `Result<_, PullCommandError>` small. */
+error: ProviderError } | { kind: "app"; message: string; error: AppError };
 
 /**  A comment, review or event of a pull request. */
 export type PullComment = {
-  id: string;
-  kind: PullCommentKind;
-  author: PullUser | null;
-  /**  Markdown (untrusted). */
-  body: string;
-  createdAt: number | null;
-  updatedAt: number | null;
-  /**
-   *  Comments of one line thread share this id (GitHub: root comment id; GitLab: discussion
-   *  id). Pass it to [`PullCommentTarget::Reply`].
-   */
-  threadId: string | null;
-  anchor: PullLineAnchor | null;
-  /**  Review verdict for [`PullCommentKind::Review`]. */
-  reviewState: PullReviewerState | null;
-  /**  GitLab resolvable discussions. */
-  resolved: boolean | null;
-  webUrl: string | null;
+	id: string,
+	kind: PullCommentKind,
+	author: PullUser | null,
+	/**  Markdown (untrusted). */
+	body: string,
+	createdAt: number | null,
+	updatedAt: number | null,
+	/**
+	 *  Comments of one line thread share this id (GitHub: root comment id; GitLab: discussion
+	 *  id). Pass it to [`PullCommentTarget::Reply`].
+	 */
+	threadId: string | null,
+	anchor: PullLineAnchor | null,
+	/**  Review verdict for [`PullCommentKind::Review`]. */
+	reviewState: PullReviewerState | null,
+	/**  GitLab resolvable discussions. */
+	resolved: boolean | null,
+	webUrl: string | null,
 };
 
 /**  What a timeline entry is. */
-export type PullCommentKind =
-  /**  Conversation comment. */
-  | "general"
-  /**  Comment on a line of the diff. */
-  | "line"
-  /**  A submitted review (its summary body and verdict). */
-  | "review"
-  /**  Provider event ("added 2 commits", "approved this merge request"…; GitLab system notes). */
-  | "system";
+export type PullCommentKind = 
+/**  Conversation comment. */
+"general" | 
+/**  Comment on a line of the diff. */
+"line" | 
+/**  A submitted review (its summary body and verdict). */
+"review" | 
+/**  Provider event ("added 2 commits", "approved this merge request"…; GitLab system notes). */
+"system";
 
 /**  Where [`ProviderClient::pull_comment`] posts. */
-export type PullCommentTarget =
-  /**  Conversation comment. */
-  | { kind: "general" }
-  /**  Answer in an existing line thread (`thread_id` of a comment). */
-  | { kind: "reply"; threadId: string }
-  /**  New comment on a line of the current diff. */
-  | {
-      kind: "line";
-      path: string;
-      /**  Previous path (renamed files; GitLab needs both). */
-      oldPath?: string | null;
-      line: number;
-      side: PullSide;
-      /**
-       *  Line number on the other side when the line is unchanged context (GitLab needs
-       *  both for context lines; GitHub ignores it).
-       */
-      pairedLine?: number | null;
-    };
+export type PullCommentTarget = 
+/**  Conversation comment. */
+{ kind: "general" } | 
+/**  Answer in an existing line thread (`thread_id` of a comment). */
+{ kind: "reply"; threadId: string } | 
+/**  New comment on a line of the current diff. */
+{ kind: "line"; path: string; 
+/**  Previous path (renamed files; GitLab needs both). */
+oldPath?: string | null; line: number; side: PullSide; 
+/**
+ *  Line number on the other side when the line is unchanged context (GitLab needs
+ *  both for context lines; GitHub ignores it).
+ */
+pairedLine?: number | null };
 
 /**  A commit of a pull request. */
 export type PullCommit = {
-  sha: string;
-  /**  First line of the message. */
-  title: string;
-  message: string;
-  authorName: string;
-  /**  Provider login of the author when linked. */
-  authorLogin: string | null;
-  authoredAt: number | null;
+	sha: string,
+	/**  First line of the message. */
+	title: string,
+	message: string,
+	authorName: string,
+	/**  Provider login of the author when linked. */
+	authorLogin: string | null,
+	authoredAt: number | null,
 };
 
 /**  New pull request. */
 export type PullCreate = {
-  sourceBranch: string;
-  targetBranch: string;
-  title: string;
-  body?: string;
-  draft?: boolean;
-  /**  Logins. */
-  reviewers?: string[];
-  labels?: string[];
-  /**  GitLab: delete the source branch when merged. */
-  removeSourceBranch?: boolean;
+	sourceBranch: string,
+	targetBranch: string,
+	title: string,
+	body?: string,
+	draft?: boolean,
+	/**  Logins. */
+	reviewers?: string[],
+	labels?: string[],
+	/**  GitLab: delete the source branch when merged. */
+	removeSourceBranch?: boolean,
 };
 
 /**  Everything the "Create pull request" dialog needs about a local branch. */
 export type PullCreateContext = {
-  branch: string;
-  /**  Hosted remotes (targets), `origin` first. */
-  remotes: HostedRemote[];
-  /**  The chosen target remote (the requested one, else `upstream` when present, else the first). */
-  target: HostedRemote;
-  /**  Default branch of the target project (API, else the remote's `HEAD`, else `main`). */
-  targetBranch: string;
-  push: PullPushState;
-  /**  `source_branch` to send to the API (`owner:branch` for a GitHub fork). */
-  sourceRef: string;
-  /**  The branch is pushed to another project than the target (a fork). */
-  crossRepo: boolean;
-  /**  Cross-project merge requests are not supported for GitLab yet. */
-  crossRepoUnsupported: boolean;
-  suggestedTitle: string;
-  suggestedBody: string;
-  /**  Commits of the branch not in the target branch (as far as local refs know). */
-  commitCount: number;
+	branch: string,
+	/**  Hosted remotes (targets), `origin` first. */
+	remotes: HostedRemote[],
+	/**  The chosen target remote (the requested one, else `upstream` when present, else the first). */
+	target: HostedRemote,
+	/**  Default branch of the target project (API, else the remote's `HEAD`, else `main`). */
+	targetBranch: string,
+	push: PullPushState,
+	/**  `source_branch` to send to the API (`owner:branch` for a GitHub fork). */
+	sourceRef: string,
+	/**  The branch is pushed to another project than the target (a fork). */
+	crossRepo: boolean,
+	/**  Cross-project merge requests are not supported for GitLab yet. */
+	crossRepoUnsupported: boolean,
+	suggestedTitle: string,
+	suggestedBody: string,
+	/**  Commits of the branch not in the target branch (as far as local refs know). */
+	commitCount: number,
 };
 
 /**
@@ -4038,214 +3514,210 @@ export type PullCreateContext = {
  *  (reviewers / labels that could not be set), as short English messages.
  */
 export type PullCreated = {
-  number: number;
-  webUrl: string;
-  warnings: string[];
+	number: number,
+	webUrl: string,
+	warnings: string[],
 };
 
 /**  Full view of one pull request. */
 export type PullDetail = {
-  number: number;
-  title: string;
-  /**  Markdown as written by the author (untrusted; the UI renders it as plain text). */
-  body: string;
-  state: PullState;
-  draft: boolean;
-  author: PullUser | null;
-  sourceBranch: string;
-  targetBranch: string;
-  /**  Project the source branch lives in (`None`: the fork was deleted). */
-  sourceRepo: string | null;
-  targetRepo: string;
-  /**  The source branch lives in another project (a fork). */
-  fromFork: boolean;
-  headSha: string;
-  baseSha: string | null;
-  /**  GitLab `diff_refs.start_sha` (needed for new line comments). */
-  startSha: string | null;
-  mergeState: PullMergeState;
-  /**  Provider's own wording (`mergeable_state` / `detailed_merge_status`) for details. */
-  mergeStateRaw: string | null;
-  /**  Methods the project allows (all three when the provider does not tell). */
-  mergeMethods: PullMergeMethod[];
-  /**  The project deletes the source branch on merge by default. */
-  deleteSourceDefault: boolean;
-  labels: string[];
-  assignees: PullUser[];
-  /**  General comments (GitHub issue comments / GitLab user notes). */
-  comments: number;
-  /**  Line comments (GitHub only; GitLab counts them in `comments`). */
-  reviewComments: number;
-  commits: number | null;
-  additions: number | null;
-  deletions: number | null;
-  changedFiles: number | null;
-  createdAt: number | null;
-  updatedAt: number | null;
-  mergedAt: number | null;
-  closedAt: number | null;
-  mergedBy: PullUser | null;
-  webUrl: string;
+	number: number,
+	title: string,
+	/**  Markdown as written by the author (untrusted; the UI renders it as plain text). */
+	body: string,
+	state: PullState,
+	draft: boolean,
+	author: PullUser | null,
+	sourceBranch: string,
+	targetBranch: string,
+	/**  Project the source branch lives in (`None`: the fork was deleted). */
+	sourceRepo: string | null,
+	targetRepo: string,
+	/**  The source branch lives in another project (a fork). */
+	fromFork: boolean,
+	headSha: string,
+	baseSha: string | null,
+	/**  GitLab `diff_refs.start_sha` (needed for new line comments). */
+	startSha: string | null,
+	mergeState: PullMergeState,
+	/**  Provider's own wording (`mergeable_state` / `detailed_merge_status`) for details. */
+	mergeStateRaw: string | null,
+	/**  Methods the project allows (all three when the provider does not tell). */
+	mergeMethods: PullMergeMethod[],
+	/**  The project deletes the source branch on merge by default. */
+	deleteSourceDefault: boolean,
+	labels: string[],
+	assignees: PullUser[],
+	/**  General comments (GitHub issue comments / GitLab user notes). */
+	comments: number,
+	/**  Line comments (GitHub only; GitLab counts them in `comments`). */
+	reviewComments: number,
+	commits: number | null,
+	additions: number | null,
+	deletions: number | null,
+	changedFiles: number | null,
+	createdAt: number | null,
+	updatedAt: number | null,
+	mergedAt: number | null,
+	closedAt: number | null,
+	mergedBy: PullUser | null,
+	webUrl: string,
 };
 
 /**  A file changed by a pull request. */
 export type PullFile = {
-  path: string;
-  /**  Previous path of a renamed / copied file. */
-  oldPath: string | null;
-  status: PullFileStatus;
-  additions: number;
-  deletions: number;
-  /**
-   *  Unified diff hunks (from the first `@@`). `None` when the provider left it out (large or
-   *  binary file): the app then diffs locally after fetching the pull request ref.
-   */
-  patch: string | null;
+	path: string,
+	/**  Previous path of a renamed / copied file. */
+	oldPath: string | null,
+	status: PullFileStatus,
+	additions: number,
+	deletions: number,
+	/**
+	 *  Unified diff hunks (from the first `@@`). `None` when the provider left it out (large or
+	 *  binary file): the app then diffs locally after fetching the pull request ref.
+	 */
+	patch: string | null,
 };
 
 export type PullFileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "changed";
 
 /**  Files of a pull request. */
 export type PullFiles = {
-  files: PullFile[];
-  /**  More files than the provider lists (GitHub stops at 3000) or than we read. */
-  truncated: boolean;
+	files: PullFile[],
+	/**  More files than the provider lists (GitHub stops at 3000) or than we read. */
+	truncated: boolean,
 };
 
 /**  Where a line comment is anchored. */
 export type PullLineAnchor = {
-  path: string;
-  /**  `None` when the line no longer exists in the current diff (outdated). */
-  line: number | null;
-  side: PullSide;
-  /**  The line in the diff the comment was written on (may differ when outdated). */
-  originalLine: number | null;
-  /**  GitHub `diff_hunk` (context around the line). */
-  diffHunk: string | null;
+	path: string,
+	/**  `None` when the line no longer exists in the current diff (outdated). */
+	line: number | null,
+	side: PullSide,
+	/**  The line in the diff the comment was written on (may differ when outdated). */
+	originalLine: number | null,
+	/**  GitHub `diff_hunk` (context around the line). */
+	diffHunk: string | null,
 };
 
 /**  Filters and page of [`ProviderClient::pull_list`]. User names are provider logins. */
 export type PullListQuery = {
-  state?: PullStateFilter;
-  author?: string | null;
-  /**  Review requested from (GitHub) / reviewer (GitLab). */
-  reviewer?: string | null;
-  assignee?: string | null;
-  label?: string | null;
-  /**  1-based. */
-  page?: number;
-  /**  1..=100 (0 = 30). */
-  perPage?: number;
+	state?: PullStateFilter,
+	author?: string | null,
+	/**  Review requested from (GitHub) / reviewer (GitLab). */
+	reviewer?: string | null,
+	assignee?: string | null,
+	label?: string | null,
+	/**  1-based. */
+	page?: number,
+	/**  1..=100 (0 = 30). */
+	perPage?: number,
 };
 
 /**  Unified diff of one file computed locally (for files whose patch the provider left out). */
 export type PullLocalDiff = {
-  /**  Hunks from the first `@@`; `None` for binary files or when too large. */
-  patch: string | null;
-  binary: boolean;
-  tooLarge: boolean;
+	/**  Hunks from the first `@@`; `None` for binary files or when too large. */
+	patch: string | null,
+	binary: boolean,
+	tooLarge: boolean,
 };
 
 /**  What [`pull_local_diff`] compares. */
 export type PullLocalDiffRequest = {
-  fullName: string;
-  number: number;
-  family: ProviderFamily;
-  baseSha: string;
-  headSha: string;
-  targetBranch: string;
-  path: string;
-  oldPath?: string | null;
+	fullName: string,
+	number: number,
+	family: ProviderFamily,
+	baseSha: string,
+	headSha: string,
+	targetBranch: string,
+	path: string,
+	oldPath?: string | null,
 };
 
 /**  A merge method of [`ProviderClient::pull_merge`]. */
-export type PullMergeMethod =
-  | "merge"
-  | "squash"
-  /**  GitHub "Rebase and merge". GitLab rebases through the project setting instead. */
-  | "rebase";
+export type PullMergeMethod = "merge" | "squash" | 
+/**  GitHub "Rebase and merge". GitLab rebases through the project setting instead. */
+"rebase";
 
 /**  Merge options. */
 export type PullMergeRequest = {
-  method: PullMergeMethod;
-  deleteSourceBranch?: boolean;
-  /**  Only merge if the head is still this commit (refuses when someone pushed meanwhile). */
-  expectedHeadSha?: string | null;
+	method: PullMergeMethod,
+	deleteSourceBranch?: boolean,
+	/**  Only merge if the head is still this commit (refuses when someone pushed meanwhile). */
+	expectedHeadSha?: string | null,
 };
 
 /**  Can the pull request be merged as it stands? */
-export type PullMergeState =
-  /**  No conflict and nothing blocking. */
-  | "clean"
-  /**  Conflicts with the target branch. */
-  | "conflicts"
-  /**
-   *  Blocked by branch protection / required approvals / failing required checks /
-   *  unresolved discussions.
-   */
-  | "blocked"
-  /**
-   *  The source branch is behind the target and the project requires it up to date (or a
-   *  rebase, GitLab fast-forward projects).
-   */
-  | "behind"
-  /**  Mergeable, but some (non-required) checks are failing. */
-  | "unstable"
-  /**  Draft pull requests cannot be merged. */
-  | "draft"
-  /**  The provider is still computing it — ask again in a moment. */
-  | "checking"
-  /**  Already merged / closed, or not reported. */
-  | "unknown";
+export type PullMergeState = 
+/**  No conflict and nothing blocking. */
+"clean" | 
+/**  Conflicts with the target branch. */
+"conflicts" | 
+/**
+ *  Blocked by branch protection / required approvals / failing required checks /
+ *  unresolved discussions.
+ */
+"blocked" | 
+/**
+ *  The source branch is behind the target and the project requires it up to date (or a
+ *  rebase, GitLab fast-forward projects).
+ */
+"behind" | 
+/**  Mergeable, but some (non-required) checks are failing. */
+"unstable" | 
+/**  Draft pull requests cannot be merged. */
+"draft" | 
+/**  The provider is still computing it — ask again in a moment. */
+"checking" | 
+/**  Already merged / closed, or not reported. */
+"unknown";
 
 /**  Result of a merge. */
 export type PullMerged = {
-  sha: string | null;
-  /**  The source branch was deleted (requested and allowed). */
-  branchDeleted: boolean;
-  /**  Why the requested branch deletion did not happen. */
-  deleteError: string | null;
+	sha: string | null,
+	/**  The source branch was deleted (requested and allowed). */
+	branchDeleted: boolean,
+	/**  Why the requested branch deletion did not happen. */
+	deleteError: string | null,
 };
 
-export type PullMode =
-  /**  Fetch then merge (`--no-rebase`; fast-forwards when possible). */
-  | "merge"
-  /**  Fetch then rebase local commits on top (`--rebase`). */
-  | "rebase"
-  /**  Fetch then fast-forward only (`--ff-only`). */
-  | "fastForwardOnly";
+export type PullMode = 
+/**  Fetch then merge (`--no-rebase`; fast-forwards when possible). */
+"merge" | 
+/**  Fetch then rebase local commits on top (`--rebase`). */
+"rebase" | 
+/**  Fetch then fast-forward only (`--ff-only`). */
+"fastForwardOnly";
 
 /**  One page of [`PullSummary`]. */
 export type PullPage = {
-  items: PullSummary[];
-  nextPage: number | null;
-  /**  Total match count when the provider reports it. */
-  total: number | null;
+	items: PullSummary[],
+	nextPage: number | null,
+	/**  Total match count when the provider reports it. */
+	total: number | null,
 };
 
 /**  Whether the branch is on a remote, and how far the local branch is ahead. */
 export type PullPushState = {
-  /**  Remote the branch is (or would be) pushed to. */
-  remote: string | null;
-  /**  Name of the branch on that remote. */
-  remoteBranch: string;
-  /**  The remote-tracking branch exists. */
-  pushed: boolean;
-  /**  Local commits not on the remote yet. */
-  ahead: number;
+	/**  Remote the branch is (or would be) pushed to. */
+	remote: string | null,
+	/**  Name of the branch on that remote. */
+	remoteBranch: string,
+	/**  The remote-tracking branch exists. */
+	pushed: boolean,
+	/**  Local commits not on the remote yet. */
+	ahead: number,
 };
 
 /**
  *  Overall review outcome (computed from the latest review of each reviewer; branch protection
  *  rules may still require more).
  */
-export type PullReviewDecision =
-  | "approved"
-  | "changesRequested"
-  /**  Reviews were requested and are pending (GitLab: approvals still missing). */
-  | "reviewRequired"
-  /**  No reviewer, no review. */
-  | "none";
+export type PullReviewDecision = "approved" | "changesRequested" | 
+/**  Reviews were requested and are pending (GitLab: approvals still missing). */
+"reviewRequired" | 
+/**  No reviewer, no review. */
+"none";
 
 /**
  *  Review verdicts. GitLab has no "request changes" API: it is posted as a comment (the UI says
@@ -4255,35 +3727,35 @@ export type PullReviewEvent = "approve" | "requestChanges" | "comment" | "unappr
 
 /**  One reviewer (requested or having reviewed). */
 export type PullReviewer = {
-  user: PullUser;
-  state: PullReviewerState;
+	user: PullUser,
+	state: PullReviewerState,
 };
 
 /**  Review state of one reviewer. */
-export type PullReviewerState =
-  /**  Asked to review, nothing submitted yet. */
-  "requested" | "approved" | "changesRequested" | "commented" | "dismissed";
+export type PullReviewerState = 
+/**  Asked to review, nothing submitted yet. */
+"requested" | "approved" | "changesRequested" | "commented" | "dismissed";
 
 /**  Reviewers of a pull request and the overall decision. */
 export type PullReviews = {
-  decision: PullReviewDecision;
-  reviewers: PullReviewer[];
-  /**  Requested teams (GitHub), shown as names. */
-  teams: string[];
-  /**  GitLab: approvals still needed (`None` when unknown / GitHub). */
-  approvalsLeft: number | null;
-  /**  GitLab: the token's user already approved. */
-  approvedByMe: boolean | null;
-  /**  GitLab: the approvals API is missing on this server (old GitLab Free). */
-  approvalsUnavailable: boolean;
+	decision: PullReviewDecision,
+	reviewers: PullReviewer[],
+	/**  Requested teams (GitHub), shown as names. */
+	teams: string[],
+	/**  GitLab: approvals still needed (`None` when unknown / GitHub). */
+	approvalsLeft: number | null,
+	/**  GitLab: the token's user already approved. */
+	approvedByMe: boolean | null,
+	/**  GitLab: the approvals API is missing on this server (old GitLab Free). */
+	approvalsUnavailable: boolean,
 };
 
 /**  Side of a diff a line comment is on. */
-export type PullSide =
-  /**  The old file (deleted / context line numbers of the target). */
-  | "old"
-  /**  The new file. */
-  | "new";
+export type PullSide = 
+/**  The old file (deleted / context line numbers of the target). */
+"old" | 
+/**  The new file. */
+"new";
 
 /**  State of a pull request. */
 export type PullState = "open" | "closed" | "merged";
@@ -4293,346 +3765,338 @@ export type PullStateFilter = "open" | "closed" | "merged" | "all";
 
 /**  One row of a pull request listing. */
 export type PullSummary = {
-  number: number;
-  title: string;
-  state: PullState;
-  draft: boolean;
-  author: PullUser | null;
-  /**  `None` when the listing came from GitHub search (which has no branch data). */
-  sourceBranch: string | null;
-  targetBranch: string | null;
-  labels: string[];
-  /**  Comment count when the listing carries it. */
-  comments: number | null;
-  /**  Unix seconds. */
-  createdAt: number | null;
-  updatedAt: number | null;
-  webUrl: string;
+	number: number,
+	title: string,
+	state: PullState,
+	draft: boolean,
+	author: PullUser | null,
+	/**  `None` when the listing came from GitHub search (which has no branch data). */
+	sourceBranch: string | null,
+	targetBranch: string | null,
+	labels: string[],
+	/**  Comment count when the listing carries it. */
+	comments: number | null,
+	/**  Unix seconds. */
+	createdAt: number | null,
+	updatedAt: number | null,
+	webUrl: string,
 };
 
 /**  A user as shown next to a pull request, comment or review. */
 export type PullUser = {
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  webUrl: string | null;
+	username: string,
+	displayName: string | null,
+	avatarUrl: string | null,
+	webUrl: string | null,
 };
 
 /**  What `git lfs push` would upload. */
 export type PushEstimate = {
-  remote: string;
-  branch: string;
-  objects: LfsObject[];
-  totalBytes: number;
-  /**  Objects whose size could not be read locally (not counted in `total_bytes`). */
-  unknownSizes: number;
+	remote: string,
+	branch: string,
+	objects: LfsObject[],
+	totalBytes: number,
+	/**  Objects whose size could not be read locally (not counted in `total_bytes`). */
+	unknownSizes: number,
 };
 
-export type PushFinding =
-  | { kind: "authorMismatch"; count: number; email: string }
-  | { kind: "permissionDenied"; accountLabel: string | null; level: AccessLevel | null }
-  /**  Blobs over the limits in unpushed commits that can be moved to LFS. */
-  | { kind: "heavyBlobs"; block: number; warn: number }
-  /**  Heavy blobs in commits already on a remote branch (guide only). */
-  | { kind: "heavyBlobsShared"; count: number };
+export type PushFinding = { kind: "authorMismatch"; count: number; email: string } | { kind: "permissionDenied"; accountLabel: string | null; level: AccessLevel | null } | 
+/**  Blobs over the limits in unpushed commits that can be moved to LFS. */
+{ kind: "heavyBlobs"; block: number; warn: number } | 
+/**  Heavy blobs in commits already on a remote branch (guide only). */
+{ kind: "heavyBlobsShared"; count: number };
 
 export type PushGuardReport = {
-  repoId: number;
-  remote: string;
-  branch: string;
-  upstream: string | null;
-  identity: GuardIdentity | null;
-  /**  Newest first (at most 1000). */
-  unpushed: UnpushedCommit[];
-  totalUnpushed: number;
-  /**  No unpushed commit is on another remote branch: fixes may rewrite them. */
-  rewritable: boolean;
-  /**  Unpushed commits whose author or committer email differs from `identity`. */
-  authorMismatch: UnpushedCommit[];
-  heavyBlobs: GuardHeavyBlob[];
-  thresholds: GuardThresholds;
-  permission: PushPermission;
-  findings: PushFinding[];
-  /**  The push will certainly fail (permission denied or a blob over the hard limit). */
-  blocked: boolean;
-  /**  The branch is checked out (fixes need it). */
-  isCurrent: boolean;
+	repoId: number,
+	remote: string,
+	branch: string,
+	upstream: string | null,
+	identity: GuardIdentity | null,
+	/**  Newest first (at most 1000). */
+	unpushed: UnpushedCommit[],
+	totalUnpushed: number,
+	/**  No unpushed commit is on another remote branch: fixes may rewrite them. */
+	rewritable: boolean,
+	/**  Unpushed commits whose author or committer email differs from `identity`. */
+	authorMismatch: UnpushedCommit[],
+	heavyBlobs: GuardHeavyBlob[],
+	thresholds: GuardThresholds,
+	permission: PushPermission,
+	findings: PushFinding[],
+	/**  The push will certainly fail (permission denied or a blob over the hard limit). */
+	blocked: boolean,
+	/**  The branch is checked out (fixes need it). */
+	isCurrent: boolean,
 };
 
 export type PushPermission = {
-  status: PermissionStatus;
-  level: AccessLevel | null;
-  accountId: string | null;
-  accountLabel: string | null;
-  /**  Why it is unknown (provider error code: `network`, `timeout`, `noToken`…). */
-  reason: string | null;
+	status: PermissionStatus,
+	level: AccessLevel | null,
+	accountId: string | null,
+	accountLabel: string | null,
+	/**  Why it is unknown (provider error code: `network`, `timeout`, `noToken`…). */
+	reason: string | null,
 };
 
 /**  What to push: a local branch to a remote. */
 export type PushRequest = {
-  remote: string;
-  branch: string;
-  /**  Name on the remote; `null` = same as `branch`. */
-  remoteBranch: string | null;
-  setUpstream: boolean;
-  forceWithLease: boolean;
+	remote: string,
+	branch: string,
+	/**  Name on the remote; `null` = same as `branch`. */
+	remoteBranch: string | null,
+	setUpstream: boolean,
+	forceWithLease: boolean,
 };
 
 export type PushSummary = {
-  /**  Nothing had to be sent. */
-  upToDate: boolean;
+	/**  Nothing had to be sent. */
+	upToDate: boolean,
 };
 
 /**  One commit that a rebase would rewrite. */
 export type RebaseCommit = {
-  oid: string;
-  shortOid: string;
-  subject: string;
-  /**  Full message (subject, blank line, body), trailing whitespace trimmed. */
-  message: string;
-  authorName: string;
-  /**  Author time, Unix seconds. */
-  time: number;
-  /**  Reachable from a remote-tracking ref (already pushed somewhere). */
-  pushed: boolean;
-  isMerge: boolean;
+	oid: string,
+	shortOid: string,
+	subject: string,
+	/**  Full message (subject, blank line, body), trailing whitespace trimmed. */
+	message: string,
+	authorName: string,
+	/**  Author time, Unix seconds. */
+	time: number,
+	/**  Reachable from a remote-tracking ref (already pushed somewhere). */
+	pushed: boolean,
+	isMerge: boolean,
 };
 
 export type RebaseOutcome = {
-  status: RebaseStatus;
-  conflicts: string[];
-  /**  Progress when stopped (1-based step / total). */
-  step: number | null;
-  totalSteps: number | null;
-  /**  Backup of the branch tip taken before the rebase (`None` for continue / skip). */
-  backupRef: string | null;
-  head: string | null;
-  /**  Rebased branch, when known. */
-  branch: string | null;
-  /**  `--autostash` could not re-apply the stashed changes cleanly; they stay in the stash. */
-  autostashConflict: boolean;
-  /**  git's own explanation when it stopped without conflicts. */
-  message: string | null;
+	status: RebaseStatus,
+	conflicts: string[],
+	/**  Progress when stopped (1-based step / total). */
+	step: number | null,
+	totalSteps: number | null,
+	/**  Backup of the branch tip taken before the rebase (`None` for continue / skip). */
+	backupRef: string | null,
+	head: string | null,
+	/**  Rebased branch, when known. */
+	branch: string | null,
+	/**  `--autostash` could not re-apply the stashed changes cleanly; they stay in the stash. */
+	autostashConflict: boolean,
+	/**  git's own explanation when it stopped without conflicts. */
+	message: string | null,
 };
 
 /**  What a rebase of `branch` onto `onto` would do. */
 export type RebasePreview = {
-  /**  Branch being rebased; `None` when HEAD is detached. */
-  branch: string | null;
-  /**  The branch is the checked-out one (otherwise git checks it out first). */
-  isCurrent: boolean;
-  /**  Tip of the branch. */
-  head: string;
-  /**  Full id of the new base (plain rebase) or of the exclusive base (interactive). */
-  onto: string;
-  /**  Commits to rewrite, oldest first (at most [`MAX_LISTED`]). */
-  commits: RebaseCommit[];
-  total: number;
-  /**  How many of them are already on a remote-tracking ref. */
-  pushed: number;
-  /**  Merge commits in the range (a plain rebase flattens them; interactive refuses). */
-  merges: number;
-  /**  Staged or unstaged changes to tracked files. */
-  dirty: boolean;
-  /**  Nothing to do: `onto` is already in the branch. */
-  upToDate: boolean;
-  /**  The branch is behind `onto` only: the rebase is a fast-forward (nothing rewritten). */
-  fastForward: boolean;
+	/**  Branch being rebased; `None` when HEAD is detached. */
+	branch: string | null,
+	/**  The branch is the checked-out one (otherwise git checks it out first). */
+	isCurrent: boolean,
+	/**  Tip of the branch. */
+	head: string,
+	/**  Full id of the new base (plain rebase) or of the exclusive base (interactive). */
+	onto: string,
+	/**  Commits to rewrite, oldest first (at most [`MAX_LISTED`]). */
+	commits: RebaseCommit[],
+	total: number,
+	/**  How many of them are already on a remote-tracking ref. */
+	pushed: number,
+	/**  Merge commits in the range (a plain rebase flattens them; interactive refuses). */
+	merges: number,
+	/**  Staged or unstaged changes to tracked files. */
+	dirty: boolean,
+	/**  Nothing to do: `onto` is already in the branch. */
+	upToDate: boolean,
+	/**  The branch is behind `onto` only: the rebase is a fast-forward (nothing rewritten). */
+	fastForward: boolean,
 };
 
 /**  Plain rebase request. */
 export type RebaseRequest = {
-  /**  New base: branch, remote branch, tag or commit id. */
-  onto: string;
-  /**  Branch to rebase; `None` = the checked-out branch. Another branch is checked out first. */
-  branch?: string | null;
-  /**  Stash uncommitted changes first and re-apply them afterwards. */
-  autostash?: boolean;
-  /**  The user confirmed rewriting commits that are already on a remote. */
-  allowPushed?: boolean;
+	/**  New base: branch, remote branch, tag or commit id. */
+	onto: string,
+	/**  Branch to rebase; `None` = the checked-out branch. Another branch is checked out first. */
+	branch?: string | null,
+	/**  Stash uncommitted changes first and re-apply them afterwards. */
+	autostash?: boolean,
+	/**  The user confirmed rewriting commits that are already on a remote. */
+	allowPushed?: boolean,
 };
 
-export type RebaseStatus =
-  /**  Finished; the branch points at the rewritten commits. */
-  | "completed"
-  /**  Nothing to do. */
-  | "upToDate"
-  /**  Stopped on conflicts: resolve, stage, then continue / skip / abort. */
-  | "conflicts"
-  /**
-   *  Stopped without conflicts (an `edit` step, or a step git could not apply on its own):
-   *  amend if you like, then continue.
-   */
-  | "stopped";
+export type RebaseStatus = 
+/**  Finished; the branch points at the rewritten commits. */
+"completed" | 
+/**  Nothing to do. */
+"upToDate" | 
+/**  Stopped on conflicts: resolve, stage, then continue / skip / abort. */
+"conflicts" | 
+/**
+ *  Stopped without conflicts (an `edit` step, or a step git could not apply on its own):
+ *  amend if you like, then continue.
+ */
+"stopped";
 
 export type RecentRepo = {
-  id: number;
-  path: string;
-  name: string;
-  /**  Milliseconds since the Unix epoch. */
-  lastOpenedAt: number;
-  exists: boolean;
+	id: number,
+	path: string,
+	name: string,
+	/**  Milliseconds since the Unix epoch. */
+	lastOpenedAt: number,
+	exists: boolean,
 };
 
 /**  What a [`RepoGraph::refresh`] had to do. */
-export type RefreshKind =
-  /**  First load, or history was rewritten (branch deleted, reset, rebase): read everything. */
-  | "full"
-  /**  Only new commits were read and prepended. */
-  | "incremental"
-  /**  No new commits, but labels moved (e.g. a tag was added to an existing commit). */
-  | "labelsOnly"
-  | "unchanged";
+export type RefreshKind = 
+/**  First load, or history was rewritten (branch deleted, reset, rebase): read everything. */
+"full" | 
+/**  Only new commits were read and prepended. */
+"incremental" | 
+/**  No new commits, but labels moved (e.g. a tag was added to an existing commit). */
+"labelsOnly" | "unchanged";
 
 export type Remote = {
-  name: string;
-  url: string | null;
-  branches: RemoteBranch[];
+	name: string,
+	url: string | null,
+	branches: RemoteBranch[],
 };
 
 /**  Account context of one remote, for the account pill / remote list. */
 export type RemoteAccountContext = {
-  remote: string;
-  /**  URL as configured, password removed. */
-  url: string;
-  host: string | null;
-  /**  Transport implied by the URL (`None` for local paths). */
-  transport: Transport | null;
-  account: Account | null;
-  identity: Identity | null;
-  source: ContextSource;
-  matchedRule: Rule | null;
-  /**  Comes from the repo-level binding rather than one made for this remote. */
-  inherited: boolean;
+	remote: string,
+	/**  URL as configured, password removed. */
+	url: string,
+	host: string | null,
+	/**  Transport implied by the URL (`None` for local paths). */
+	transport: Transport | null,
+	account: Account | null,
+	identity: Identity | null,
+	source: ContextSource,
+	matchedRule: Rule | null,
+	/**  Comes from the repo-level binding rather than one made for this remote. */
+	inherited: boolean,
 };
 
 export type RemoteBranch = {
-  /**  Branch name without the remote prefix (`feature/x`). */
-  name: string;
-  oid: string;
+	/**  Branch name without the remote prefix (`feature/x`). */
+	name: string,
+	oid: string,
 };
 
 export type RemoteUrl = {
-  scheme: UrlScheme;
-  /**  User name from the URL (`git` for most SSH remotes). Never the password. */
-  user: string | null;
-  /**  Lower-cased host name without brackets or port; empty for local remotes. */
-  host: string;
-  port: number | null;
-  /**
-   *  Repository path without leading `/`, trailing `/` or `.git`, e.g. `acme/platform/api`.
-   *  For local remotes: the path as written, with `/` separators.
-   */
-  path: string;
+	scheme: UrlScheme,
+	/**  User name from the URL (`git` for most SSH remotes). Never the password. */
+	user: string | null,
+	/**  Lower-cased host name without brackets or port; empty for local remotes. */
+	host: string,
+	port: number | null,
+	/**
+	 *  Repository path without leading `/`, trailing `/` or `.git`, e.g. `acme/platform/api`.
+	 *  For local remotes: the path as written, with `/` separators.
+	 */
+	path: string,
 };
 
 /**  Which account/identity a repo uses and why (PLAN §4.3, §4.5). */
 export type RepoAccountContext = {
-  repoId: number;
-  /**  `None` → the repo is unbound: show the "choose an account" banner. */
-  account: Account | null;
-  identity: Identity | null;
-  source: ContextSource;
-  matchedRule: Rule | null;
-  perRemote: RemoteAccountContext[];
-  bindings: RepoBinding[];
+	repoId: number,
+	/**  `None` → the repo is unbound: show the "choose an account" banner. */
+	account: Account | null,
+	identity: Identity | null,
+	source: ContextSource,
+	matchedRule: Rule | null,
+	perRemote: RemoteAccountContext[],
+	bindings: RepoBinding[],
 };
 
 /**  Repo → account binding, either for one remote or (remote `None`) as the repo default. */
 export type RepoBinding = {
-  repoId: number;
-  remoteName: string | null;
-  accountId: string;
-  /**  `None` → the account's default identity. */
-  identityId: string | null;
-  /**  Preferred transport for clone/new remotes; existing remotes follow their URL. */
-  transport: Transport | null;
-  source: BindingSource;
-  /**  Pinned by the user: wins over everything else (PLAN §4.3 step 1). */
-  locked: boolean;
-  updatedAt: number;
+	repoId: number,
+	remoteName: string | null,
+	accountId: string,
+	/**  `None` → the account's default identity. */
+	identityId: string | null,
+	/**  Preferred transport for clone/new remotes; existing remotes follow their URL. */
+	transport: Transport | null,
+	source: BindingSource,
+	/**  Pinned by the user: wins over everything else (PLAN §4.3 step 1). */
+	locked: boolean,
+	updatedAt: number,
 };
 
 /**  Emitted (debounced) when files of an open repository change on disk. */
 export type RepoChanged = {
-  repoId: number;
-  refs: boolean;
-  index: boolean;
-  worktree: boolean;
+	repoId: number,
+	refs: boolean,
+	index: boolean,
+	worktree: boolean,
 };
 
 /**  Multi-step operation the repository is in the middle of. */
-export type RepoOperation =
-  | "merge"
-  | "rebase"
-  | "cherryPick"
-  | "revert"
-  | "bisect"
-  /**  `git am` (patch series). */
-  | "applyMailbox";
+export type RepoOperation = "merge" | "rebase" | "cherryPick" | "revert" | "bisect" | 
+/**  `git am` (patch series). */
+"applyMailbox";
 
 export type RepoRefs = {
-  head: Head;
-  local: LocalBranch[];
-  remotes: Remote[];
-  tags: Tag[];
-  stashes: Stash[];
+	head: Head,
+	local: LocalBranch[],
+	remotes: Remote[],
+	tags: Tag[],
+	stashes: Stash[],
 };
 
 export type RepoTab = {
-  id: number;
-  path: string;
-  name: string;
-  /**  The folder is gone (moved, deleted, unplugged drive) since it was last opened. */
-  missing: boolean;
+	id: number,
+	path: string,
+	name: string,
+	/**  The folder is gone (moved, deleted, unplugged drive) since it was last opened. */
+	missing: boolean,
 };
 
-export type ResetMode =
-  /**  Move the branch only; changes stay staged. */
-  | "soft"
-  /**  Move the branch and reset the index; changes stay in the working tree. */
-  | "mixed"
-  /**  Discard everything (index and working tree) — destructive. */
-  | "hard";
+export type ResetMode = 
+/**  Move the branch only; changes stay staged. */
+"soft" | 
+/**  Move the branch and reset the index; changes stay in the working tree. */
+"mixed" | 
+/**  Discard everything (index and working tree) — destructive. */
+"hard";
 
 /**  Outcome of a restore applied at this start (shown once). */
 export type RestoreNotice = {
-  ok: boolean;
-  error: string | null;
-  /**  When the backup was made (Unix ms). */
-  createdAt: number | null;
-  appVersion: string | null;
-  /**  Copy of the replaced database. */
-  previousCopy: string | null;
+	ok: boolean,
+	error: string | null,
+	/**  When the backup was made (Unix ms). */
+	createdAt: number | null,
+	appVersion: string | null,
+	/**  Copy of the replaced database. */
+	previousCopy: string | null,
 };
 
 export type RestoreOutcome = {
-  branch: string;
-  /**  Branch tip before the restore. */
-  previous: string;
-  restored: string;
-  /**  Backup of `previous` (so the undo itself can be undone). */
-  backupRef: string;
+	branch: string,
+	/**  Branch tip before the restore. */
+	previous: string,
+	restored: string,
+	/**  Backup of `previous` (so the undo itself can be undone). */
+	backupRef: string,
 };
 
-export type RestoreStatus =
-  /**  Popped cleanly. */
-  | "restored"
-  /**  Popped with conflicts: the files hold conflict markers, the stash entry is kept. */
-  | "conflicts"
-  /**  Not popped: automatic restore is off, or the working tree had changes (`dirty`). */
-  | "pending"
-  /**  git refused (e.g. it would overwrite local changes); the stash entry is kept. */
-  | "failed";
+export type RestoreStatus = 
+/**  Popped cleanly. */
+"restored" | 
+/**  Popped with conflicts: the files hold conflict markers, the stash entry is kept. */
+"conflicts" | 
+/**  Not popped: automatic restore is off, or the working tree had changes (`dirty`). */
+"pending" | 
+/**  git refused (e.g. it would overwrite local changes); the stash entry is kept. */
+"failed";
 
 export type RewriteOutcome = {
-  branch: string;
-  /**  Backup of the branch tip before the rewrite (undo target). */
-  backupRef: string;
-  oldHead: string;
-  newHead: string;
-  /**  Commits rewritten. */
-  rewritten: number;
+	branch: string,
+	/**  Backup of the branch tip before the rewrite (undo target). */
+	backupRef: string,
+	oldHead: string,
+	newHead: string,
+	/**  Commits rewritten. */
+	rewritten: number,
 };
 
 /**
@@ -4640,1134 +4104,1081 @@ export type RewriteOutcome = {
  *  rules are tried in ascending `priority`.
  */
 export type Rule = {
-  id: string;
-  priority: number;
-  /**  Remote host, glob allowed (`*.acme.dev`); with `:port` it must match the port too. */
-  host: string | null;
-  /**  Owner or group path prefix of the remote, glob per segment (`acme-corp`, `acme/platform`). */
-  ownerOrGroup: string | null;
-  /**  Glob on the repository folder (`D:/Work/**`); a plain folder also matches below it. */
-  pathGlob: string | null;
-  /**  Regex on the remote URL as configured (password removed). */
-  remoteRegex: string | null;
-  accountId: string;
-  identityId: string | null;
-  enabled: boolean;
-  createdAt: number;
+	id: string,
+	priority: number,
+	/**  Remote host, glob allowed (`*.acme.dev`); with `:port` it must match the port too. */
+	host: string | null,
+	/**  Owner or group path prefix of the remote, glob per segment (`acme-corp`, `acme/platform`). */
+	ownerOrGroup: string | null,
+	/**  Glob on the repository folder (`D:/Work/**`); a plain folder also matches below it. */
+	pathGlob: string | null,
+	/**  Regex on the remote URL as configured (password removed). */
+	remoteRegex: string | null,
+	accountId: string,
+	identityId: string | null,
+	enabled: boolean,
+	createdAt: number,
 };
 
 export type RuleChoice = {
-  accountId: string;
-  pathGlob?: string | null;
-  host?: string | null;
-  ownerOrGroup?: string | null;
-  remoteRegex?: string | null;
-  /**  Identity of the same account to use (created by this apply or existing), by email. */
-  identityEmail?: string | null;
+	accountId: string,
+	pathGlob?: string | null,
+	host?: string | null,
+	ownerOrGroup?: string | null,
+	remoteRegex?: string | null,
+	/**  Identity of the same account to use (created by this apply or existing), by email. */
+	identityEmail?: string | null,
 };
 
 /**  Create (no `id`, appended last unless `priority` is given) or update a rule. */
 export type RuleInput = {
-  id?: string | null;
-  priority?: number | null;
-  host?: string | null;
-  ownerOrGroup?: string | null;
-  pathGlob?: string | null;
-  remoteRegex?: string | null;
-  accountId: string;
-  identityId?: string | null;
-  enabled?: boolean;
+	id?: string | null,
+	priority?: number | null,
+	host?: string | null,
+	ownerOrGroup?: string | null,
+	pathGlob?: string | null,
+	remoteRegex?: string | null,
+	accountId: string,
+	identityId?: string | null,
+	enabled?: boolean,
 };
 
-export type RuleKind =
-  /**  `gitdir:` / `gitdir/i:` → repository path glob. */
-  | "pathGlob"
-  /**  `hasconfig:remote.*.url:` → remote URL pattern. */
-  | "remoteUrl";
+export type RuleKind = 
+/**  `gitdir:` / `gitdir/i:` → repository path glob. */
+"pathGlob" | 
+/**  `hasconfig:remote.*.url:` → remote URL pattern. */
+"remoteUrl";
 
 /**  Preview of the rule engine for a URL and/or folder ("Test rule"). */
 export type RuleTestResult = {
-  parsed: RemoteUrl | null;
-  matchedRule: Rule | null;
-  account: Account | null;
-  identity: Identity | null;
-  /**  Ids of every matching rule, best first. */
-  allMatches: string[];
-  /**  Stored rules that no longer compile (skipped by the engine). */
-  invalidRules: string[];
+	parsed: RemoteUrl | null,
+	matchedRule: Rule | null,
+	account: Account | null,
+	identity: Identity | null,
+	/**  Ids of every matching rule, best first. */
+	allMatches: string[],
+	/**  Stored rules that no longer compile (skipped by the engine). */
+	invalidRules: string[],
 };
 
 /**  Partial update; omitted fields keep their stored value. */
 export type SettingsPatch = {
-  theme?: ThemeMode | null;
-  language?: Language | null;
-  ciEnabled?: boolean | null;
-  authorAvatars?: boolean | null;
+	theme?: ThemeMode | null,
+	language?: Language | null,
+	ciEnabled?: boolean | null,
+	authorAvatars?: boolean | null,
 };
 
 /**  How much the app needs the tool: git blocks, git-lfs / OpenSSH warn, gh / glab are info only. */
 export type SetupImportance = "required" | "recommended" | "optional";
 
-export type SetupInstallOutcome =
-  | "installed"
-  | "alreadyInstalled"
-  /**  `xcode-select --install` opened the system installer; the user continues there. */
-  | "started"
-  /**  Cancelled from the app. */
-  | "cancelled"
-  /**  The user said no to the administrator (UAC) prompt or closed the installer. */
-  | "userCancelled"
-  | "needsAdmin"
-  | "managerMissing"
-  | "network"
-  | "packageNotFound"
-  | "timedOut"
-  | "failed";
+export type SetupInstallOutcome = "installed" | "alreadyInstalled" | 
+/**  `xcode-select --install` opened the system installer; the user continues there. */
+"started" | 
+/**  Cancelled from the app. */
+"cancelled" | 
+/**  The user said no to the administrator (UAC) prompt or closed the installer. */
+"userCancelled" | "needsAdmin" | "managerMissing" | "network" | "packageNotFound" | "timedOut" | "failed";
 
 export type SetupInstallResult = {
-  tool: SetupToolId;
-  outcome: SetupInstallOutcome;
-  manager: SetupPackageManager | null;
-  /**  The command that ran, for the technical details. */
-  command: string | null;
-  exitCode: number | null;
-  /**  Cleaned, shortened output (progress bars dropped). */
-  output: string;
+	tool: SetupToolId,
+	outcome: SetupInstallOutcome,
+	manager: SetupPackageManager | null,
+	/**  The command that ran, for the technical details. */
+	command: string | null,
+	exitCode: number | null,
+	/**  Cleaned, shortened output (progress bars dropped). */
+	output: string,
 };
 
 export type SetupPackageManager = "winget" | "brew" | "xcodeSelect";
 
 /**  Stored under [`KEY_SETUP`]. */
 export type SetupProgress = {
-  completed: boolean;
-  skipped: boolean;
-  stepsDone: SetupStep[];
+	completed: boolean,
+	skipped: boolean,
+	stepsDone: SetupStep[],
 };
 
 export type SetupStatus = {
-  progress: SetupProgress;
-  accountCount: number;
-  importDone: boolean;
-  /**  Brand-new user: open the setup on start. */
-  shouldAutoOpen: boolean;
+	progress: SetupProgress,
+	accountCount: number,
+	importDone: boolean,
+	/**  Brand-new user: open the setup on start. */
+	shouldAutoOpen: boolean,
 };
 
 export type SetupStep = "welcome" | "tools" | "accounts" | "finish";
 
 export type SetupTool = {
-  id: SetupToolId;
-  importance: SetupImportance;
-  state: SetupToolState;
-  version: string | null;
-  minimum: string | null;
-  path: string | null;
-  /**  First line of the tool's own version output. */
-  raw: string | null;
-  downloadUrl: string;
-  /**  "Cài giúp tôi" is possible with this manager. */
-  installer: SetupPackageManager | null;
+	id: SetupToolId,
+	importance: SetupImportance,
+	state: SetupToolState,
+	version: string | null,
+	minimum: string | null,
+	path: string | null,
+	/**  First line of the tool's own version output. */
+	raw: string | null,
+	downloadUrl: string,
+	/**  "Cài giúp tôi" is possible with this manager. */
+	installer: SetupPackageManager | null,
 };
 
 export type SetupToolId = "git" | "gitLfs" | "ssh" | "gh" | "glab" | "webview2";
 
-export type SetupToolState =
-  | "ok"
-  | "outdated"
-  | "missing"
-  /**  Installed in its default folder but not on the app's `PATH` (restart the app). */
-  | "outsidePath";
+export type SetupToolState = "ok" | "outdated" | "missing" | 
+/**  Installed in its default folder but not on the app's `PATH` (restart the app). */
+"outsidePath";
 
 export type SetupToolsReport = {
-  tools: SetupTool[];
-  /**  git is usable: the next step may be opened. */
-  canContinue: boolean;
-  /**  Something was found outside `PATH`: the app must restart to use it. */
-  restartNeeded: boolean;
-  /**  Package manager this OS installs with (`None` on Linux). */
-  packageManager: SetupPackageManager | null;
-  packageManagerFound: boolean;
+	tools: SetupTool[],
+	/**  git is usable: the next step may be opened. */
+	canContinue: boolean,
+	/**  Something was found outside `PATH`: the app must restart to use it. */
+	restartNeeded: boolean,
+	/**  Package manager this OS installs with (`None` on Linux). */
+	packageManager: SetupPackageManager | null,
+	packageManagerFound: boolean,
 };
 
 /**  Result of [`test_signing`]. */
 export type SignTestResult = {
-  ok: boolean;
-  /**  gpg / ssh-keygen / git output when it failed (or verification notes). */
-  message: string | null;
-  /**  Verification of the test signature (when signing worked). */
-  signature: CommitSignature | null;
+	ok: boolean,
+	/**  gpg / ssh-keygen / git output when it failed (or verification notes). */
+	message: string | null,
+	/**  Verification of the test signature (when signing worked). */
+	signature: CommitSignature | null,
 };
 
 /**  Kind of signature found in the commit object. */
 export type SignatureKind = "gpg" | "ssh" | "x509" | "none";
 
 /**  Verification result of a signed commit, from git's `%G?`. */
-export type SignatureStatus =
-  /**  `G`: good signature from a trusted key / an allowed SSH signer. */
-  | "verified"
-  /**  `U`: good signature, but the key is not trusted (unknown validity). */
-  | "untrusted"
-  /**  `X`: good signature that has expired. */
-  | "expired"
-  /**  `Y`: good signature made by a key that has expired since. */
-  | "expiredKey"
-  /**  `R`: good signature made by a revoked key. */
-  | "revoked"
-  /**  `E`: cannot be checked (public key missing, SSH signer not in `allowed_signers`…). */
-  | "unknownKey"
-  /**  `B`: the signature does not match the commit. */
-  | "bad"
-  /**  `N`: not signed. */
-  | "unsigned";
+export type SignatureStatus = 
+/**  `G`: good signature from a trusted key / an allowed SSH signer. */
+"verified" | 
+/**  `U`: good signature, but the key is not trusted (unknown validity). */
+"untrusted" | 
+/**  `X`: good signature that has expired. */
+"expired" | 
+/**  `Y`: good signature made by a key that has expired since. */
+"expiredKey" | 
+/**  `R`: good signature made by a revoked key. */
+"revoked" | 
+/**  `E`: cannot be checked (public key missing, SSH signer not in `allowed_signers`…). */
+"unknownKey" | 
+/**  `B`: the signature does not match the commit. */
+"bad" | 
+/**  `N`: not signed. */
+"unsigned";
 
-export type SigningFormat =
-  /**  `gpg.format = openpgp` (git's default). */
-  "gpg" | "ssh" | "x509";
+export type SigningFormat = 
+/**  `gpg.format = openpgp` (git's default). */
+"gpg" | "ssh" | "x509";
 
 export type SigningMethod = "none" | "gpg" | "ssh";
 
 /**  What to try in "Thử ký". */
 export type SigningProbe = {
-  /**  Account whose identity / SSH passphrase prompt is used (optional). */
-  accountId?: string | null;
-  signing: SigningMethod;
-  signingKeyRef: string;
-  /**  Email the signature is for (SSH: checked against the key in a temporary allowed list). */
-  email?: string | null;
+	/**  Account whose identity / SSH passphrase prompt is used (optional). */
+	accountId?: string | null,
+	signing: SigningMethod,
+	signingKeyRef: string,
+	/**  Email the signature is for (SSH: checked against the key in a temporary allowed list). */
+	email?: string | null,
 };
 
 export type SigningSuggestion = {
-  format: SigningFormat;
-  /**  `user.signingkey` as written (GPG key id, `~/.ssh/id.pub`, `key::ssh-ed25519 …`). */
-  key: string | null;
-  /**  For SSH signing with a key file path: the expanded path (forward slashes). */
-  keyPath: string | null;
-  /**  `commit.gpgsign`. */
-  signCommits: boolean;
-  /**  `tag.gpgsign`. */
-  signTags: boolean;
+	format: SigningFormat,
+	/**  `user.signingkey` as written (GPG key id, `~/.ssh/id.pub`, `key::ssh-ed25519 …`). */
+	key: string | null,
+	/**  For SSH signing with a key file path: the expanded path (forward slashes). */
+	keyPath: string | null,
+	/**  `commit.gpgsign`. */
+	signCommits: boolean,
+	/**  `tag.gpgsign`. */
+	signTags: boolean,
 };
 
 /**  Where a suggestion or warning comes from. */
 export type SourceRef = {
-  /**  Path as found (OS separators). */
-  file: string;
-  /**  1-based line number, when known. */
-  line: number | null;
+	/**  Path as found (OS separators). */
+	file: string,
+	/**  1-based line number, when known. */
+	line: number | null,
 };
 
 /**  Outcome of "Import from file". */
-export type SshImportResult =
-  /**
-   *  Copied into the app key store. `publicFileMismatch`: the `.pub` next to the file belongs
-   *  to another key (the private key wins).
-   */
-  | { kind: "imported"; key: SshKeyInfo; publicFileMismatch: boolean }
-  /**  The key is encrypted: ask for its passphrase and try again. */
-  | { kind: "passphraseRequired" }
-  | { kind: "wrongPassphrase" }
-  /**  The key is already known: same account (`accountId` = this one) or another account. */
-  | { kind: "alreadyKnown"; keyId: string; accountId: string | null };
+export type SshImportResult = 
+/**
+ *  Copied into the app key store. `publicFileMismatch`: the `.pub` next to the file belongs
+ *  to another key (the private key wins).
+ */
+{ kind: "imported"; key: SshKeyInfo; publicFileMismatch: boolean } | 
+/**  The key is encrypted: ask for its passphrase and try again. */
+{ kind: "passphraseRequired" } | { kind: "wrongPassphrase" } | 
+/**  The key is already known: same account (`accountId` = this one) or another account. */
+{ kind: "alreadyKnown"; keyId: string; accountId: string | null };
 
 /**  An SSH key as shown in the account's "SSH keys" dialog. Never contains secret material. */
 export type SshKeyInfo = {
-  id: string;
-  accountId: string | null;
-  /**  `ed25519`, `rsa`, `ecdsa`… */
-  keyType: string;
-  /**  `SHA256:…`. */
-  fingerprint: string;
-  /**  OpenSSH public key line (what "Copy public key" copies). */
-  publicKey: string;
-  comment: string | null;
-  privateKeyPath: string | null;
-  hasPassphrase: boolean;
-  /**  The passphrase is stored in the OS keychain (git can use the key without prompting). */
-  passphraseSaved: boolean;
-  uploadedToProvider: boolean;
-  providerKeyId: string | null;
-  createdAt: number;
-  /**  The key `GIT_SSH_COMMAND` uses for this account (explicit or implicit default). */
-  isDefault: boolean;
-  /**  The user picked it with "Set default". */
-  explicitDefault: boolean;
-  /**  The private key file exists. */
-  fileExists: boolean;
-  /**  Stored in the app key store (permissions can be repaired, files removed on delete). */
-  managed: boolean;
+	id: string,
+	accountId: string | null,
+	/**  `ed25519`, `rsa`, `ecdsa`… */
+	keyType: string,
+	/**  `SHA256:…`. */
+	fingerprint: string,
+	/**  OpenSSH public key line (what "Copy public key" copies). */
+	publicKey: string,
+	comment: string | null,
+	privateKeyPath: string | null,
+	hasPassphrase: boolean,
+	/**  The passphrase is stored in the OS keychain (git can use the key without prompting). */
+	passphraseSaved: boolean,
+	uploadedToProvider: boolean,
+	providerKeyId: string | null,
+	createdAt: number,
+	/**  The key `GIT_SSH_COMMAND` uses for this account (explicit or implicit default). */
+	isDefault: boolean,
+	/**  The user picked it with "Set default". */
+	explicitDefault: boolean,
+	/**  The private key file exists. */
+	fileExists: boolean,
+	/**  Stored in the app key store (permissions can be repaired, files removed on delete). */
+	managed: boolean,
 };
 
 /**  Permission status of a key file. */
 export type SshKeyPermissions = {
-  keyId: string;
-  /**  Only the current user (plus SYSTEM/Administrators on Windows) can read the file. */
-  restricted: boolean;
-  entries: string[];
-  problem: string | null;
-  /**  The app may fix it (key inside the app key store). */
-  repairable: boolean;
+	keyId: string,
+	/**  Only the current user (plus SYSTEM/Administrators on Windows) can read the file. */
+	restricted: boolean,
+	entries: string[],
+	problem: string | null,
+	/**  The app may fix it (key inside the app key store). */
+	repairable: boolean,
 };
 
 /**  Result of `ssh -T git@<host>`. */
 export type SshTestResult = {
-  status: SshTestStatus;
-  host: string;
-  /**  User the provider authenticated (GitHub `owner/repo` for a deploy key). */
-  username: string | null;
-  /**  The account's own user name. */
-  expectedUsername: string;
-  /**  `username` is the account's user (case-insensitive). */
-  matchesAccount: boolean;
-  /**  The key was registered as a deploy key of one repository (GitHub). */
-  deployKey: boolean;
-  keyId: string;
-  /**  ssh output (stderr + stdout), trimmed, for the details view. */
-  output: string;
+	status: SshTestStatus,
+	host: string,
+	/**  User the provider authenticated (GitHub `owner/repo` for a deploy key). */
+	username: string | null,
+	/**  The account's own user name. */
+	expectedUsername: string,
+	/**  `username` is the account's user (case-insensitive). */
+	matchesAccount: boolean,
+	/**  The key was registered as a deploy key of one repository (GitHub). */
+	deployKey: boolean,
+	keyId: string,
+	/**  ssh output (stderr + stdout), trimmed, for the details view. */
+	output: string,
 };
 
-export type SshTestStatus =
-  /**  The provider accepted the key; see `username`. */
-  | "authenticated"
-  /**  `Permission denied (publickey)`: the key is not registered on the provider. */
-  | "denied"
-  /**  The host key changed or could not be verified. */
-  | "hostKeyFailed"
-  /**  DNS / connect / timeout. */
-  | "network"
-  /**  The key needs a passphrase that is not saved. */
-  | "passphraseNeeded"
-  | "unknown";
+export type SshTestStatus = 
+/**  The provider accepted the key; see `username`. */
+"authenticated" | 
+/**  `Permission denied (publickey)`: the key is not registered on the provider. */
+"denied" | 
+/**  The host key changed or could not be verified. */
+"hostKeyFailed" | 
+/**  DNS / connect / timeout. */
+"network" | 
+/**  The key needs a passphrase that is not saved. */
+"passphraseNeeded" | "unknown";
 
 /**  Outcome of "Upload to provider". */
-export type SshUploadResult =
-  | { kind: "uploaded"; key: SshKeyInfo }
-  /**  The provider already had the key on this account; it is now marked as uploaded. */
-  | { kind: "alreadyRegistered"; key: SshKeyInfo }
-  /**
-   *  The provider says the key is in use, but not on this account (GitHub: a key belongs to
-   *  one user only).
-   */
-  | { kind: "usedByAnotherAccount" }
-  /**  The token lacks a scope: GitHub `admin:public_key`/`write:public_key`, GitLab `api`. */
-  | { kind: "missingScope"; required: string[]; granted: string[] | null }
-  /**  Fine-grained GitHub token without the "Git SSH keys" (write) permission. */
-  | { kind: "tokenPermissionMissing" }
-  /**  No token saved for the account: sign in again. */
-  | { kind: "noToken" }
-  /**  Token rejected (expired / revoked): sign in again. */
-  | { kind: "unauthorized" };
+export type SshUploadResult = { kind: "uploaded"; key: SshKeyInfo } | 
+/**  The provider already had the key on this account; it is now marked as uploaded. */
+{ kind: "alreadyRegistered"; key: SshKeyInfo } | 
+/**
+ *  The provider says the key is in use, but not on this account (GitHub: a key belongs to
+ *  one user only).
+ */
+{ kind: "usedByAnotherAccount" } | 
+/**  The token lacks a scope: GitHub `admin:public_key`/`write:public_key`, GitLab `api`. */
+{ kind: "missingScope"; required: string[]; granted: string[] | null } | 
+/**  Fine-grained GitHub token without the "Git SSH keys" (write) permission. */
+{ kind: "tokenPermissionMissing" } | 
+/**  No token saved for the account: sign in again. */
+{ kind: "noToken" } | 
+/**  Token rejected (expired / revoked): sign in again. */
+{ kind: "unauthorized" };
 
 /**  What [`stage_restore`] wrote. */
 export type StagedRestore = {
-  secrets: number;
-  sshKeyFiles: number;
-  /**  Key files skipped because a different key with the same id exists here. */
-  sshKeyConflicts: number;
+	secrets: number,
+	sshKeyFiles: number,
+	/**  Key files skipped because a different key with the same id exists here. */
+	sshKeyConflicts: number,
 };
 
 export type StartupArgs = {
-  /**  Repository passed on the command line (`nanomgg <path>` or `--open <path>`). */
-  repo: string | null;
-  /**  `--bench-graph`: run the scroll benchmark once the graph is painted. */
-  benchGraph: boolean;
+	/**  Repository passed on the command line (`nanomgg <path>` or `--open <path>`). */
+	repo: string | null,
+	/**  `--bench-graph`: run the scroll benchmark once the graph is painted. */
+	benchGraph: boolean,
 };
 
 export type Stash = {
-  index: number;
-  message: string;
+	index: number,
+	message: string,
 };
 
 /**  Result of [`stash_apply`] / [`stash_pop`] when git got as far as merging the stash. */
 export type StashApplyOutcome = {
-  /**  Unmerged paths left in the working tree. Empty = applied cleanly. */
-  conflicts: string[];
-  /**
-   *  The entry was removed from the stash list (pop without conflicts). On conflicts git
-   *  keeps the entry, so the user can retry or drop it after resolving.
-   */
-  dropped: boolean;
+	/**  Unmerged paths left in the working tree. Empty = applied cleanly. */
+	conflicts: string[],
+	/**
+	 *  The entry was removed from the stash list (pop without conflicts). On conflicts git
+	 *  keeps the entry, so the user can retry or drop it after resolving.
+	 */
+	dropped: boolean,
 };
 
 export type StashCreated = {
-  /**
-   *  `false` when there was nothing to stash (git exits 0 and prints
-   *  "No local changes to save"); `oid` is then `None`.
-   */
-  created: boolean;
-  /**  Commit id of the new `stash@{0}`. */
-  oid: string | null;
+	/**
+	 *  `false` when there was nothing to stash (git exits 0 and prints
+	 *  "No local changes to save"); `oid` is then `None`.
+	 */
+	created: boolean,
+	/**  Commit id of the new `stash@{0}`. */
+	oid: string | null,
 };
 
 export type StashDetails = {
-  index: number;
-  /**  Commit id of the stash entry. */
-  oid: string;
-  /**  Commit the stash was created on (first parent). */
-  base: string;
-  /**  `On main: message` or `WIP on main: <commit> <subject>`. */
-  message: string;
-  /**  Seconds since the Unix epoch. */
-  time: number;
-  /**  Tracked changes (staged and unstaged together) against `base`. */
-  files: ChangedFile[];
-  /**  Untracked files stored in the third parent (`--include-untracked`), all `Added`. */
-  untracked: ChangedFile[];
-  additions: number;
-  deletions: number;
+	index: number,
+	/**  Commit id of the stash entry. */
+	oid: string,
+	/**  Commit the stash was created on (first parent). */
+	base: string,
+	/**  `On main: message` or `WIP on main: <commit> <subject>`. */
+	message: string,
+	/**  Seconds since the Unix epoch. */
+	time: number,
+	/**  Tracked changes (staged and unstaged together) against `base`. */
+	files: ChangedFile[],
+	/**  Untracked files stored in the third parent (`--include-untracked`), all `Added`. */
+	untracked: ChangedFile[],
+	additions: number,
+	deletions: number,
 };
 
 /**  Options for [`stash_create`]. Every field is optional on the wire. */
 export type StashOptions = {
-  /**  Stash message; git writes `WIP on <branch>: <commit>` when empty. */
-  message?: string | null;
-  /**  Also stash untracked (not ignored) files (`--include-untracked`). */
-  includeUntracked?: boolean;
-  /**  Leave staged changes in the index and working tree (`--keep-index`). */
-  keepIndex?: boolean;
-  /**
-   *  Stash only what is staged (`--staged`, git ≥ 2.35). Cannot be combined with
-   *  `include_untracked` or `keep_index`.
-   */
-  stagedOnly?: boolean;
-  /**  Limit the stash to these repository-relative paths (matched literally). Empty = all. */
-  paths?: string[];
+	/**  Stash message; git writes `WIP on <branch>: <commit>` when empty. */
+	message?: string | null,
+	/**  Also stash untracked (not ignored) files (`--include-untracked`). */
+	includeUntracked?: boolean,
+	/**  Leave staged changes in the index and working tree (`--keep-index`). */
+	keepIndex?: boolean,
+	/**
+	 *  Stash only what is staged (`--staged`, git ≥ 2.35). Cannot be combined with
+	 *  `include_untracked` or `keep_index`.
+	 */
+	stagedOnly?: boolean,
+	/**  Limit the stash to these repository-relative paths (matched literally). Empty = all. */
+	paths?: string[],
 };
 
 export type StatusEntry = {
-  path: string;
-  /**  Previous path of a staged rename or copy. */
-  oldPath: string | null;
-  kind: ChangeKind;
-  /**  Two-letter porcelain code of a conflict (`UU`, `AA`, `DU`...). */
-  conflict: string | null;
-  submodule: boolean;
-  /**  Size of the file in the working tree, if it exists there. */
-  size: number | null;
+	path: string,
+	/**  Previous path of a staged rename or copy. */
+	oldPath: string | null,
+	kind: ChangeKind,
+	/**  Two-letter porcelain code of a conflict (`UU`, `AA`, `DU`...). */
+	conflict: string | null,
+	submodule: boolean,
+	/**  Size of the file in the working tree, if it exists there. */
+	size: number | null,
 };
 
 export type StorageChangeResult = {
-  target: string;
-  /**  Data folder: scheduled, applied on restart. */
-  restartRequired: boolean;
-  /**  Old files that could not be deleted after a successful move. */
-  oldFilesLeft: number;
-  /**  Set instead of moving when the folder cannot be used. */
-  problem: TargetProblem | null;
+	target: string,
+	/**  Data folder: scheduled, applied on restart. */
+	restartRequired: boolean,
+	/**  Old files that could not be deleted after a successful move. */
+	oldFilesLeft: number,
+	/**  Set instead of moving when the folder cannot be used. */
+	problem: TargetProblem | null,
 };
 
 /**  One kind of folder the user can relocate. */
 export type StorageKind = "log" | "cache" | "data";
 
 export type StorageLocation = {
-  kind: StorageKind;
-  path: string;
-  defaultPath: string;
-  isDefault: boolean;
-  usedBytes: number;
-  fileCount: number;
-  /**  `false` when measuring took too long: `usedBytes` is a lower bound. */
-  usageComplete: boolean;
-  freeBytes: number | null;
-  /**  Data folder scheduled for the next start. */
-  pendingPath: string | null;
+	kind: StorageKind,
+	path: string,
+	defaultPath: string,
+	isDefault: boolean,
+	usedBytes: number,
+	fileCount: number,
+	/**  `false` when measuring took too long: `usedBytes` is a lower bound. */
+	usageComplete: boolean,
+	freeBytes: number | null,
+	/**  Data folder scheduled for the next start. */
+	pendingPath: string | null,
 };
 
 /**  Progress of a log/cache move, at most ~10 per second (phase changes always sent). */
 export type StorageMoveProgress = {
-  kind: StorageKind;
-  phase: MovePhase;
-  doneBytes: number;
-  totalBytes: number;
-  doneFiles: number;
-  totalFiles: number;
+	kind: StorageKind,
+	phase: MovePhase,
+	doneBytes: number,
+	totalBytes: number,
+	doneFiles: number,
+	totalFiles: number,
 };
 
 export type StorageOverview = {
-  locations: StorageLocation[];
-  /**  A move is running. */
-  busy: boolean;
+	locations: StorageLocation[],
+	/**  A move is running. */
+	busy: boolean,
 };
 
 /**  Light status polled for the low-space warning and startup notices. */
 export type StorageStatus = {
-  dataDir: string;
-  dataFreeBytes: number | null;
-  lowSpace: boolean;
-  warnings: StorageWarning[];
-  pendingData: string | null;
+	dataDir: string,
+	dataFreeBytes: number | null,
+	lowSpace: boolean,
+	warnings: StorageWarning[],
+	pendingData: string | null,
 };
 
 export type StorageTargetCheck = {
-  /**  Folder that would be used (`<chosen>/nanomgg-…` when the chosen one is not empty). */
-  target: string;
-  createsSubfolder: boolean;
-  isDefault: boolean;
-  neededBytes: number;
-  freeBytes: number | null;
-  problem: TargetProblem | null;
+	/**  Folder that would be used (`<chosen>/nanomgg-…` when the chosen one is not empty). */
+	target: string,
+	createsSubfolder: boolean,
+	isDefault: boolean,
+	neededBytes: number,
+	freeBytes: number | null,
+	problem: TargetProblem | null,
 };
 
 /**  Something the user should know about the storage folders (shown once after start). */
-export type StorageWarning =
-  /**  `locations.json` could not be read; every folder uses its default. */
-  | { kind: "pointerUnreadable"; path: string; message: string }
-  /**  A custom folder is gone (removable drive not plugged in?); the default is used for now. */
-  | { kind: "missingFolder"; storage: StorageKind; path: string; fallback: string }
-  /**  The scheduled data-folder move finished. */
-  | { kind: "dataMoved"; from: string; to: string }
-  /**  The scheduled data-folder move failed; the old folder is still in use, untouched. */
-  | { kind: "dataMoveFailed"; from: string; to: string; message: string }
-  /**  The move succeeded but some old files could not be deleted. */
-  | { kind: "oldFilesLeft"; storage: StorageKind; path: string; count: number };
+export type StorageWarning = 
+/**  `locations.json` could not be read; every folder uses its default. */
+{ kind: "pointerUnreadable"; path: string; message: string } | 
+/**  A custom folder is gone (removable drive not plugged in?); the default is used for now. */
+{ kind: "missingFolder"; storage: StorageKind; path: string; fallback: string } | 
+/**  The scheduled data-folder move finished. */
+{ kind: "dataMoved"; from: string; to: string } | 
+/**  The scheduled data-folder move failed; the old folder is still in use, untouched. */
+{ kind: "dataMoveFailed"; from: string; to: string; message: string } | 
+/**  The move succeeded but some old files could not be deleted. */
+{ kind: "oldFilesLeft"; storage: StorageKind; path: string; count: number };
 
 export type Submodule = {
-  /**  Name in `.gitmodules` (usually equal to the path); `None` for a gitlink without entry. */
-  name: string | null;
-  /**  Path relative to the repository the list was made for, with `/`. */
-  path: string;
-  /**  Path of the submodule containing this one (`None` = direct submodule). */
-  parent: string | null;
-  /**  Nesting depth (0 = direct submodule). */
-  depth: number;
-  /**  URL from `.gitmodules`, credentials removed. */
-  url: string | null;
-  /**  `submodule.<name>.branch`. */
-  branch: string | null;
-  /**  Commit recorded by the parent (index); `None` if the parent does not track it. */
-  recorded: string | null;
-  /**  Commit checked out in the submodule; `None` when not initialised. */
-  head: string | null;
-  /**  Branch checked out in the submodule (`None` = detached, the usual state). */
-  headBranch: string | null;
-  state: SubmoduleState;
-  /**  Modified tracked files inside. */
-  modified: boolean;
-  /**  Untracked files inside. */
-  untracked: boolean;
+	/**  Name in `.gitmodules` (usually equal to the path); `None` for a gitlink without entry. */
+	name: string | null,
+	/**  Path relative to the repository the list was made for, with `/`. */
+	path: string,
+	/**  Path of the submodule containing this one (`None` = direct submodule). */
+	parent: string | null,
+	/**  Nesting depth (0 = direct submodule). */
+	depth: number,
+	/**  URL from `.gitmodules`, credentials removed. */
+	url: string | null,
+	/**  `submodule.<name>.branch`. */
+	branch: string | null,
+	/**  Commit recorded by the parent (index); `None` if the parent does not track it. */
+	recorded: string | null,
+	/**  Commit checked out in the submodule; `None` when not initialised. */
+	head: string | null,
+	/**  Branch checked out in the submodule (`None` = detached, the usual state). */
+	headBranch: string | null,
+	state: SubmoduleState,
+	/**  Modified tracked files inside. */
+	modified: boolean,
+	/**  Untracked files inside. */
+	untracked: boolean,
 };
 
 export type SubmoduleAccount = {
-  accountId: string | null;
-  source: SubmoduleAccountSource;
-  /**
-   *  The account's provider is on another host than the submodule URL: the app cannot give
-   *  git a credential for it (public submodules still work).
-   */
-  hostMismatch: boolean;
+	accountId: string | null,
+	source: SubmoduleAccountSource,
+	/**
+	 *  The account's provider is on another host than the submodule URL: the app cannot give
+	 *  git a credential for it (public submodules still work).
+	 */
+	hostMismatch: boolean,
 };
 
 /**  Where a submodule's account comes from. */
-export type SubmoduleAccountSource =
-  /**  Relative URL: same server as the parent, parent's account. */
-  | "parent"
-  /**  A rule or one of the parent's bindings matches the URL. */
-  | "rule"
-  /**  The only / best account on the URL's host. */
-  | "host"
-  /**  Nothing matched: the parent's default account is used (see `host_mismatch`). */
-  | "fallback"
-  /**  No account at all (unbound parent): git's own credentials. */
-  | "none";
+export type SubmoduleAccountSource = 
+/**  Relative URL: same server as the parent, parent's account. */
+"parent" | 
+/**  A rule or one of the parent's bindings matches the URL. */
+"rule" | 
+/**  The only / best account on the URL's host. */
+"host" | 
+/**  Nothing matched: the parent's default account is used (see `host_mismatch`). */
+"fallback" | 
+/**  No account at all (unbound parent): git's own credentials. */
+"none";
 
 /**  A submodule with the account its network access will use. */
 export type SubmoduleInfo = {
-  submodule: Submodule;
-  account: SubmoduleAccount;
+	submodule: Submodule,
+	account: SubmoduleAccount,
 };
 
-export type SubmoduleState =
-  /**  Not initialised / not checked out yet (`git submodule update --init` needed). */
-  | "uninitialized"
-  /**  Checked out at exactly the commit recorded by the parent. */
-  | "upToDate"
-  /**  Checked out at another commit than the recorded one. */
-  | "outOfDate"
-  /**  The gitlink is in conflict in the parent (merge / rebase). */
-  | "conflicted";
+export type SubmoduleState = 
+/**  Not initialised / not checked out yet (`git submodule update --init` needed). */
+"uninitialized" | 
+/**  Checked out at exactly the commit recorded by the parent. */
+"upToDate" | 
+/**  Checked out at another commit than the recorded one. */
+"outOfDate" | 
+/**  The gitlink is in conflict in the parent (merge / rebase). */
+"conflicted";
 
 /**  Summary of an update. */
 export type SubmoduleUpdateSummary = {
-  /**  `Submodule path 'x': checked out '<oid>'` lines. */
-  checkedOut: string[];
+	/**  `Submodule path 'x': checked out '<oid>'` lines. */
+	checkedOut: string[],
 };
 
 /**  A commit identity found in the config (PLAN.md 4.1 `Identity`). */
 export type SuggestedIdentity = {
-  name: string | null;
-  email: string | null;
-  signing: SigningSuggestion | null;
-  /**  `core.sshCommand` of that scope (common multi-account trick). */
-  sshCommand: string | null;
-  /**  Key passed with `-i` / `IdentityFile=` in `core.sshCommand`, expanded. */
-  sshKeyPath: string | null;
-  scope: IdentityScope;
-  /**  Raw `includeIf` condition for conditional identities. */
-  condition: string | null;
-  /**  Where `user.email` (else `user.name`, else the first value) is defined. */
-  source: SourceRef;
+	name: string | null,
+	email: string | null,
+	signing: SigningSuggestion | null,
+	/**  `core.sshCommand` of that scope (common multi-account trick). */
+	sshCommand: string | null,
+	/**  Key passed with `-i` / `IdentityFile=` in `core.sshCommand`, expanded. */
+	sshKeyPath: string | null,
+	scope: IdentityScope,
+	/**  Raw `includeIf` condition for conditional identities. */
+	condition: string | null,
+	/**  Where `user.email` (else `user.name`, else the first value) is defined. */
+	source: SourceRef,
 };
 
 /**  An `IdentityFile` of a host. */
 export type SuggestedKeyFile = {
-  /**  Expanded path (`~`, `%d`, `%h`, `%r`, `%%`), forward slashes. */
-  path: string;
-  exists: boolean;
-  /**  From `<path>.pub` when present. */
-  fingerprint: string | null;
-  publicKey: string | null;
-  algorithm: string | null;
-  comment: string | null;
-  source: SourceRef;
+	/**  Expanded path (`~`, `%d`, `%h`, `%r`, `%%`), forward slashes. */
+	path: string,
+	exists: boolean,
+	/**  From `<path>.pub` when present. */
+	fingerprint: string | null,
+	publicKey: string | null,
+	algorithm: string | null,
+	comment: string | null,
+	source: SourceRef,
 };
 
 /**  A rule suggestion (PLAN.md 4.1 `Rule`): "repos matching X use identity Y". */
 export type SuggestedRule = {
-  kind: RuleKind;
-  /**  Raw condition, e.g. `gitdir/i:~/work/`. */
-  condition: string;
-  /**  Glob on the working tree path, `~` expanded, forward slashes: `C:/Users/an/work/**`. */
-  pathGlob: string | null;
-  /**  The pattern git matches against the `.git` directory (after git's own expansion). */
-  gitdirPattern: string | null;
-  /**  `gitdir/i:` (case-insensitive match). */
-  caseInsensitive: boolean;
-  /**  `hasconfig:remote.*.url:` glob as written. */
-  remoteUrlGlob: string | null;
-  /**  Anchored regex equivalent of `remote_url_glob`. */
-  remoteRegex: string | null;
-  /**  Host / first path segment when the URL glob pins them (`github.com`, `acme`). */
-  host: string | null;
-  ownerOrGroup: string | null;
-  /**  Index into [`crate::ImportReport::identities`] (or [`GitConfigScan::identities`]). */
-  identityIndex: number | null;
-  /**  The included file that carries the identity. */
-  includeFile: string;
-  notes: SuggestionNote[];
-  /**  The `path = …` line of the `includeIf` block. */
-  source: SourceRef;
+	kind: RuleKind,
+	/**  Raw condition, e.g. `gitdir/i:~/work/`. */
+	condition: string,
+	/**  Glob on the working tree path, `~` expanded, forward slashes: `C:/Users/an/work/**`. */
+	pathGlob: string | null,
+	/**  The pattern git matches against the `.git` directory (after git's own expansion). */
+	gitdirPattern: string | null,
+	/**  `gitdir/i:` (case-insensitive match). */
+	caseInsensitive: boolean,
+	/**  `hasconfig:remote.*.url:` glob as written. */
+	remoteUrlGlob: string | null,
+	/**  Anchored regex equivalent of `remote_url_glob`. */
+	remoteRegex: string | null,
+	/**  Host / first path segment when the URL glob pins them (`github.com`, `acme`). */
+	host: string | null,
+	ownerOrGroup: string | null,
+	/**  Index into [`crate::ImportReport::identities`] (or [`GitConfigScan::identities`]). */
+	identityIndex: number | null,
+	/**  The included file that carries the identity. */
+	includeFile: string,
+	notes: SuggestionNote[],
+	/**  The `path = …` line of the `includeIf` block. */
+	source: SourceRef,
 };
 
 /**  Machine-readable remarks the UI turns into localised hints. */
-export type SuggestionNote =
-  /**
-   *  SSH host alias (`github.com-work`) only existed to pick a key; the app injects the key
-   *  per account, so remotes can use the real host again.
-   */
-  | "aliasUnnecessary"
-  /**  The pattern contains wildcards; it is shown as a default, not mapped to an account. */
-  | "wildcardHost"
-  /**  An `IdentityFile` does not exist. */
-  | "keyFileMissing"
-  /**
-   *  The CLI keeps a token for this account (keyring or file); the app cannot reuse it, the
-   *  user signs in again.
-   */
-  | "signInAgain"
-  /**  The CLI stores this token in plain text in its config file (worth telling the user). */
-  | "tokenInPlainText"
-  /**
-   *  Values came from a conditional include nested inside another one; the rule is an
-   *  approximation (both conditions must hold in git).
-   */
-  | "nestedCondition";
+export type SuggestionNote = 
+/**
+ *  SSH host alias (`github.com-work`) only existed to pick a key; the app injects the key
+ *  per account, so remotes can use the real host again.
+ */
+"aliasUnnecessary" | 
+/**  The pattern contains wildcards; it is shown as a default, not mapped to an account. */
+"wildcardHost" | 
+/**  An `IdentityFile` does not exist. */
+"keyFileMissing" | 
+/**
+ *  The CLI keeps a token for this account (keyring or file); the app cannot reuse it, the
+ *  user signs in again.
+ */
+"signInAgain" | 
+/**  The CLI stores this token in plain text in its config file (worth telling the user). */
+"tokenInPlainText" | 
+/**
+ *  Values came from a conditional include nested inside another one; the rule is an
+ *  approximation (both conditions must hold in git).
+ */
+"nestedCondition";
 
-export type SuggestionReason =
-  /**  A rule matches this repo for that account. */
-  | "matchedRule"
-  /**  The account's user name is the remote's owner. */
-  | "remoteOwner"
-  /**  One of the account's identities uses the current email. */
-  | "emailOwner"
-  /**  The account's email domain looks like the remote's organisation. */
-  | "orgDomain"
-  /**  Same provider host as the remote. */
-  | "sameHost";
+export type SuggestionReason = 
+/**  A rule matches this repo for that account. */
+"matchedRule" | 
+/**  The account's user name is the remote's owner. */
+"remoteOwner" | 
+/**  One of the account's identities uses the current email. */
+"emailOwner" | 
+/**  The account's email domain looks like the remote's organisation. */
+"orgDomain" | 
+/**  Same provider host as the remote. */
+"sameHost";
 
 /**  What to do with uncommitted changes. */
-export type SwitchDirtyMode =
-  /**  Stash them (autostash) before switching. */
-  | "stash"
-  /**  Plain checkout: git keeps them when they do not clash with the other branch. */
-  | "carry";
+export type SwitchDirtyMode = 
+/**  Stash them (autostash) before switching. */
+"stash" | 
+/**  Plain checkout: git keeps them when they do not clash with the other branch. */
+"carry";
 
-export type SwitchStatus =
-  /**  Already on that branch; nothing was done. */
-  | "unchanged"
-  | "switched"
-  /**  Refused (`reason`, `message`); the repository is as before, except when `stashKept`. */
-  | "blocked";
+export type SwitchStatus = 
+/**  Already on that branch; nothing was done. */
+"unchanged" | "switched" | 
+/**  Refused (`reason`, `message`); the repository is as before, except when `stashKept`. */
+"blocked";
 
 /**  Branch to switch to. */
-export type SwitchTarget =
-  /**  A local branch (`refs/heads/<name>`). */
-  | { kind: "local"; name: string }
-  /**
-   *  A remote-tracking branch `<remote>/<branch>`: switches to the local branch tracking it,
-   *  creating it when there is none.
-   */
-  | { kind: "remote"; remote: string; branch: string };
+export type SwitchTarget = 
+/**  A local branch (`refs/heads/<name>`). */
+{ kind: "local"; name: string } | 
+/**
+ *  A remote-tracking branch `<remote>/<branch>`: switches to the local branch tracking it,
+ *  creating it when there is none.
+ */
+{ kind: "remote"; remote: string; branch: string };
 
 export type Tag = {
-  name: string;
-  /**  Commit the tag points to (peeled for annotated tags). */
-  oid: string;
+	name: string,
+	/**  Commit the tag points to (peeled for annotated tags). */
+	oid: string,
 };
 
 /**  Why a folder cannot be used. */
-export type TargetProblem =
-  /**  Not a full path, or contains `..`. */
-  | { kind: "invalidPath" }
-  /**  A file, not a folder. */
-  | { kind: "notAFolder" }
-  | { kind: "sameAsCurrent" }
-  /**  Inside the folder being moved (or another app folder). */
-  | { kind: "insideAppFolder" }
-  /**  Contains an app folder (would mix the user's files with ours). */
-  | { kind: "containsAppFolder" }
-  /**  The `nanomgg-…` subfolder already exists and is not empty. */
-  | { kind: "notEmpty"; path: string }
-  | { kind: "notWritable"; message: string }
-  | { kind: "notEnoughSpace"; needed: number; free: number };
+export type TargetProblem = 
+/**  Not a full path, or contains `..`. */
+{ kind: "invalidPath" } | 
+/**  A file, not a folder. */
+{ kind: "notAFolder" } | { kind: "sameAsCurrent" } | 
+/**  Inside the folder being moved (or another app folder). */
+{ kind: "insideAppFolder" } | 
+/**  Contains an app folder (would mix the user's files with ours). */
+{ kind: "containsAppFolder" } | 
+/**  The `nanomgg-…` subfolder already exists and is not empty. */
+{ kind: "notEmpty"; path: string } | { kind: "notWritable"; message: string } | { kind: "notEnoughSpace"; needed: number; free: number };
 
 /**  Streamed to the UI through a [`Channel`]. */
-export type TerminalEvent =
-  /**  Terminal output (UTF-8; invalid sequences are replaced by U+FFFD). */
-  | { kind: "output"; data: string }
-  /**  The shell exited; the session is gone. `code` is `null` when it could not be read. */
-  | { kind: "exit"; code: number | null };
+export type TerminalEvent = 
+/**  Terminal output (UTF-8; invalid sequences are replaced by U+FFFD). */
+{ kind: "output"; data: string } | 
+/**  The shell exited; the session is gone. `code` is `null` when it could not be read. */
+{ kind: "exit"; code: number | null };
 
 export type TerminalInfo = {
-  id: number;
-  /**  Display name of the shell ("Git Bash", "PowerShell", "zsh", …). */
-  shell: string;
+	id: number,
+	/**  Display name of the shell ("Git Bash", "PowerShell", "zsh", …). */
+	shell: string,
 };
 
 export type ThemeBase = "light" | "dark";
 
 export type ThemeImportResult = {
-  problem: UserFileProblem | null;
-  /**  The imported theme (saved under a new id). */
-  theme: CustomTheme | null;
+	problem: UserFileProblem | null,
+	/**  The imported theme (saved under a new id). */
+	theme: CustomTheme | null,
 };
 
-export type ThemeMode =
-  | "light"
-  | "dark"
-  | "system"
-  /**  Phase 6.2: a user / preset theme (`theme.activeCustom`); the system theme when none is set. */
-  | "custom";
+export type ThemeMode = "light" | "dark" | "system" | 
+/**  Phase 6.2: a user / preset theme (`theme.activeCustom`); the system theme when none is set. */
+"custom";
 
 /**  Action of one todo row. */
-export type TodoAction =
-  | "pick"
-  /**  Keep the change, replace the message. */
-  | "reword"
-  /**  Meld into the previous commit; `message` is the combined message (default: git's). */
-  | "squash"
-  /**  Meld into the previous commit, keeping the previous message. */
-  | "fixup"
-  | "drop"
-  /**  Stop after applying it so it can be amended. */
-  | "edit";
+export type TodoAction = "pick" | 
+/**  Keep the change, replace the message. */
+"reword" | 
+/**  Meld into the previous commit; `message` is the combined message (default: git's). */
+"squash" | 
+/**  Meld into the previous commit, keeping the previous message. */
+"fixup" | "drop" | 
+/**  Stop after applying it so it can be amended. */
+"edit";
 
 export type TodoStep = {
-  oid: string;
-  action: TodoAction;
-  /**  New message for `reword` (required), `squash` (combined message) or `edit`. */
-  message?: string | null;
+	oid: string,
+	action: TodoAction,
+	/**  New message for `reword` (required), `squash` (combined message) or `edit`. */
+	message?: string | null,
 };
 
 /**  What kind of credential a token is. */
-export type TokenKind =
-  /**  `ghp_…` or legacy 40-hex token with `X-OAuth-Scopes`. */
-  | "githubClassicPat"
-  /**  `github_pat_…` (no scope header; permissions are per repository). */
-  | "githubFineGrainedPat"
-  /**  `gho_…` (OAuth app, e.g. device flow). */
-  | "githubOauth"
-  /**  `ghu_…` / `ghs_…` (GitHub App user/installation token). */
-  | "githubApp"
-  /**  GitLab personal, project or group access token (`glpat-…`). */
-  | "gitlabAccessToken"
-  /**  GitLab OAuth access token. */
-  | "gitlabOauth"
-  | "unknown";
+export type TokenKind = 
+/**  `ghp_…` or legacy 40-hex token with `X-OAuth-Scopes`. */
+"githubClassicPat" | 
+/**  `github_pat_…` (no scope header; permissions are per repository). */
+"githubFineGrainedPat" | 
+/**  `gho_…` (OAuth app, e.g. device flow). */
+"githubOauth" | 
+/**  `ghu_…` / `ghs_…` (GitHub App user/installation token). */
+"githubApp" | 
+/**  GitLab personal, project or group access token (`glpat-…`). */
+"gitlabAccessToken" | 
+/**  GitLab OAuth access token. */
+"gitlabOauth" | "unknown";
 
 /**  Where the CLI keeps the account's token (the value itself is never read). */
-export type TokenStorage =
-  /**  Plain text in the CLI config file. */
-  | "configFile"
-  /**  Not in the file: gh keeps it in the OS keyring (its default since 2.40). */
-  | "keyring"
-  /**  Not in the file and the CLI may not have one at all. */
-  | "unknown";
+export type TokenStorage = 
+/**  Plain text in the CLI config file. */
+"configFile" | 
+/**  Not in the file: gh keeps it in the OS keyring (its default since 2.40). */
+"keyring" | 
+/**  Not in the file and the CLI may not have one at all. */
+"unknown";
 
 export type ToolInfo = {
-  version: Version | null;
-  /**  Raw `--version` output, for display and bug reports. */
-  raw: string | null;
-  minimum: Version;
-  ok: boolean;
+	version: Version | null,
+	/**  Raw `--version` output, for display and bug reports. */
+	raw: string | null,
+	minimum: Version,
+	ok: boolean,
 };
 
 export type Tools = {
-  git: ToolInfo;
-  gitLfs: ToolInfo;
+	git: ToolInfo,
+	gitLfs: ToolInfo,
 };
 
 export type TransferKind = "fetch" | "pull" | "push";
 
 /**  Tunables passed as `-c` to each command (Settings → LFS, overridable per repository). */
 export type TransferOptions = {
-  /**  `lfs.concurrenttransfers` (git-lfs default: 8). */
-  concurrentTransfers?: number | null;
-  /**  `lfs.transfer.maxretries` (default: 8). */
-  maxRetries?: number | null;
-  /**  `lfs.activitytimeout` in seconds (default: 30). */
-  activityTimeoutSecs?: number | null;
+	/**  `lfs.concurrenttransfers` (git-lfs default: 8). */
+	concurrentTransfers?: number | null,
+	/**  `lfs.transfer.maxretries` (default: 8). */
+	maxRetries?: number | null,
+	/**  `lfs.activitytimeout` in seconds (default: 30). */
+	activityTimeoutSecs?: number | null,
 };
 
 /**  Progress of a running fetch / pull / push, at most ~10 per second per operation. */
 export type TransferProgress = {
-  repoId: number;
-  /**  Id chosen by the frontend when it started the command. */
-  opId: string;
-  kind: TransferKind;
-  phase: ProgressPhase;
-  /**  Label printed by git, e.g. `Receiving objects`. */
-  label: string;
-  /**  Reported by the server (`remote: …`). */
-  remote: boolean;
-  percent: number | null;
-  current: number | null;
-  total: number | null;
-  /**  e.g. `1.20 MiB`. */
-  bytes: string | null;
-  /**  e.g. `2.00 MiB/s`. */
-  throughput: string | null;
-  done: boolean;
+	repoId: number,
+	/**  Id chosen by the frontend when it started the command. */
+	opId: string,
+	kind: TransferKind,
+	phase: ProgressPhase,
+	/**  Label printed by git, e.g. `Receiving objects`. */
+	label: string,
+	/**  Reported by the server (`remote: …`). */
+	remote: boolean,
+	percent: number | null,
+	current: number | null,
+	total: number | null,
+	/**  e.g. `1.20 MiB`. */
+	bytes: string | null,
+	/**  e.g. `2.00 MiB/s`. */
+	throughput: string | null,
+	done: boolean,
 };
 
 /**  Result of a finished transfer. */
 export type TransferSummary = {
-  /**  Files git-lfs reported as transferred (objects already present are skipped). */
-  files: number;
-  bytes: number;
-  elapsedMs: number;
+	/**  Files git-lfs reported as transferred (objects already present are skipped). */
+	files: number,
+	bytes: number,
+	elapsedMs: number,
 };
 
 export type Transport = "https" | "ssh";
 
 /**  Why the next undo / redo cannot run right now. */
-export type UndoBlock =
-  /**  The repository changed since (another branch moved, HEAD elsewhere…). */
-  | "stateChanged"
-  /**  A merge / rebase / cherry-pick… is in progress. */
-  | "operationInProgress"
-  /**  Nothing to go back to (e.g. the very first commit). */
-  | "unsupported";
+export type UndoBlock = 
+/**  The repository changed since (another branch moved, HEAD elsewhere…). */
+"stateChanged" | 
+/**  A merge / rebase / cherry-pick… is in progress. */
+"operationInProgress" | 
+/**  Nothing to go back to (e.g. the very first commit). */
+"unsupported";
 
 /**  What an entry did, for the tooltip ("Undo: commit 'abc'"). */
-export type UndoKind =
-  | { kind: "commit"; subject: string }
-  | { kind: "amend"; subject: string }
-  | { kind: "reset"; target: string }
-  | { kind: "checkout"; from: string; to: string }
-  | { kind: "merge"; rev: string }
-  | { kind: "rebase"; branch: string }
-  | { kind: "cherryPick"; subject: string }
-  | { kind: "revert"; subject: string }
-  | { kind: "pull"; detail: string }
-  | { kind: "createBranch"; name: string }
-  | { kind: "deleteBranch"; name: string }
-  | { kind: "renameBranch"; from: string; to: string }
-  | { kind: "fastForward"; branch: string; source: string }
-  | { kind: "other"; message: string };
+export type UndoKind = { kind: "commit"; subject: string } | { kind: "amend"; subject: string } | { kind: "reset"; target: string } | { kind: "checkout"; from: string; to: string } | { kind: "merge"; rev: string } | { kind: "rebase"; branch: string } | { kind: "cherryPick"; subject: string } | { kind: "revert"; subject: string } | { kind: "pull"; detail: string } | { kind: "createBranch"; name: string } | { kind: "deleteBranch"; name: string } | { kind: "renameBranch"; from: string; to: string } | { kind: "fastForward"; branch: string; source: string } | { kind: "other"; message: string };
 
 /**  Result of an undo / redo. */
 export type UndoOutcome = {
-  /**  The step that was undone / redone. */
-  step: UndoStep;
-  head: string | null;
-  /**  What the toolbar offers next. */
-  state: UndoState;
+	/**  The step that was undone / redone. */
+	step: UndoStep,
+	head: string | null,
+	/**  What the toolbar offers next. */
+	state: UndoState,
 };
 
 export type UndoState = {
-  undo: UndoStep | null;
-  redo: UndoStep | null;
+	undo: UndoStep | null,
+	redo: UndoStep | null,
 };
 
 export type UndoStep = {
-  id: number;
-  /**  What the step does. */
-  op: UndoKind;
-  /**  Unix seconds of the original operation. */
-  time: number;
-  /**
-   *  Undo would take away commits that are already on a remote: only the local branch
-   *  changes, the remote keeps them.
-   */
-  pushed: boolean;
-  blocked: UndoBlock | null;
+	id: number,
+	/**  What the step does. */
+	op: UndoKind,
+	/**  Unix seconds of the original operation. */
+	time: number,
+	/**
+	 *  Undo would take away commits that are already on a remote: only the local branch
+	 *  changes, the remote keeps them.
+	 */
+	pushed: boolean,
+	blocked: UndoBlock | null,
 };
 
 /**  One commit the push would send. */
 export type UnpushedCommit = {
-  oid: string;
-  shortOid: string;
-  summary: string;
-  authorName: string;
-  authorEmail: string;
-  committerName: string;
-  committerEmail: string;
-  /**  Author time, Unix seconds. */
-  time: number;
-  /**
-   *  Already reachable from another remote-tracking ref (e.g. pushed to another branch):
-   *  such a commit must not be rewritten.
-   */
-  shared: boolean;
+	oid: string,
+	shortOid: string,
+	summary: string,
+	authorName: string,
+	authorEmail: string,
+	committerName: string,
+	committerEmail: string,
+	/**  Author time, Unix seconds. */
+	time: number,
+	/**
+	 *  Already reachable from another remote-tracking ref (e.g. pushed to another branch):
+	 *  such a commit must not be rewritten.
+	 */
+	shared: boolean,
 };
 
 export type UpdateChannel = "stable" | "beta";
 
 export type UpdateCheck = {
-  status: UpdateCheckStatus;
-  currentVersion: string;
-  releasesUrl: string | null;
-  update: AvailableUpdate | null;
+	status: UpdateCheckStatus,
+	currentVersion: string,
+	releasesUrl: string | null,
+	update: AvailableUpdate | null,
 };
 
-export type UpdateCheckStatus =
-  | "notConfigured"
-  /**  Startup check skipped: the last one was less than a day ago. */
-  | "notDue"
-  | "upToDate"
-  | "available";
+export type UpdateCheckStatus = "notConfigured" | 
+/**  Startup check skipped: the last one was less than a day ago. */
+"notDue" | "upToDate" | "available";
 
 /**
  *  Failure of a check or an install, serialized as `{ kind, message }`; `message` is the
  *  technical detail (for "Chi tiết" / logs), the UI explains each kind in plain words.
  */
-export type UpdateError =
-  /**  No connection to GitHub (offline, DNS, proxy, timeout). */
-  | { kind: "offline"; message: string }
-  /**  No published release carries a `latest.json` yet (404). */
-  | { kind: "noRelease"; message: string }
-  /**  The release has no update package for this OS / CPU. */
-  | { kind: "noBuildForPlatform"; message: string }
-  | { kind: "badManifest"; message: string }
-  /**  The package is not signed with the key built into the app. */
-  | { kind: "badSignature"; message: string }
-  | { kind: "downloadFailed"; message: string }
-  | { kind: "notConfigured"; message: string }
-  /**  `updater_install` without a matching successful check (or after a channel change). */
-  | { kind: "noPendingUpdate"; message: string }
-  /**  An install is already running. */
-  | { kind: "busy"; message: string }
-  /**  The OS password prompt (Linux packages) was dismissed. */
-  | { kind: "cancelled"; message: string }
-  | { kind: "failed"; message: string };
+export type UpdateError = 
+/**  No connection to GitHub (offline, DNS, proxy, timeout). */
+{ kind: "offline"; message: string } | 
+/**  No published release carries a `latest.json` yet (404). */
+{ kind: "noRelease"; message: string } | 
+/**  The release has no update package for this OS / CPU. */
+{ kind: "noBuildForPlatform"; message: string } | { kind: "badManifest"; message: string } | 
+/**  The package is not signed with the key built into the app. */
+{ kind: "badSignature"; message: string } | { kind: "downloadFailed"; message: string } | { kind: "notConfigured"; message: string } | 
+/**  `updater_install` without a matching successful check (or after a channel change). */
+{ kind: "noPendingUpdate"; message: string } | 
+/**  An install is already running. */
+{ kind: "busy"; message: string } | 
+/**  The OS password prompt (Linux packages) was dismissed. */
+{ kind: "cancelled"; message: string } | { kind: "failed"; message: string };
 
 export type UpdatePhase = "downloading" | "installing" | "restarting";
 
 /**  Progress of `updater_install`, at most ~7 per second (phase changes always sent). */
 export type UpdateProgress = {
-  phase: UpdatePhase;
-  downloaded: number;
-  total: number | null;
-  percent: number | null;
+	phase: UpdatePhase,
+	downloaded: number,
+	total: number | null,
+	percent: number | null,
 };
 
 export type UpdaterStatus = {
-  /**  The build embeds a repository and a public key. */
-  configured: boolean;
-  currentVersion: string;
-  channel: UpdateChannel;
-  /**  Unix seconds of the last check (startup or manual). */
-  lastCheck: number | null;
-  skippedVersion: string | null;
-  /**  `https://github.com/<owner>/<repo>/releases` when the build knows its repository. */
-  releasesUrl: string | null;
+	/**  The build embeds a repository and a public key. */
+	configured: boolean,
+	currentVersion: string,
+	channel: UpdateChannel,
+	/**  Unix seconds of the last check (startup or manual). */
+	lastCheck: number | null,
+	skippedVersion: string | null,
+	/**  `https://github.com/<owner>/<repo>/releases` when the build knows its repository. */
+	releasesUrl: string | null,
 };
 
 export type UrlScheme = "https" | "http" | "ssh" | "git" | "local";
 
 export type UserDataSummary = {
-  themes: number;
-  notes: number;
-  userTags: number;
-  /**  Approximate size of the stored JSON. */
-  themesBytes: number;
-  notesBytes: number;
+	themes: number,
+	notes: number,
+	userTags: number,
+	/**  Approximate size of the stored JSON. */
+	themesBytes: number,
+	notesBytes: number,
 };
 
 /**  Why a file chosen by the user could not be imported. */
-export type UserFileProblem =
-  /**  Could not read the file (gone, no permission). */
-  | "unreadable"
-  | "tooLarge"
-  /**  Not JSON at all (or not UTF-8). */
-  | "notJson"
-  /**  JSON, but not a file this app exported (wrong `format`). */
-  | "wrongFormat"
-  /**  Exported by a newer version of the app. */
-  | "newerVersion"
-  /**  The right kind of file, but the content is damaged or empty. */
-  | "invalid";
+export type UserFileProblem = 
+/**  Could not read the file (gone, no permission). */
+"unreadable" | "tooLarge" | 
+/**  Not JSON at all (or not UTF-8). */
+"notJson" | 
+/**  JSON, but not a file this app exported (wrong `format`). */
+"wrongFormat" | 
+/**  Exported by a newer version of the app. */
+"newerVersion" | 
+/**  The right kind of file, but the content is damaged or empty. */
+"invalid";
 
 export type Version = {
-  major: number;
-  minor: number;
-  patch: number;
+	major: number,
+	minor: number,
+	patch: number,
 };
 
-export type WarningKind =
-  /**  The file exists but cannot be read (permissions, not UTF-8, …). */
-  | "unreadable"
-  /**  Syntax error; the rest of the file was still used when possible. */
-  | "parse"
-  /**  An `include.path` / `includeIf` / ssh `Include` target does not exist. */
-  | "missingInclude"
-  /**  Include nesting too deep or cyclic. */
-  | "includeLoop"
-  /**  A construct the importer does not translate (`includeIf "onbranch:…"`, ssh `Match`). */
-  | "unsupported";
+export type WarningKind = 
+/**  The file exists but cannot be read (permissions, not UTF-8, …). */
+"unreadable" | 
+/**  Syntax error; the rest of the file was still used when possible. */
+"parse" | 
+/**  An `include.path` / `includeIf` / ssh `Include` target does not exist. */
+"missingInclude" | 
+/**  Include nesting too deep or cyclic. */
+"includeLoop" | 
+/**  A construct the importer does not translate (`includeIf "onbranch:…"`, ssh `Match`). */
+"unsupported";
 
 /**  One account's part of the panel. */
 export type WorkAccount = {
-  accountId: string;
-  /**  `None` when the fetch failed (see `error`). */
-  lists: WorkLists | null;
-  error: IssueCommandError | null;
-  /**  When `lists` was fetched (ms since the epoch). */
-  fetchedAt: number | null;
+	accountId: string,
+	/**  `None` when the fetch failed (see `error`). */
+	lists: WorkLists | null,
+	error: IssueCommandError | null,
+	/**  When `lists` was fetched (ms since the epoch). */
+	fetchedAt: number | null,
 };
 
 /**  One row of the "My work" panel. */
 export type WorkItem = {
-  kind: WorkItemKind;
-  /**  `owner/repo` or `group/sub/project`. */
-  fullName: string;
-  /**  GitHub number / GitLab `iid`. */
-  number: number;
-  title: string;
-  author: string | null;
-  authorAvatar: string | null;
-  updatedAt: number | null;
-  /**  Draft pull / merge request. */
-  draft: boolean;
-  labels: string[];
-  comments: number | null;
-  webUrl: string;
+	kind: WorkItemKind,
+	/**  `owner/repo` or `group/sub/project`. */
+	fullName: string,
+	/**  GitHub number / GitLab `iid`. */
+	number: number,
+	title: string,
+	author: string | null,
+	authorAvatar: string | null,
+	updatedAt: number | null,
+	/**  Draft pull / merge request. */
+	draft: boolean,
+	labels: string[],
+	comments: number | null,
+	webUrl: string,
 };
 
-export type WorkItemKind =
-  /**  GitHub pull request / GitLab merge request. */
-  "pullRequest" | "issue";
+export type WorkItemKind = 
+/**  GitHub pull request / GitLab merge request. */
+"pullRequest" | "issue";
 
 export type WorkList = {
-  items: WorkItem[];
-  /**  All matches (may exceed `items`) when the provider reports it. */
-  total: number | null;
+	items: WorkItem[],
+	/**  All matches (may exceed `items`) when the provider reports it. */
+	total: number | null,
 };
 
 export type WorkLists = {
-  /**  Open PRs/MRs where the account is a requested reviewer. */
-  reviewRequested: WorkList;
-  /**  Open PRs/MRs the account opened. */
-  authored: WorkList;
-  /**  Open issues assigned to the account. */
-  assigned: WorkList;
+	/**  Open PRs/MRs where the account is a requested reviewer. */
+	reviewRequested: WorkList,
+	/**  Open PRs/MRs the account opened. */
+	authored: WorkList,
+	/**  Open issues assigned to the account. */
+	assigned: WorkList,
 };
 
 export type WorkOverview = {
-  /**  Accounts with a token, in switcher order. */
-  accounts: WorkAccount[];
-  /**  Accounts left out because no token is stored (the UI offers to sign in). */
-  withoutToken: string[];
-  /**
-   *  Stopped by [`mywork_cancel`] or a newer call; accounts that were still loading carry a
-   *  `cancelled` provider error.
-   */
-  cancelled: boolean;
+	/**  Accounts with a token, in switcher order. */
+	accounts: WorkAccount[],
+	/**  Accounts left out because no token is stored (the UI offers to sign in). */
+	withoutToken: string[],
+	/**
+	 *  Stopped by [`mywork_cancel`] or a newer call; accounts that were still loading carry a
+	 *  `cancelled` provider error.
+	 */
+	cancelled: boolean,
 };
 
 export type WorkingTreeStatus = {
-  /**  Current branch; `None` when HEAD is detached. */
-  branch: string | null;
-  headOid: string | null;
-  /**  No commit yet on the current branch. */
-  unborn: boolean;
-  upstream: string | null;
-  ahead: number;
-  behind: number;
-  staged: StatusEntry[];
-  /**  Modified/deleted tracked files and untracked files, in path order. */
-  unstaged: StatusEntry[];
-  conflicted: StatusEntry[];
+	/**  Current branch; `None` when HEAD is detached. */
+	branch: string | null,
+	headOid: string | null,
+	/**  No commit yet on the current branch. */
+	unborn: boolean,
+	upstream: string | null,
+	ahead: number,
+	behind: number,
+	staged: StatusEntry[],
+	/**  Modified/deleted tracked files and untracked files, in path order. */
+	unstaged: StatusEntry[],
+	conflicted: StatusEntry[],
 };
 
 export type WorkspaceState = {
-  tabs: RepoTab[];
-  activeId: number | null;
+	tabs: RepoTab[],
+	activeId: number | null,
 };
 
 export type Worktree = {
-  /**  Absolute path as git prints it (`/` separators). */
-  path: string;
-  /**  Checked-out commit (`None` for a bare main repository). */
-  head: string | null;
-  /**  Checked-out branch (short name); `None` when detached. */
-  branch: string | null;
-  detached: boolean;
-  bare: boolean;
-  /**  The main worktree (first entry): cannot be removed, locked or pruned. */
-  isMain: boolean;
-  /**  The worktree the list was requested from. */
-  isCurrent: boolean;
-  locked: boolean;
-  lockReason: string | null;
-  /**  Its folder is gone: `git worktree prune` will drop it. */
-  prunable: boolean;
-  prunableReason: string | null;
+	/**  Absolute path as git prints it (`/` separators). */
+	path: string,
+	/**  Checked-out commit (`None` for a bare main repository). */
+	head: string | null,
+	/**  Checked-out branch (short name); `None` when detached. */
+	branch: string | null,
+	detached: boolean,
+	bare: boolean,
+	/**  The main worktree (first entry): cannot be removed, locked or pruned. */
+	isMain: boolean,
+	/**  The worktree the list was requested from. */
+	isCurrent: boolean,
+	locked: boolean,
+	lockReason: string | null,
+	/**  Its folder is gone: `git worktree prune` will drop it. */
+	prunable: boolean,
+	prunableReason: string | null,
 };
 
 /**  Which branch a new worktree checks out. */
-export type WorktreeTarget =
-  /**  An existing local branch (must not be checked out elsewhere). */
-  | { kind: "branch"; name: string }
-  /**  A new branch `name` created at `start` (branch, tag, commit…; `None` = HEAD). */
-  | { kind: "newBranch"; name: string; start: string | null }
-  /**  Detached HEAD at a commit-ish. */
-  | { kind: "detached"; rev: string };
+export type WorktreeTarget = 
+/**  An existing local branch (must not be checked out elsewhere). */
+{ kind: "branch"; name: string } | 
+/**  A new branch `name` created at `start` (branch, tag, commit…; `None` = HEAD). */
+{ kind: "newBranch"; name: string; start: string | null } | 
+/**  Detached HEAD at a commit-ish. */
+{ kind: "detached"; rev: string };
 
 /* Tauri Specta runtime */
 type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;
 
-function makeEvent<T>(
-  name: string,
-  serialize?: (payload: T) => unknown,
-  deserialize?: (payload: any) => T,
-) {
-  const mapEvent = (cb: __TAURI_EVENT.EventCallback<T>) => (event: __TAURI_EVENT.Event<any>) =>
-    cb({ ...event, payload: deserialize ? deserialize(event.payload) : event.payload });
-  const mapPayload = (payload: T) => (serialize ? serialize(payload) : payload);
+function makeEvent<T>(name: string, serialize?: (payload: T) => unknown, deserialize?: (payload: any) => T) {
+    const mapEvent = (cb: __TAURI_EVENT.EventCallback<T>) => (event: __TAURI_EVENT.Event<any>) => cb({ ...event, payload: deserialize ? deserialize(event.payload) : event.payload });
+    const mapPayload = (payload: T) => serialize ? serialize(payload) : payload;
 
-  const base = {
-    listen: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.listen(name, mapEvent(cb)),
-    once: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.once(name, mapEvent(cb)),
-    emit: ((payload: T) =>
-      __TAURI_EVENT.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>,
-  };
+    const base = {
+        listen: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<T>) => __TAURI_EVENT.once(name, mapEvent(cb)),
+        emit: ((payload: T) => __TAURI_EVENT.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>
+    };
 
-  const fn = (
-    target: import("@tauri-apps/api/webview").Webview | import("@tauri-apps/api/window").Window,
-  ) => ({
-    listen: (cb: __TAURI_EVENT.EventCallback<T>) => target.listen(name, mapEvent(cb)),
-    once: (cb: __TAURI_EVENT.EventCallback<T>) => target.once(name, mapEvent(cb)),
-    emit: ((payload: T) => target.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>,
-  });
+    const fn = (target: import("@tauri-apps/api/webview").Webview | import("@tauri-apps/api/window").Window) => ({
+        listen: (cb: __TAURI_EVENT.EventCallback<T>) => target.listen(name, mapEvent(cb)),
+        once: (cb: __TAURI_EVENT.EventCallback<T>) => target.once(name, mapEvent(cb)),
+        emit: ((payload: T) => target.emit(name, mapPayload(payload)) as unknown) as EventEmit<T>
+    });
 
-  return Object.assign(fn, base);
+    return Object.assign(fn, base);
 }
+
