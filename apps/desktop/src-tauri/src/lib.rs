@@ -16,6 +16,7 @@ mod cli_accounts;
 mod clone;
 mod commands;
 mod conflicts;
+mod env_path;
 mod error;
 mod file_views;
 // Phase 4.3: fork & clone, fork the open repository.
@@ -393,6 +394,9 @@ pub fn export_bindings(builder: &Builder<tauri::Wry>) -> Result<PathBuf, String>
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // First thing, before any thread: a GUI app on macOS / Linux starts with a minimal `PATH`
+    // without Homebrew & co., which would hide git-lfs, gh, glab and brew for ever.
+    let path_fix = env_path::fix();
     let builder = specta_builder();
 
     #[cfg(debug_assertions)]
@@ -419,6 +423,13 @@ pub fn run() {
             let legacy = app_paths::migrate_legacy_identifier(app.handle());
             let paths = app_paths::AppPaths::resolve(app.handle())?;
             paths.init_logging()?;
+            if !path_fix.added.is_empty() {
+                tracing::info!(
+                    added = ?path_fix.added,
+                    from_login_shell = path_fix.from_login_shell,
+                    "extended PATH for a GUI launch"
+                );
+            }
             let legacy = match legacy {
                 Ok(Some(moved)) => {
                     tracing::info!(from = %moved.from.display(), "copied the data of an earlier bundle identifier");

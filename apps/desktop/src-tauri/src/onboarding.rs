@@ -228,10 +228,15 @@ impl ProbeEnv {
                 .collect(),
             local_app_data: var("LOCALAPPDATA"),
             system_root: var("SystemRoot"),
-            unix_dirs: ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
-                .into_iter()
-                .map(PathBuf::from)
-                .collect(),
+            unix_dirs: [
+                "/opt/homebrew/bin",
+                "/usr/local/bin",
+                "/opt/local/bin",
+                "/usr/bin",
+            ]
+            .into_iter()
+            .map(PathBuf::from)
+            .collect(),
         }
     }
 

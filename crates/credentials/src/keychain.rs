@@ -163,15 +163,17 @@ pub struct OsKeychain;
 impl OsKeychain {
     fn entry(key: &SecretKey) -> Result<keyring::Entry, KeychainError> {
         check_key(key)?;
-        let name = key.entry_name();
-        // Target = full entry name (what Windows Credential Manager shows); service/user are
-        // what macOS and Secret Service index on.
-        keyring::Entry::new_with_target(
-            &name,
-            KEYCHAIN_SERVICE,
-            &format!("{}:{}", key.owner, key.kind.as_str()),
-        )
-        .map_err(map_keyring_error)
+        let user = format!("{}:{}", key.owner, key.kind.as_str());
+        // Windows: target = full entry name (what Credential Manager shows). On macOS the
+        // `target` of `new_with_target` is the keychain *domain* (`User`, `System`, `Common`,
+        // `Dynamic`) and on Linux the Secret Service collection, so passing the entry name
+        // there fails with "Attribute target is invalid"; those platforms index on
+        // service + user, which is all the app needs.
+        #[cfg(windows)]
+        let entry = keyring::Entry::new_with_target(&key.entry_name(), KEYCHAIN_SERVICE, &user);
+        #[cfg(not(windows))]
+        let entry = keyring::Entry::new(KEYCHAIN_SERVICE, &user);
+        entry.map_err(map_keyring_error)
     }
 }
 
