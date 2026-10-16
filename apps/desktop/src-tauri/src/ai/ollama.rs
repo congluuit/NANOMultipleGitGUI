@@ -332,8 +332,7 @@ pub fn start_wait() -> Duration {
 // ----- install ---------------------------------------------------------------------------------
 
 pub fn run_install(plan: &InstallPlan, cancel: &AtomicBool, timeout: Duration) -> AiInstallResult {
-    let mut cmd = no_window_command(&plan.program);
-    cmd.args(&plan.args);
+    let cmd = plan.command();
     let result = |outcome, exit_code, output: String| AiInstallResult {
         outcome,
         manager: Some(plan.manager),

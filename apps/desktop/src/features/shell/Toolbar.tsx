@@ -6,7 +6,6 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
-  Settings,
   SquareTerminal,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +15,6 @@ import { RebaseDialogsHost } from "@/features/rebase/RebaseDialogsHost";
 import { RemoteButtons } from "@/features/remote/RemoteButtons";
 import { shortcutLabel } from "./layoutShortcuts";
 import { useLayout, usePanelShown } from "@/stores/layout";
-import { useUi } from "@/stores/ui";
 import { useActiveRepo } from "@/stores/workspace";
 import { StashCreateDialogHost } from "@/features/stash/StashCreateDialog";
 import { useStashToolbar } from "@/features/stash/useStashToolbar";
@@ -30,7 +28,6 @@ import { ToolbarOverflowMenu } from "./ToolbarOverflowMenu";
 
 export function Toolbar() {
   const { t } = useTranslation();
-  const openSettings = useUi((s) => s.setSettingsOpen);
   const stash = useStashToolbar();
   const repo = useActiveRepo();
   const repoId = repo && !repo.missing ? repo.id : null;
@@ -97,13 +94,6 @@ export function Toolbar() {
         label={t("toolbar.terminal")}
         onClick={() => repoId !== null && toggleTerminal(repoId)}
         disabled={repoId === null}
-      />
-      <ToolButton
-        id="settings"
-        priority="pin"
-        icon={Settings}
-        label={t("toolbar.settings")}
-        onClick={() => openSettings(true)}
       />
     </div>
   );

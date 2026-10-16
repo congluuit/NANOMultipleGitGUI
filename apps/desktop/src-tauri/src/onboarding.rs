@@ -358,13 +358,35 @@ pub(crate) struct RunOutput {
     pub timed_out: bool,
 }
 
-/// Runs `cmd` until it exits, `cancel` is set or `timeout` passes (then it is killed).
-/// Pipes are drained on threads; a grandchild still holding them does not block the result.
+/// Kills `child` and, on Unix, its whole process group: `brew` is a shell script whose `ruby` /
+/// `curl` children would otherwise outlive it, still holding Homebrew's lock so that every
+/// retry fails with "already locked".
+fn kill_tree(child: &mut std::process::Child) {
+    #[cfg(unix)]
+    {
+        let _ = Command::new("/bin/kill")
+            .args(["-s", "KILL", "--", &format!("-{}", child.id())])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+    let _ = child.kill();
+}
+
+/// Runs `cmd` until it exits, `cancel` is set or `timeout` passes (then it and its children are
+/// killed). Pipes are drained on threads; a grandchild still holding them does not block the
+/// result.
 pub(crate) fn run_cancellable(
     mut cmd: Command,
     cancel: &AtomicBool,
     timeout: Duration,
 ) -> std::io::Result<RunOutput> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
     let mut child = cmd.spawn()?;
     let (tx, rx) = mpsc::channel::<(bool, Vec<u8>)>();
     for (is_err, pipe) in [
@@ -405,7 +427,7 @@ pub(crate) fn run_cancellable(
             timed_out = true;
         }
         if cancelled || timed_out {
-            let _ = child.kill();
+            kill_tree(&mut child);
             break child.wait().ok();
         }
         std::thread::sleep(Duration::from_millis(50));
@@ -549,7 +571,28 @@ pub(crate) struct InstallPlan {
     pub args: Vec<&'static str>,
 }
 
+/// Homebrew side jobs that make `brew install` look frozen from a GUI (no output reaches the
+/// user until the process exits): `brew update` of every tap before installing (minutes with
+/// old git-cloned taps), upgrading the dependents of anything it touched, and `brew cleanup`.
+/// Formula metadata is still downloaded when it is missing, so a first install works.
+const BREW_ENV: [(&str, &str); 4] = [
+    ("HOMEBREW_NO_AUTO_UPDATE", "1"),
+    ("HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK", "1"),
+    ("HOMEBREW_NO_INSTALL_CLEANUP", "1"),
+    ("HOMEBREW_NO_ENV_HINTS", "1"),
+];
+
 impl InstallPlan {
+    /// The process to spawn for this plan.
+    pub(crate) fn command(&self) -> Command {
+        let mut cmd = command(&self.program);
+        cmd.args(&self.args);
+        if self.manager == SetupPackageManager::Brew {
+            cmd.envs(BREW_ENV);
+        }
+        cmd
+    }
+
     pub(crate) fn display(&self) -> String {
         let name = self
             .program
@@ -927,8 +970,7 @@ pub(crate) fn run_install(
     cancel: &AtomicBool,
     timeout: Duration,
 ) -> SetupInstallResult {
-    let mut cmd = command(&plan.program);
-    cmd.args(&plan.args);
+    let cmd = plan.command();
     let result = |outcome, exit_code, output: String| SetupInstallResult {
         tool,
         outcome,
@@ -1287,6 +1329,10 @@ mod tests {
         let lfs = install_plan(SetupToolId::GitLfs, TargetOs::Macos, &brew).unwrap();
         assert_eq!(lfs.manager, SetupPackageManager::Brew);
         assert_eq!(lfs.args, ["install", "git-lfs"]);
+        let cmd = lfs.command();
+        let env: Vec<_> = cmd.get_envs().collect();
+        assert!(env.contains(&("HOMEBREW_NO_AUTO_UPDATE".as_ref(), Some("1".as_ref()))));
+        assert!(env.contains(&("HOMEBREW_NO_INSTALL_CLEANUP".as_ref(), Some("1".as_ref()))));
         assert!(install_plan(SetupToolId::GitLfs, TargetOs::Macos, &Managers::default()).is_none());
         for tool in [SetupToolId::Git, SetupToolId::GitLfs, SetupToolId::Gh] {
             assert!(install_plan(tool, TargetOs::Linux, &brew).is_none());

@@ -77,6 +77,18 @@ export function conflictText(outcome: Pick<OpOutcome, "conflicts">): string {
 }
 
 /**
+ * Called after a successful operation showed its notice (`startedAt`: Unix seconds when the
+ * operation started). The undo feature registers one that adds an "Undo" button when the
+ * operation can be undone; kept as a hook so this module does not depend on it.
+ */
+type SuccessHook = (repoId: number, notice: Notice, startedAt: number) => void;
+let successHook: SuccessHook | null = null;
+
+export function setSuccessHook(hook: SuccessHook | null) {
+  successHook = hook;
+}
+
+/**
  * Runs a write command returning an `Outcome`, reports rejections/cancellation/errors in the
  * notice bar, refreshes the repository and returns the value when it went through.
  */
@@ -86,11 +98,16 @@ export async function runOutcome<T>(
   success?: (value: T) => string | Notice | null,
 ): Promise<T | undefined> {
   const notify = useUi.getState().showNotice;
+  const startedAt = Math.floor(Date.now() / 1000);
   try {
     const out = await call();
     if (out.status === "done") {
       const done = success?.(out.value);
-      if (done) notify(typeof done === "string" ? { kind: "info", message: done } : done);
+      if (done) {
+        const notice: Notice = typeof done === "string" ? { kind: "info", message: done } : done;
+        notify(notice);
+        successHook?.(repoId, notice, startedAt);
+      }
       return out.value;
     }
     if (out.status === "rejected") {

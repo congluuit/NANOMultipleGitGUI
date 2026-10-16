@@ -22,6 +22,7 @@ import { useAppInfo } from "@/features/app/useAppInfo";
 import { BackupSettingsSection } from "@/features/backup/BackupSettingsSection";
 import { BranchSwitchSettingsSection } from "@/features/branch-switch/BranchSwitchSettingsSection";
 import { GuideSettingsButton } from "@/features/guide/GuideSettingsButton";
+import { ShortcutsSettingsButton } from "@/features/shortcuts/ShortcutsDialog";
 import { ThemeSettingsSection } from "@/features/custom-theme/ThemeSettingsSection";
 import { SetupSettingsSection } from "@/features/onboarding/setup/SetupSettingsSection";
 import { UpdaterSettingsSection } from "@/features/updater/UpdaterSettingsSection";
@@ -161,6 +162,7 @@ export function SettingsDialog() {
 
             <SetupSettingsSection />
             <GuideSettingsButton />
+            <ShortcutsSettingsButton />
             <BranchSwitchSettingsSection />
           </div>
 

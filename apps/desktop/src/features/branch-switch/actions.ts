@@ -26,6 +26,7 @@ import { useSettings } from "@/stores/settings";
 import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
 import { folderOf, planSwitch, targetLabel } from "./model";
 import { getPrefs } from "./prefs";
+import { useRecentBranches } from "./recentBranches";
 import { useBranchSwitchUi } from "./store";
 
 /** Repositories with a switch in flight (a double-click must not start two). */
@@ -108,6 +109,9 @@ export async function runSwitch(
   busy.add(repoId);
   try {
     const result = await commands.branchSwitchRun(repoId, target, mode);
+    if (result.status === "switched") {
+      useRecentBranches.getState().record(repoId, result.from, result.branch);
+    }
     notify(resultNotice(repoId, target, mode, result));
   } catch (e) {
     notify({ kind: "error", message: errorMessage(e) });

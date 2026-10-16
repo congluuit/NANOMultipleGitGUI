@@ -99,11 +99,14 @@ export async function checkForUpdates({
       if (!startup || !check.update.skipped) {
         useUpdater.getState().show(check.update, check.currentVersion);
       }
-    } else if (notify && check.status === "upToDate") {
-      useUi.getState().showNotice({
-        kind: "info",
-        message: i18n.t("updater.upToDate", { version: versionLabel(check.currentVersion) }),
-      });
+    } else if (check.status === "upToDate") {
+      useUpdater.getState().clearPending();
+      if (notify) {
+        useUi.getState().showNotice({
+          kind: "info",
+          message: i18n.t("updater.upToDate", { version: versionLabel(check.currentVersion) }),
+        });
+      }
     } else if (notify && check.status === "notConfigured") {
       useUi.getState().showNotice(notConfiguredNotice(check));
     }
@@ -147,6 +150,7 @@ export async function installUpdate(): Promise<void> {
 export async function skipUpdate(): Promise<void> {
   const { update } = useUpdater.getState();
   useUpdater.getState().close();
+  useUpdater.getState().clearPending();
   if (!update || !isTauri()) return;
   try {
     const status = await commands.updaterSkipVersion(update.version);

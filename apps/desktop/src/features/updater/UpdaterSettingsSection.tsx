@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { CheckCircle2, ExternalLink, Loader2, RefreshCw, TriangleAlert } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+  TriangleAlert,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +26,7 @@ import {
 } from "./actions";
 import { versionLabel } from "./notes";
 import { useUpdaterStatus } from "./queries";
+import { useUi } from "@/stores/ui";
 import { useUpdater } from "./store";
 
 /** Settings → "Cập nhật": version, channel, manual check, last check. */
@@ -26,6 +34,7 @@ export function UpdaterSettingsSection() {
   const { t, i18n } = useTranslation();
   const status = useUpdaterStatus().data;
   const checking = useUpdater((s) => s.checking);
+  const pending = useUpdater((s) => s.pending);
   const [result, setResult] = useState<CheckResult | null>(null);
   if (!status) return null;
 
@@ -65,6 +74,25 @@ export function UpdaterSettingsSection() {
       <div className="text-xs text-muted-foreground">
         {t("updater.settings.current", { version: versionLabel(status.currentVersion) })}
       </div>
+      {pending && (
+        <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 p-2 text-xs">
+          <Download className="size-3.5 shrink-0 text-primary" />
+          <span className="flex-1">
+            {t("updater.pending.available", { version: versionLabel(pending.update.version) })}
+          </span>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => {
+              // One dialog at a time: Settings closes, the update dialog opens.
+              useUi.getState().setSettingsOpen(false);
+              useUpdater.getState().reopen();
+            }}
+          >
+            {t("updater.pending.install")}
+          </Button>
+        </div>
+      )}
 
       {!status.configured ? (
         <div className="space-y-1.5 rounded-md border bg-muted/40 p-2.5 text-xs">

@@ -14,7 +14,20 @@
   "tabs": {
     "newTab": "Mở hoặc tạo repo",
     "close": "Đóng tab",
-    "missing": "Không tìm thấy thư mục của repo này"
+    "missing": "Không tìm thấy thư mục của repo này",
+    "recent": "Repo gần đây",
+    "noRecent": "Chưa có repo nào khác (tab vừa đóng sẽ hiện ở đây).",
+    "list": "Tất cả tab đang mở",
+    "filter": "Tìm tab…",
+    "noMatch": "Không có tab nào khớp.",
+    "closeOthers": "Đóng các tab khác",
+    "closeRight": "Đóng các tab bên phải",
+    "closeAll": "Đóng tất cả tab",
+    "reopen": "Mở lại tab vừa đóng",
+    "copyPath": "Sao chép đường dẫn thư mục",
+    "pin": "Ghim tab",
+    "unpin": "Bỏ ghim tab",
+    "pinned": "Đã ghim"
   },
   "toolbar": {
     "fetch": "Fetch",
@@ -586,6 +599,19 @@
     "trackFailed": "Không track được bằng LFS, commit đã dừng: {{message}}"
   },
   "remote": {
+    "whatsNew": {
+      "title": "Đã fetch: {{count}} nhánh trên remote thay đổi.",
+      "title_one": "Đã fetch: {{count}} nhánh trên remote thay đổi.",
+      "updated": "↻ {{name}} có commit mới",
+      "added": "+ {{name}} (nhánh mới)",
+      "removed": "− {{name}} (đã xóa trên remote)",
+      "behind": "Nhánh {{branch}} của bạn đang chậm {{count}} commit",
+      "behind_one": "Nhánh {{branch}} của bạn đang chậm {{count}} commit",
+      "behindHead": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit — Pull để lấy về",
+      "behindHead_one": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit — Pull để lấy về",
+      "more": "… và {{count}} mục khác",
+      "pull": "Pull {{branch}}"
+    },
     "kind": {
       "fetch": "Fetch",
       "pull": "Pull",
@@ -802,7 +828,8 @@
       "number": "Tab {{n}}",
       "next": "Tab kế tiếp",
       "prev": "Tab trước",
-      "close": "Đóng tab hiện tại"
+      "close": "Đóng tab hiện tại",
+      "reopen": "Mở lại tab vừa đóng"
     },
     "remote": {
       "fetch": "Fetch tất cả remote",
@@ -816,7 +843,10 @@
       "create": "Tạo nhánh mới tại HEAD…",
       "checkout": "Chuyển nhánh (checkout)…",
       "merge": "Merge nhánh vào {{branch}}…",
-      "remote": "remote"
+      "remote": "remote",
+      "previous": "Chuyển về nhánh trước: {{branch}}",
+      "previousNone": "Chuyển về nhánh trước",
+      "recent": "Nhánh gần đây…"
     },
     "stash": {
       "create": "Stash thay đổi…",
@@ -2264,6 +2294,11 @@
     }
   },
   "updater": {
+    "pending": {
+      "available": "Đã có phiên bản mới: {{version}}",
+      "install": "Cập nhật ngay",
+      "installVersion": "Cập nhật lên {{version}}"
+    },
     "cmd": {
       "check": "Kiểm tra cập nhật"
     },
@@ -3706,6 +3741,51 @@
       "advanced": "Nâng cao",
       "url": "Địa chỉ Ollama",
       "urlHint": "Mặc định http://127.0.0.1:11434. Chỉ đổi khi bạn chạy Ollama ở cổng hoặc máy khác."
+    }
+  },
+  "shortcuts": {
+    "title": "Phím tắt",
+    "description": "Nhấn ? ở bất kỳ đâu (ngoài ô nhập chữ) để xem danh sách này.",
+    "middleClick": "Bấm chuột giữa",
+    "group": {
+      "general": "Chung",
+      "tabs": "Tab",
+      "repo": "Repo"
+    },
+    "item": {
+      "palette": "Bảng lệnh / tìm kiếm",
+      "cheatSheet": "Danh sách này",
+      "sidebar": "Hiện / ẩn thanh bên",
+      "rightPanel": "Hiện / ẩn bảng bên phải",
+      "terminal": "Terminal",
+      "nextTab": "Tab kế tiếp",
+      "prevTab": "Tab trước",
+      "reopenTab": "Mở lại tab vừa đóng",
+      "closeTab": "Đóng tab",
+      "undo": "Hoàn tác thao tác vừa làm",
+      "redo": "Làm lại",
+      "findCommit": "Tìm commit",
+      "commit": "Commit (trong ô message)",
+      "bindAccount": "Dùng tài khoản 1…9 cho repo này"
+    }
+  },
+  "checklist": {
+    "title": "Bắt đầu nhanh",
+    "progress": "({{done}}/{{total}})",
+    "hide": "Ẩn danh sách này",
+    "account": {
+      "title": "Kết nối tài khoản GitHub / GitLab",
+      "hint": "Để push, pull và clone repo riêng tư đúng tài khoản.",
+      "action": "Thêm tài khoản"
+    },
+    "repo": {
+      "title": "Mở hoặc clone repo đầu tiên",
+      "hint": "Một thư mục có sẵn trên máy, hoặc clone từ GitHub / GitLab."
+    },
+    "guide": {
+      "title": "Xem qua hướng dẫn",
+      "hint": "5 phút: tab, tài khoản, commit, push và hoàn tác.",
+      "action": "Mở hướng dẫn"
     }
   }
 }

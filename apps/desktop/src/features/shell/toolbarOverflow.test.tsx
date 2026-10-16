@@ -122,7 +122,7 @@ describe("Toolbar overflow", () => {
   it("shows every button and no ⋯ menu when the row is wide", () => {
     renderToolbar();
     expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
-    for (const name of ["Fetch", "Pull", "Push", "Branch", "Stash", "Undo", "Settings"]) {
+    for (const name of ["Fetch", "Pull", "Push", "Branch", "Stash", "Undo"]) {
       expect(wrapperOf(name)).not.toHaveClass("hidden");
     }
   });
@@ -132,7 +132,6 @@ describe("Toolbar overflow", () => {
     resize(400);
     // Lowest priority first (panel toggles, Terminal), then from the right of the main group.
     expect(useToolbarOverflow.getState().hidden).toEqual([
-      "stash",
       "pop",
       "undo",
       "redo",
@@ -141,17 +140,16 @@ describe("Toolbar overflow", () => {
       "rightPanel",
       "terminal",
     ]);
-    expect(wrapperOf("Stash")).toHaveClass("hidden");
-    expect(wrapperOf("Settings")).not.toHaveClass("hidden");
+    expect(wrapperOf("Pop")).toHaveClass("hidden");
+    expect(wrapperOf("Stash")).not.toHaveClass("hidden");
     expect(wrapperOf("Fetch")).not.toHaveClass("hidden");
     // One DOM button per action (hidden in place, not cloned).
-    expect(screen.getAllByRole("button", { name: "Stash" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Pop" })).toHaveLength(1);
 
     await userEvent.click(screen.getByRole("button", { name: "More actions" }));
     const menu = screen.getByRole("menu");
     const items = within(menu).getAllByRole("menuitem");
     expect(items.map((i) => i.textContent)).toEqual([
-      "Stash",
       "Pop",
       "Undo",
       "Redo",
@@ -161,7 +159,7 @@ describe("Toolbar overflow", () => {
       "Terminal",
     ]);
     // Disabled state carried over (no repo data: nothing to stash / undo).
-    expect(within(menu).getByRole("menuitem", { name: "Stash" })).toHaveAttribute("data-disabled");
+    expect(within(menu).getByRole("menuitem", { name: "Pop" })).toHaveAttribute("data-disabled");
     expect(within(menu).getByRole("menuitem", { name: "Undo" })).toHaveAttribute("data-disabled");
     // Same action as the button.
     await userEvent.click(within(menu).getByRole("menuitem", { name: "Sidebar" }));
@@ -174,7 +172,7 @@ describe("Toolbar overflow", () => {
     expect(useToolbarOverflow.getState().hidden.length).toBeGreaterThan(0);
     resize(1600);
     expect(useToolbarOverflow.getState().hidden).toEqual([]);
-    expect(wrapperOf("Stash")).not.toHaveClass("hidden");
+    expect(wrapperOf("Pop")).not.toHaveClass("hidden");
     expect(screen.queryByRole("button", { name: "More actions" })).not.toBeInTheDocument();
   });
 

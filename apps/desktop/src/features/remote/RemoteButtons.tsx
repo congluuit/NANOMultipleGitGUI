@@ -36,6 +36,7 @@ import { runPushGuard } from "@/features/guards";
 import { offerCreatePull } from "@/features/pulls/actions";
 import { openPublishDialog } from "@/features/publish/store";
 import { useAutoFetch, useLastFetch } from "./autoFetch";
+import { fetchWithSummary } from "./fetchChanges";
 import { pushPlan } from "./plan";
 import { useSettings } from "@/stores/settings";
 import type { Notice } from "@/stores/ui";
@@ -83,14 +84,21 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
   // One-shot "… as" overrides (switcher) are taken right before each command starts.
   const fetchAll = () => {
     const shot = takeOneShot(repoId, "fetch");
-    void startTransfer(
+    void fetchWithSummary(
       repoId,
-      "fetch",
-      (op) => commands.remoteFetch(repoId, op, null, true, true, asAccountOf(shot)),
-      (s) =>
-        s.updatedRefs ? t("remote.fetched", { count: s.updatedRefs }) : t("remote.fetchedNothing"),
-      null,
-      shot,
+      () =>
+        startTransfer(
+          repoId,
+          "fetch",
+          (op) => commands.remoteFetch(repoId, op, null, true, true, asAccountOf(shot)),
+          (s) =>
+            s.updatedRefs
+              ? t("remote.fetched", { count: s.updatedRefs })
+              : t("remote.fetchedNothing"),
+          null,
+          shot,
+        ),
+      () => void pull("merge"),
     ).then((s) => {
       if (s) useLastFetch.getState().mark(repoId);
     });

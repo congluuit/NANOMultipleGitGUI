@@ -85,6 +85,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             repos::repo_close,
             repos::workspace_state,
             repos::workspace_set_active,
+            repos::workspace_reorder,
             repos::recent_repos,
             repos::recent_remove,
             repos::repo_refs,

@@ -17,6 +17,7 @@ import { lfsKeys } from "@/features/lfs/queries";
 import { offerCreatePull } from "@/features/pulls/actions";
 import { branchPushPlan, pushPlan } from "@/features/remote/plan";
 import { startTransfer } from "@/features/remote/transfers";
+import { fetchWithSummary } from "@/features/remote/fetchChanges";
 import { notifyEstimateFailure, repoAccount, runLfsPush } from "@/features/transfers/actions";
 import { failureTexts } from "@/features/transfers/format";
 import {
@@ -60,16 +61,21 @@ export const usePaletteConfirm = create<ConfirmState>()((set) => ({
 
 export function fetchAll(repoId: number) {
   const shot = takeOneShot(repoId, "fetch");
-  return startTransfer(
+  return fetchWithSummary(
     repoId,
-    "fetch",
-    (op) => commands.remoteFetch(repoId, op, null, true, true, asAccountOf(shot)),
-    (s) =>
-      s.updatedRefs
-        ? i18n.t("remote.fetched", { count: s.updatedRefs })
-        : i18n.t("remote.fetchedNothing"),
-    null,
-    shot,
+    () =>
+      startTransfer(
+        repoId,
+        "fetch",
+        (op) => commands.remoteFetch(repoId, op, null, true, true, asAccountOf(shot)),
+        (s) =>
+          s.updatedRefs
+            ? i18n.t("remote.fetched", { count: s.updatedRefs })
+            : i18n.t("remote.fetchedNothing"),
+        null,
+        shot,
+      ),
+    () => void pull(repoId, "merge"),
   );
 }
 

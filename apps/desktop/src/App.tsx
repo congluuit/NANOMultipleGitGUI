@@ -24,6 +24,7 @@ import { useTransferEvents } from "@/features/remote/transfers";
 import { SettingsDialog } from "@/features/settings/SettingsDialog";
 import { StorageHost } from "@/features/settings/storage/StorageHost";
 import { AppShell } from "@/features/shell/AppShell";
+import { ShortcutsHost } from "@/features/shortcuts/ShortcutsDialog";
 import { SshKeysDialog } from "@/features/ssh/SshKeysDialog";
 import { UpdaterHost } from "@/features/updater/UpdateDialog";
 import i18n from "@/i18n";
@@ -70,6 +71,7 @@ export default function App() {
       {/* Phase 6.1 / 6.7 */}
       <BranchSwitchDialogHost />
       <GuideHost />
+      <ShortcutsHost />
       {/* Phase 6.4 */}
       <AiSettingsHost />
     </TooltipProvider>

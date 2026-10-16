@@ -1,8 +1,9 @@
+import { isTauri } from "@tauri-apps/api/core";
 import i18n from "i18next";
-import { runOutcome } from "@/features/commits/outcome";
+import { runOutcome, setSuccessHook } from "@/features/commits/outcome";
 import { commands, type UndoOutcome } from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
-import { useUi } from "@/stores/ui";
+import { useUi, type Notice } from "@/stores/ui";
 import { describeOp, isRunnable } from "./label";
 import { useUndoStore } from "./store";
 
@@ -43,3 +44,29 @@ export async function runUndo(
   });
   return out;
 }
+
+/**
+ * After an operation succeeds: when it is now the step Undo would revert, its notice gets an
+ * "Undo" button (so a wrong commit, reset or branch delete is one click away from undone).
+ * Notices that already carry buttons keep their own.
+ */
+export async function offerUndo(repoId: number, notice: Notice, startedAt: number) {
+  if (!isTauri() || notice.kind === "error" || notice.actions?.length) return;
+  let state;
+  try {
+    state = await commands.undoState(repoId);
+  } catch {
+    return;
+  }
+  useUndoStore.getState().setState(repoId, state);
+  const step = state.undo;
+  // A step recorded before this operation started belongs to an earlier one.
+  if (!isRunnable(step) || step.time < startedAt - 1) return;
+  if (useUi.getState().notice !== notice) return;
+  useUi.getState().showNotice({
+    ...notice,
+    actions: [{ label: i18n.t("undo.undoAction"), run: () => void runUndo(repoId, false) }],
+  });
+}
+
+setSuccessHook((repoId, notice, startedAt) => void offerUndo(repoId, notice, startedAt));

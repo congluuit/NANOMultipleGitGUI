@@ -274,6 +274,34 @@ pub fn workspace_set_active(app: AppHandle, id: i64) -> AppResult<()> {
     persist(&st.storage, &ws)
 }
 
+/// The tab order `wanted` asks for, limited to the tabs that are open: unknown ids are
+/// dropped, open tabs it leaves out keep their place at the end.
+fn reorder_tabs(current: &[i64], wanted: &[i64]) -> Vec<i64> {
+    let mut out: Vec<i64> = Vec::with_capacity(current.len());
+    for id in wanted {
+        if current.contains(id) && !out.contains(id) {
+            out.push(*id);
+        }
+    }
+    for id in current {
+        if !out.contains(id) {
+            out.push(*id);
+        }
+    }
+    out
+}
+
+/// Moves the tabs into the order of `ids` (drag and drop, pinning) and saves it.
+#[tauri::command]
+#[specta::specta]
+pub fn workspace_reorder(app: AppHandle, ids: Vec<i64>) -> AppResult<WorkspaceState> {
+    let st = app.state::<AppState>();
+    let mut ws = st.workspace();
+    ws.tabs = reorder_tabs(&ws.tabs, &ids);
+    persist(&st.storage, &ws)?;
+    snapshot(&st.storage, &ws)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn recent_repos(app: AppHandle) -> AppResult<Vec<RecentRepo>> {
@@ -335,6 +363,13 @@ mod tests {
         } else {
             assert_ne!(a, b);
         }
+    }
+
+    #[test]
+    fn reorder_keeps_only_open_tabs_and_appends_the_rest() {
+        assert_eq!(reorder_tabs(&[1, 2, 3], &[3, 1, 2]), vec![3, 1, 2]);
+        assert_eq!(reorder_tabs(&[1, 2, 3], &[3, 9, 3]), vec![3, 1, 2]);
+        assert_eq!(reorder_tabs(&[1, 2], &[]), vec![1, 2]);
     }
 
     #[test]

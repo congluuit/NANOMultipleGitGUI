@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToolStatus } from "@/features/repos/queries";
 import { useUi, type Notice } from "@/stores/ui";
+import { noticeDuration } from "./noticeDuration";
 import { toolProblems } from "./toolProblems";
 
 function Bar({
@@ -100,8 +101,6 @@ export function ToolBanner() {
   return null;
 }
 
-/** How long a notice stays before hiding itself (paused while the pointer or focus is on it). */
-export const NOTICE_MS = 5_000;
 const TICK_MS = 100;
 
 /** A fresh countdown for every notice shown, even one with the same text. */
@@ -125,7 +124,8 @@ export function NoticeBar() {
 function NoticeView({ notice }: { notice: Notice }) {
   const { t } = useTranslation();
   const showNotice = useUi((s) => s.showNotice);
-  const [left, setLeft] = useState(NOTICE_MS);
+  const total = noticeDuration(notice);
+  const [left, setLeft] = useState(total);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const paused = hovered || focused;
@@ -165,7 +165,7 @@ function NoticeView({ notice }: { notice: Notice }) {
         <span
           aria-hidden
           className="absolute bottom-0 left-0 h-0.5 bg-current opacity-40 transition-[width] duration-100 ease-linear"
-          style={{ width: `${(left / NOTICE_MS) * 100}%` }}
+          style={{ width: `${(left / total) * 100}%` }}
         />
       }
     >

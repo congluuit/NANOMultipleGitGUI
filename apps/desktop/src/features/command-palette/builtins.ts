@@ -27,10 +27,12 @@ import {
   SquareTerminal,
   SunMoon,
   TriangleAlert,
+  Undo2,
   UserRound,
   X,
 } from "lucide-react";
 import { switchBranch } from "@/features/branch-switch/actions";
+import { recentBranchesOf, recentChoices } from "@/features/branch-switch/recentBranches";
 import { useRefDialog } from "@/features/commits/store";
 import { enableCustomMode } from "@/features/custom-theme/store";
 import { pushPlan } from "@/features/remote/plan";
@@ -39,6 +41,7 @@ import {
   newRepositoryWithDialog,
   openRepository,
   openRepositoryWithDialog,
+  reopenLastClosed,
 } from "@/features/repos/actions";
 import { applyStash } from "@/features/stash/actions";
 import { useStashUi } from "@/features/stash/store";
@@ -165,6 +168,16 @@ function tabCommands(c: PaletteContext): PaletteCommand[] {
       when: () => activeId !== null,
       run: () => (activeId === null ? undefined : closeRepository(activeId)),
     },
+    {
+      id: "tab.reopen",
+      title: t("cmd.tab.reopen"),
+      group,
+      icon: Undo2,
+      keywords: ["reopen tab", "closed tab", "mo lai tab"],
+      shortcut: `${modKey(c)}+Shift+T`,
+      when: () => useWorkspace.getState().recentlyClosed.length > 0,
+      run: () => reopenLastClosed(),
+    },
   ];
 }
 
@@ -258,7 +271,38 @@ function branchCommands(c: PaletteContext): PaletteCommand[] {
     run,
   });
 
+  const recent = recentChoices(
+    recentBranchesOf(id),
+    current,
+    (refs?.local ?? []).map((b) => b.name),
+  );
+  const previous = recent[0] ?? null;
+
   return [
+    {
+      id: "branch.previous",
+      title: previous
+        ? t("cmd.branch.previous", { branch: previous })
+        : t("cmd.branch.previousNone"),
+      group,
+      icon: Undo2,
+      keywords: ["previous branch", "checkout -", "last branch", "nhanh truoc"],
+      when: () => previous !== null,
+      run: () => previous && void switchBranch(id, { kind: "local", name: previous }),
+    },
+    {
+      id: "branch.recent",
+      title: t("cmd.branch.recent"),
+      group,
+      icon: History,
+      keywords: ["recent branches", "nhanh gan day"],
+      when: () => recent.length > 0,
+      flatten: true,
+      children: () =>
+        recent.map((name) =>
+          branchItem(name, false, () => void switchBranch(id, { kind: "local", name })),
+        ),
+    },
     {
       id: "branch.create",
       title: t("cmd.branch.create"),

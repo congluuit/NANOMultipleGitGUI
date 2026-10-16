@@ -14,7 +14,20 @@
   "tabs": {
     "newTab": "Open or create a repository",
     "close": "Close tab",
-    "missing": "This repository folder cannot be found"
+    "missing": "This repository folder cannot be found",
+    "recent": "Recent repositories",
+    "noRecent": "No other recent repository (closed tabs show up here).",
+    "list": "All open tabs",
+    "filter": "Find a tab…",
+    "noMatch": "No tab matches.",
+    "closeOthers": "Close other tabs",
+    "closeRight": "Close tabs to the right",
+    "closeAll": "Close all tabs",
+    "reopen": "Reopen closed tab",
+    "copyPath": "Copy folder path",
+    "pin": "Pin tab",
+    "unpin": "Unpin tab",
+    "pinned": "Pinned"
   },
   "toolbar": {
     "fetch": "Fetch",
@@ -586,6 +599,19 @@
     "trackFailed": "Could not track with LFS, the commit was stopped: {{message}}"
   },
   "remote": {
+    "whatsNew": {
+      "title": "Fetched: {{count}} remote branches changed.",
+      "title_one": "Fetched: {{count}} remote branch changed.",
+      "updated": "↻ {{name}} has new commits",
+      "added": "+ {{name}} (new)",
+      "removed": "− {{name}} (deleted on the remote)",
+      "behind": "Your branch {{branch}} is {{count}} commits behind",
+      "behind_one": "Your branch {{branch}} is {{count}} commit behind",
+      "behindHead": "Your current branch {{branch}} is {{count}} commits behind — pull to get them",
+      "behindHead_one": "Your current branch {{branch}} is {{count}} commit behind — pull to get it",
+      "more": "… and {{count}} more",
+      "pull": "Pull {{branch}}"
+    },
     "kind": {
       "fetch": "Fetch",
       "pull": "Pull",
@@ -802,7 +828,8 @@
       "number": "Tab {{n}}",
       "next": "Next tab",
       "prev": "Previous tab",
-      "close": "Close current tab"
+      "close": "Close current tab",
+      "reopen": "Reopen closed tab"
     },
     "remote": {
       "fetch": "Fetch all remotes",
@@ -816,7 +843,10 @@
       "create": "Create branch at HEAD…",
       "checkout": "Checkout branch…",
       "merge": "Merge branch into {{branch}}…",
-      "remote": "remote"
+      "remote": "remote",
+      "previous": "Switch to previous branch: {{branch}}",
+      "previousNone": "Switch to previous branch",
+      "recent": "Recent branches…"
     },
     "stash": {
       "create": "Stash changes…",
@@ -2264,6 +2294,11 @@
     }
   },
   "updater": {
+    "pending": {
+      "available": "A new version is available: {{version}}",
+      "install": "Update now",
+      "installVersion": "Update to {{version}}"
+    },
     "cmd": {
       "check": "Check for updates"
     },
@@ -3706,6 +3741,51 @@
       "advanced": "Advanced",
       "url": "Ollama address",
       "urlHint": "Default http://127.0.0.1:11434. Only change it if Ollama runs on another port or computer."
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Press ? anywhere (outside a text field) to show this list.",
+    "middleClick": "Middle click",
+    "group": {
+      "general": "General",
+      "tabs": "Tabs",
+      "repo": "Repository"
+    },
+    "item": {
+      "palette": "Command palette / search",
+      "cheatSheet": "This list",
+      "sidebar": "Show / hide the sidebar",
+      "rightPanel": "Show / hide the right panel",
+      "terminal": "Terminal",
+      "nextTab": "Next tab",
+      "prevTab": "Previous tab",
+      "reopenTab": "Reopen closed tab",
+      "closeTab": "Close a tab",
+      "undo": "Undo the last operation",
+      "redo": "Redo",
+      "findCommit": "Find a commit",
+      "commit": "Commit (in the message box)",
+      "bindAccount": "Use account 1…9 for this repository"
+    }
+  },
+  "checklist": {
+    "title": "Getting started",
+    "progress": "({{done}}/{{total}})",
+    "hide": "Hide this checklist",
+    "account": {
+      "title": "Connect your GitHub / GitLab account",
+      "hint": "Push, pull and clone private repositories as the right person.",
+      "action": "Add account"
+    },
+    "repo": {
+      "title": "Open or clone your first repository",
+      "hint": "An existing folder on this computer, or clone one from GitHub / GitLab."
+    },
+    "guide": {
+      "title": "Take a look at the guide",
+      "hint": "Five minutes: tabs, accounts, commit, push and undo.",
+      "action": "Open the guide"
     }
   }
 }
