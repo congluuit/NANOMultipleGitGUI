@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-16
+
+### Added
+
+- Tabs: pin a tab (right-click → Pin tab) to keep it first and safe from "Close others / all"; drag tabs sideways to reorder them, and the order is kept for next time.
+- Tabs: a "▾" list of every open tab with a filter, a right-click menu (close others / to the right / all, reopen closed tab, copy path) and shortcuts — Ctrl+Tab / Ctrl+Shift+Tab to switch, Ctrl/Cmd+Shift+T to reopen the tab you just closed.
+- "+" → **Recent repositories** opens a repository you closed earlier in one click.
+- After a Fetch, a short summary says which remote branches got new commits, appeared or were deleted, and how far behind your branches are — with a **Pull** button when your current branch is behind.
+- Operations that can be undone (commit, reset, branch delete…) show an **Undo** button right in their success message.
+- Keyboard shortcut list: press `?` anywhere outside a text field (also in Settings and the command palette).
+- Command palette: **Switch to previous branch** and **Recent branches**.
+- A "Getting started" checklist on the welcome screen: connect an account, open a repository, read the guide.
+
+### Changed
+
+- Settings is always in the top-right corner, even before you open a repository, and the welcome screen has **Check for updates**. When you postpone an update, a dot on the Settings button and an **Update now** button remind you.
+- Success messages hide after 3 seconds; errors and messages with details or buttons stay 5 seconds.
+- Tabs of the same account share a thin colored line, so you can tell accounts apart at a glance.
+
 ## [1.0.2] - 2026-10-16
 
 ### Fixed
