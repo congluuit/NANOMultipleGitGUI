@@ -129,7 +129,12 @@ fn login_shell_path() -> Option<Vec<PathBuf>> {
 }
 
 /// Extends the process `PATH`. Call once at startup, before spawning threads.
+///
+/// The workspace denies `unsafe_code`; this is the one exception. Edition 2024 marks
+/// `std::env::set_var` unsafe because another thread could be reading the environment, and
+/// `run()` calls this before Tauri or anything else starts one.
 #[cfg(unix)]
+#[allow(unsafe_code)]
 pub(crate) fn fix() -> PathFix {
     let current: Vec<PathBuf> = std::env::var_os("PATH")
         .map(|p| std::env::split_paths(&p).collect())
