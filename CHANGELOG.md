@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-16
+
+### Fixed
+
+- macOS: signing in to GitHub / GitLab failed with "OS keychain error: Attribute target is invalid … is not User, System, Common, or Dynamic". The keychain entry was named the Windows way; macOS and Linux now store it by service and account only.
+- macOS / Linux: the app now sees tools installed with Homebrew or MacPorts (`git-lfs`, `gh`, `glab`, `brew`) when started from Finder, the Dock or a launcher. It takes the `PATH` of your login shell plus the usual tool folders at startup instead of the minimal one GUI apps get, so "restart the app to use it" no longer loops.
+
 ## [1.0.1] - 2026-10-16
 
 ### Added
