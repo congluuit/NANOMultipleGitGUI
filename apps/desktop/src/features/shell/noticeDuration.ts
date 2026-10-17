@@ -9,6 +9,7 @@ export const NOTICE_SHORT_MS = 3_000;
 export const NOTICE_LONG_MS = 5_000;
 
 export function noticeDuration(notice: Notice): number {
+  if (notice.durationMs) return notice.durationMs;
   const rich = Boolean(notice.hint || notice.detail || notice.actions?.length);
   return notice.kind === "error" || rich ? NOTICE_LONG_MS : NOTICE_SHORT_MS;
 }

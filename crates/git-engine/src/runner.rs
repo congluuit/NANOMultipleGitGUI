@@ -3,6 +3,7 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
+use std::time::Duration;
 
 use crate::context::AccountContext;
 
@@ -24,6 +25,47 @@ pub enum GitError {
         status: String,
         stderr: String,
     },
+}
+
+/// How long a command waits for another process's `index.lock` to go away.
+const INDEX_LOCK_WAIT: Duration = Duration::from_secs(3);
+const INDEX_LOCK_POLL: Duration = Duration::from_millis(250);
+
+/// `fatal: Unable to create '…/.git/index.lock': File exists.`
+pub fn is_index_lock_busy(stderr: &str) -> bool {
+    let s = stderr.to_ascii_lowercase();
+    s.contains("index.lock': file exists")
+}
+
+/// Commands that take `index.lock` before changing anything and hold it to the end, so one
+/// that failed on a busy lock did nothing and can simply run again. Multi-step commands
+/// (stash, merge, rebase, cherry-pick…) could fail half-way and are not retried.
+fn retries_on_index_lock(args: &[std::ffi::OsString]) -> bool {
+    const SAFE: &[&str] = &[
+        "add",
+        "rm",
+        "mv",
+        "reset",
+        "restore",
+        "commit",
+        "apply",
+        "update-index",
+        "read-tree",
+        "checkout",
+        "switch",
+    ];
+    let mut it = args.iter().map(|a| a.to_string_lossy());
+    while let Some(arg) = it.next() {
+        match arg.as_ref() {
+            // `git -c key=value <cmd>` / `git -C dir <cmd>`: skip the option's value.
+            "-c" | "-C" => {
+                it.next();
+            }
+            a if a.starts_with('-') => {}
+            a => return SAFE.contains(&a),
+        }
+    }
+    false
 }
 
 /// Handle to a git executable. Cheap to clone.
@@ -84,19 +126,31 @@ impl GitRunner {
         S: AsRef<OsStr>,
     {
         let args: Vec<_> = args.into_iter().map(|a| a.as_ref().to_owned()).collect();
-        let output = self.command(cwd, ctx, &args).output()?;
-        if output.status.success() {
-            Ok(output)
-        } else {
-            Err(GitError::Failed {
+        let retry_on_lock = retries_on_index_lock(&args);
+        let mut waited = Duration::ZERO;
+        loop {
+            let output = self.command(cwd, ctx, &args).output()?;
+            if output.status.success() {
+                return Ok(output);
+            }
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+            // Another git (an editor's, a terminal's, our own previous click) holds
+            // `.git/index.lock` for a moment: wait for it instead of failing at once. A lock
+            // still there after the wait is reported (the UI offers to remove a stale one).
+            if retry_on_lock && waited < INDEX_LOCK_WAIT && is_index_lock_busy(&stderr) {
+                std::thread::sleep(INDEX_LOCK_POLL);
+                waited += INDEX_LOCK_POLL;
+                continue;
+            }
+            return Err(GitError::Failed {
                 args: args
                     .iter()
                     .map(|a| a.to_string_lossy())
                     .collect::<Vec<_>>()
                     .join(" "),
                 status: output.status.to_string(),
-                stderr: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-            })
+                stderr,
+            });
         }
     }
 
@@ -186,6 +240,38 @@ mod tests {
             ["config", "--local", "user.email"],
         );
         assert!(local.is_err());
+    }
+
+    #[test]
+    fn waits_for_a_busy_index_lock() {
+        let dir = tempfile::tempdir().unwrap();
+        let git = GitRunner::default();
+        let ctx = AccountContext::default();
+        git.run(dir.path(), &ctx, ["init", "-q"]).unwrap();
+        std::fs::write(dir.path().join("a.txt"), "a").unwrap();
+        let lock = dir.path().join(".git/index.lock");
+        std::fs::write(&lock, "").unwrap();
+        let releaser = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(600));
+            std::fs::remove_file(lock).unwrap();
+        });
+        git.run(dir.path(), &ctx, ["add", "-A"]).unwrap();
+        releaser.join().unwrap();
+    }
+
+    #[test]
+    fn only_lock_safe_commands_are_retried() {
+        let args = |v: &[&str]| v.iter().map(std::ffi::OsString::from).collect::<Vec<_>>();
+        assert!(retries_on_index_lock(&args(&["add", "-A"])));
+        assert!(retries_on_index_lock(&args(&[
+            "-c", "core.x=y", "commit", "-m", "x"
+        ])));
+        assert!(!retries_on_index_lock(&args(&["stash", "pop"])));
+        assert!(!retries_on_index_lock(&args(&["rebase", "main"])));
+        assert!(is_index_lock_busy(
+            "fatal: Unable to create '/r/.git/index.lock': File exists."
+        ));
+        assert!(!is_index_lock_busy("fatal: not a git repository"));
     }
 
     #[test]

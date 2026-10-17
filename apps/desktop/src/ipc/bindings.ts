@@ -115,6 +115,24 @@ export const commands = {
 	stashDrop: (repoId: number, index: number) => __TAURI_INVOKE<string>("stash_drop", { repoId, index }),
 	/**  Files of `stash@{index}`: tracked changes plus untracked files (third parent). */
 	stashShow: (repoId: number, index: number) => __TAURI_INVOKE<StashDetails>("stash_show", { repoId, index }),
+	/**
+	 *  Deletes a lock file git left behind (`Unable to create '….lock': File exists`). Only a
+	 *  `*.lock` file inside this repository's git directory is accepted; one already gone is fine.
+	 */
+	repairRemoveLock: (repoId: number, path: string) => __TAURI_INVOKE<null>("repair_remove_lock", { repoId, path }),
+	/**
+	 *  Rebuilds a corrupt `.git/index` ("index file smaller than expected", "bad signature"):
+	 *  the broken file is kept as `index.broken` and a fresh index is read from HEAD. Files in
+	 *  the working tree are not touched; what was staged shows as unstaged again.
+	 */
+	repairRebuildIndex: (repoId: number) => __TAURI_INVOKE<null>("repair_rebuild_index", { repoId }),
+	/**  Turns on one [`RepoConfigFix`] for this repository only. */
+	repairConfig: (repoId: number, fix: RepoConfigFix) => __TAURI_INVOKE<null>("repair_config", { repoId, fix }),
+	/**
+	 *  Trusts a repository folder owned by another user (`git config --global --add
+	 *  safe.directory <folder>`), after which git — and the app — can open it.
+	 */
+	repairTrustFolder: (path: string) => __TAURI_INVOKE<null>("repair_trust_folder", { path }),
 	/**  git-lfs version, LFS patterns, hooks and filter config of the repository. */
 	lfsStatus: (repoId: number) => __TAURI_INVOKE<LfsStatus>("lfs_status", { repoId }),
 	/**  `git lfs install --local` (this repository only), then the refreshed status. */
@@ -3687,7 +3705,13 @@ export type PullMode =
 /**  Fetch then rebase local commits on top (`--rebase`). */
 "rebase" | 
 /**  Fetch then fast-forward only (`--ff-only`). */
-"fastForwardOnly";
+"fastForwardOnly" | 
+/**
+ *  Merge like [`Merge`](Self::Merge), also when the two histories share no commit
+ *  (`--allow-unrelated-histories`): a repository created on GitHub / GitLab with a README
+ *  pulled into a local project that already has commits.
+ */
+"mergeUnrelated";
 
 /**  One page of [`PullSummary`]. */
 export type PullPage = {
@@ -4029,6 +4053,13 @@ export type RepoChanged = {
 	index: boolean,
 	worktree: boolean,
 };
+
+/**  Repository settings the notice bar can turn on for one repository (`git config --local`). */
+export type RepoConfigFix = 
+/**  `core.longpaths true`: Windows paths longer than 260 characters ("Filename too long"). */
+"longPaths" | 
+/**  `http.postBuffer 500 MB`: big HTTPS pushes that fail with "RPC failed" / HTTP 413. */
+"postBuffer";
 
 /**  Multi-step operation the repository is in the middle of. */
 export type RepoOperation = "merge" | "rebase" | "cherryPick" | "revert" | "bisect" | 
@@ -4424,6 +4455,13 @@ export type StartupArgs = {
 export type Stash = {
 	index: number,
 	message: string,
+	/**  When the entry was created, seconds since the Unix epoch (0 if unknown). */
+	time: number,
+	/**
+	 *  Branch the stash was made on (`WIP on <branch>:` / `On <branch>:`); `None` when it
+	 *  cannot be read from the message.
+	 */
+	branch: string | null,
 };
 
 /**  Result of [`stash_apply`] / [`stash_pop`] when git got as far as merging the stash. */

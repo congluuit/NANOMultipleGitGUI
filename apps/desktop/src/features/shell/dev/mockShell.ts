@@ -46,7 +46,15 @@ const refs: RepoRefs = {
     },
   ],
   tags: [{ name: "v1.2.0", oid: hash(5) }],
-  stashes: [{ index: 0, message: "WIP on main: experiment" }],
+  stashes: [
+    { index: 0, message: "WIP on main: experiment", time: 1_760_000_000, branch: "main" },
+    {
+      index: 1,
+      message: "On feature/login: half-done form",
+      time: 1_759_900_000,
+      branch: "feature/login",
+    },
+  ],
 };
 
 const SUBJECTS = [

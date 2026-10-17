@@ -56,7 +56,12 @@ export async function runOp<T>(
   try {
     return await op();
   } catch (e) {
-    useUi.getState().showNotice({ kind: "error", message: errorMessage(e) });
+    useUi.getState().showNotice({
+      kind: "error",
+      message: errorMessage(e),
+      repoId,
+      retry: () => void runOp(repoId, op, refresh),
+    });
     return undefined;
   } finally {
     refresh(repoId);

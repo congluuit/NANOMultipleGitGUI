@@ -66,6 +66,21 @@ pub struct Tag {
 pub struct Stash {
     pub index: u32,
     pub message: String,
+    /// When the entry was created, seconds since the Unix epoch (0 if unknown).
+    pub time: i64,
+    /// Branch the stash was made on (`WIP on <branch>:` / `On <branch>:`); `None` when it
+    /// cannot be read from the message.
+    pub branch: Option<String>,
+}
+
+/// Branch from a stash subject: `WIP on main: abc subject` / `On feature/x: message`.
+/// Detached HEAD shows as `(no branch)` and gives `None`.
+pub fn stash_branch(message: &str) -> Option<String> {
+    let rest = message
+        .strip_prefix("WIP on ")
+        .or_else(|| message.strip_prefix("On "))?;
+    let branch = rest.split_once(':')?.0.trim();
+    (!branch.is_empty() && branch != "(no branch)").then(|| branch.to_owned())
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -176,8 +191,14 @@ pub fn parse_refs(
     refs.remotes = remotes;
 
     for line in stash_list.lines() {
-        let Some((selector, message)) = line.split_once('\u{1f}') else {
+        // `stash@{n}␟<unix time>␟<subject>` (a line without the time field still parses).
+        let mut fields = line.splitn(3, '\u{1f}');
+        let (Some(selector), Some(second)) = (fields.next(), fields.next()) else {
             continue;
+        };
+        let (time, message) = match fields.next() {
+            Some(message) => (second.trim().parse().unwrap_or(0), message),
+            None => (0, second),
         };
         let index = selector
             .trim_start_matches("stash@{")
@@ -187,6 +208,8 @@ pub fn parse_refs(
         refs.stashes.push(Stash {
             index,
             message: message.to_owned(),
+            time,
+            branch: stash_branch(message),
         });
     }
     refs
@@ -212,7 +235,7 @@ pub fn read_refs(git: &GitRunner, root: &Path) -> Result<RepoRefs, GitError> {
         .run_text(root, &ctx, ["config", "--get-regexp", r"^remote\..*\.url$"])
         .unwrap_or_default();
     let stashes = git
-        .run_text(root, &ctx, ["stash", "list", "--format=%gd%x1f%s"])
+        .run_text(root, &ctx, ["stash", "list", "--format=%gd%x1f%ct%x1f%s"])
         .unwrap_or_default();
     let mut refs = parse_refs(&for_each, &urls, &names, &stashes);
 
@@ -289,6 +312,23 @@ mod tests {
         assert_eq!(refs.stashes.len(), 2);
         assert_eq!(refs.stashes[1].index, 1);
         assert_eq!(refs.stashes[1].message, "On feature: try");
+        assert_eq!(refs.stashes[1].branch.as_deref(), Some("feature"));
+        assert_eq!(refs.stashes[0].branch.as_deref(), Some("main"));
+    }
+
+    #[test]
+    fn stash_lines_carry_time_and_branch() {
+        let refs = parse_refs(
+            "",
+            "",
+            "",
+            "stash@{0}\u{1f}1700000000\u{1f}On feature/x: half: done\nstash@{1}\u{1f}12\u{1f}WIP on (no branch): abc s",
+        );
+        assert_eq!(refs.stashes[0].time, 1_700_000_000);
+        assert_eq!(refs.stashes[0].message, "On feature/x: half: done");
+        assert_eq!(refs.stashes[0].branch.as_deref(), Some("feature/x"));
+        assert_eq!(refs.stashes[1].branch, None);
+        assert_eq!(stash_branch("custom message"), None);
     }
 
     #[test]

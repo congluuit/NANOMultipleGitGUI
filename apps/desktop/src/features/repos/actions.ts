@@ -21,7 +21,11 @@ export async function openRepository(path: string): Promise<void> {
     if (isAppError(e) && e.kind === "notARepository") {
       useUi.getState().requestInit({ path, reason: "notRepository" });
     } else {
-      useUi.getState().showNotice({ kind: "error", message: errorMessage(e) });
+      useUi.getState().showNotice({
+        kind: "error",
+        message: errorMessage(e),
+        retry: () => void openRepository(path),
+      });
     }
   }
 }

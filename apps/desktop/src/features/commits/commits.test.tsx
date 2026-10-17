@@ -113,7 +113,9 @@ describe("outcome helpers", () => {
     expect(useUi.getState().notice?.kind).toBe("error");
 
     await runOutcome(1, () => Promise.reject({ kind: "git", message: "boom" }));
-    expect(useUi.getState().notice).toEqual({ kind: "error", message: "boom" });
+    expect(useUi.getState().notice).toMatchObject({ kind: "error", message: "boom", repoId: 1 });
+    // The notice can run the operation again (offered after a recovery fix).
+    expect(useUi.getState().notice?.retry).toBeTypeOf("function");
   });
 });
 

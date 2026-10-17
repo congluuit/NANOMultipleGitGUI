@@ -98,6 +98,10 @@ pub enum PullMode {
     Rebase,
     /// Fetch then fast-forward only (`--ff-only`).
     FastForwardOnly,
+    /// Merge like [`Merge`](Self::Merge), also when the two histories share no commit
+    /// (`--allow-unrelated-histories`): a repository created on GitHub / GitLab with a README
+    /// pulled into a local project that already has commits.
+    MergeUnrelated,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -131,6 +135,11 @@ pub fn pull<F: FnMut(Progress)>(
         PullMode::Merge => args.extend(["--no-rebase".into(), "--no-edit".into()]),
         PullMode::Rebase => args.push("--rebase".into()),
         PullMode::FastForwardOnly => args.push("--ff-only".into()),
+        PullMode::MergeUnrelated => args.extend([
+            "--no-rebase".into(),
+            "--no-edit".into(),
+            "--allow-unrelated-histories".into(),
+        ]),
     }
     match (&opts.remote, &opts.branch) {
         (Some(remote), branch) => {
@@ -505,6 +514,40 @@ mod tests {
         s.work.git(&["switch", "-q", "--detach"]);
         let err = pull_with(PullMode::Merge).unwrap_err();
         assert_eq!(err.kind(), Some(FailureKind::DetachedHead));
+    }
+
+    #[test]
+    fn pull_merges_unrelated_histories_on_request() {
+        let s = setup();
+        let none = CancelToken::new();
+        // A local project with its own first commit, the remote with another history.
+        s.work.git(&["switch", "-q", "--orphan", "local"]);
+        s.work.commit(
+            "local.txt",
+            "l
+",
+            "local start",
+        );
+        let pull_with = |mode| {
+            pull(
+                &s.work.git,
+                &s.work.path,
+                &s.work.ctx,
+                &PullOptions {
+                    remote: Some("origin".into()),
+                    branch: Some("main".into()),
+                    mode,
+                },
+                &none,
+                |_| {},
+            )
+        };
+        let err = pull_with(PullMode::Merge).unwrap_err();
+        assert!(err.to_string().contains("unrelated histories"), "{err}");
+        let out = pull_with(PullMode::MergeUnrelated).unwrap();
+        assert_eq!(out.result, MergeResult::Merged);
+        assert!(s.work.path.join("local.txt").exists());
+        assert!(s.work.path.join("README.md").exists());
     }
 
     #[test]

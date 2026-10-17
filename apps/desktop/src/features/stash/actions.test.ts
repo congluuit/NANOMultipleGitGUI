@@ -8,7 +8,7 @@ import {
   shortList,
   stashName,
 } from "./actions";
-import { hasLocalChanges, topStash } from "./useStashToolbar";
+import { defaultStash, hasLocalChanges, popMode, stashTitle, topStash } from "./useStashToolbar";
 
 beforeAll(() => {
   initI18n("vi");
@@ -91,5 +91,38 @@ describe("stash helpers", () => {
         { index: 1, message: "On main: y" },
       ]),
     ).toEqual({ index: 0, message: "On main: x" });
+  });
+});
+
+describe("Pop button", () => {
+  const stash = (index: number, branch: string | null, message = "On x: m") => ({
+    index,
+    message,
+    time: 0,
+    branch,
+  });
+
+  it("pops a single stash of this branch in one click, otherwise lets the user choose", () => {
+    expect(popMode([], "main")).toBe("none");
+    expect(popMode(undefined, "main")).toBe("none");
+    expect(popMode([stash(0, "main")], "main")).toBe("single");
+    expect(popMode([stash(0, null)], "main")).toBe("single");
+    expect(popMode([stash(0, "feature")], "main")).toBe("otherBranch");
+    expect(popMode([stash(0, "main"), stash(1, "main")], "main")).toBe("many");
+  });
+
+  it("shows the message without git's prefix", () => {
+    expect(stashTitle(stash(0, "main", "On main: half: done"))).toBe("half: done");
+    expect(stashTitle(stash(0, "main", "WIP on main: abc1234 subject"))).toBe(
+      "WIP · abc1234 subject",
+    );
+    expect(stashTitle(stash(0, null, "custom"))).toBe("custom");
+  });
+
+  it("selects the newest stash of the current branch in the picker", () => {
+    const list = [stash(2, "main"), stash(0, "feature"), stash(1, "main")];
+    expect(defaultStash(list, "main")).toBe(1);
+    expect(defaultStash(list, "other")).toBe(0);
+    expect(defaultStash([], "main")).toBeNull();
   });
 });

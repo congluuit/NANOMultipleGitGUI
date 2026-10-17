@@ -43,7 +43,8 @@ export async function startTransfer<T>(
 ): Promise<T | undefined> {
   const opId = newOpId(kind);
   useTransferQueue.getState().start({ opId, repoId, kind, subject });
-  setRetry(opId, () => void startTransfer(repoId, kind, call, success, subject, shot));
+  const again = () => void startTransfer(repoId, kind, call, success, subject, shot);
+  setRetry(opId, again);
   let final: Outcome<T> | null = null;
   let thrown: unknown = null;
   const value = await runOutcome(
@@ -58,6 +59,7 @@ export async function startTransfer<T>(
       }
     },
     success,
+    again,
   );
   const queue = useTransferQueue.getState();
   const out = final as Outcome<T> | null;

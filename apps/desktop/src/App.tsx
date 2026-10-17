@@ -19,6 +19,8 @@ import { SetupHost } from "@/features/onboarding/setup/SetupWizard";
 import { PalettePage } from "@/features/palette/PalettePage";
 import { CreatePullDialogHost } from "@/features/pulls/CreatePullDialog";
 import { InitRepoDialog } from "@/features/repos/InitRepoDialog";
+// Plain-words explanations and one-click fixes for git errors in the notice bar.
+import "@/features/recovery";
 import { useRepoChangeEvents } from "@/features/repos/queries";
 import { useTransferEvents } from "@/features/remote/transfers";
 import { SettingsDialog } from "@/features/settings/SettingsDialog";

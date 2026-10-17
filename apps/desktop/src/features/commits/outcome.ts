@@ -24,6 +24,7 @@ export function failureNotice(reason: FailureKind, message: string, repoId?: num
   const detail = message.trim();
   return {
     kind: "error",
+    reason,
     message: label,
     hint: i18n.t(`failureHelp.${reason}`, { account: name }),
     detail: detail && detail !== label ? detail : undefined,
@@ -96,6 +97,7 @@ export async function runOutcome<T>(
   repoId: number,
   call: () => Promise<Outcome<T>>,
   success?: (value: T) => string | Notice | null,
+  retry: () => void = () => void runOutcome(repoId, call, success),
 ): Promise<T | undefined> {
   const notify = useUi.getState().showNotice;
   const startedAt = Math.floor(Date.now() / 1000);
@@ -111,12 +113,12 @@ export async function runOutcome<T>(
       return out.value;
     }
     if (out.status === "rejected") {
-      notify(failureNotice(out.reason, out.message, repoId));
+      notify({ ...failureNotice(out.reason, out.message, repoId), repoId, retry });
     } else {
       notify({ kind: "info", message: i18n.t("ops.cancelled") });
     }
   } catch (e) {
-    notify({ kind: "error", message: errorMessage(e) });
+    notify({ kind: "error", message: errorMessage(e), repoId, retry });
   } finally {
     invalidateRepo(repoId);
   }

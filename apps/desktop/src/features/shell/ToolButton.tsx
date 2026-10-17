@@ -28,6 +28,7 @@ export function ToolButton({
   menuLabel,
   priority,
   badge,
+  tone,
 }: {
   id?: string;
   icon: LucideIcon;
@@ -42,6 +43,8 @@ export function ToolButton({
   priority?: number | "pin";
   /** Small count on the icon, e.g. "↑2" commits to push. */
   badge?: { text: string; tone: "success" | "info" | "warning" } | null;
+  /** Tints the button: something is waiting for this action (e.g. a stash to pop). */
+  tone?: "success" | "info" | "warning" | null;
 }) {
   const tip = tooltip ?? label;
   const hidden = useToolbarOverflow((s) => !!id && s.hidden.includes(id));
@@ -84,7 +87,15 @@ export function ToolButton({
               disabled={disabled}
               aria-label={label}
               aria-description={tip !== label ? tip : undefined}
-              className="flex h-10 min-w-12 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] whitespace-nowrap text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+              data-tone={tone ?? undefined}
+              className={cn(
+                "flex h-10 min-w-12 flex-col items-center justify-center gap-0.5 rounded-md px-2 text-[11px] whitespace-nowrap text-muted-foreground hover:bg-surface-2 hover:text-foreground disabled:pointer-events-none disabled:opacity-40",
+                tone === "success" &&
+                  "bg-success/10 text-success hover:bg-success/20 hover:text-success",
+                tone === "info" && "bg-info/10 text-info hover:bg-info/20 hover:text-info",
+                tone === "warning" &&
+                  "bg-warning/10 text-warning hover:bg-warning/20 hover:text-warning",
+              )}
             >
               <span className="relative">
                 {busy ? (

@@ -472,7 +472,26 @@
     "noFiles": "This stash has no files",
     "loading": "Loading…",
     "error": "Could not read the stash: {{message}}",
-    "binary": "binary"
+    "binary": "binary",
+    "popSingle": "Pop {{name}}: {{message}}\n{{meta}}\nClick to bring the changes back and drop this stash from the list.",
+    "popOtherBranch": "The only stash was made on {{branch}} — you are on {{current}}.\nClick to review it before popping. Use ▾ to pop right away: {{message}}",
+    "popMany": "{{count}} stashes — click to choose which one to bring back (▾ for a quick pop).",
+    "menuLabel": "Choose a stash to pop",
+    "menuTitle": "Stashes ({{count}}) — pick one to pop",
+    "menuAll": "See all stashes ({{count}})…",
+    "picker": {
+      "title": "Choose a stash to bring back ({{count}})",
+      "desc": "Pop = bring the changes back and drop the stash. Apply = bring them back but keep the stash for later.",
+      "dirty": "You have uncommitted changes. Pop may be refused if the stash touches the same files — commit or stash your current changes first.",
+      "otherBranchWarn": "This stash was made on {{branch}}, but you are on {{current}}. Pop applies those changes to {{current}}.",
+      "thisBranch": "Made on the current branch",
+      "thisBranchShort": "{{branch}} (current)",
+      "otherBranch": "Made on another branch",
+      "newest": "newest",
+      "applyHint": "Bring the changes back, keep the stash in the list",
+      "popHint": "Bring the changes back and drop the stash (Enter)",
+      "pop": "Pop {{name}}"
+    }
   },
   "lfs": {
     "version": "git-lfs {{version}}",
@@ -628,7 +647,8 @@
     "pullMode": {
       "merge": "Pull (merge, fast-forward when possible)",
       "rebase": "Pull (rebase)",
-      "fastForwardOnly": "Pull (fast-forward only)"
+      "fastForwardOnly": "Pull (fast-forward only)",
+      "mergeUnrelated": "Pull (merge, allowing unrelated histories)"
     },
     "pulled": {
       "upToDate": "Already up to date.",
@@ -1542,6 +1562,70 @@
     "dirtyWorktree": "It contains modified or new files. Open it, commit or stash them, then try again — or choose the force option to discard them.",
     "worktreeLocked": "Unlock it first (sidebar → Worktrees → right-click → Unlock), then try again.",
     "signingFailed": "The identity of {{account}} signs commits, but the key did not work. Open Accounts → the identity → Test signing: check the key exists (GPG: gpg --list-secret-keys; SSH: the .pub file), or turn signing off for that identity."
+  },
+  "recovery": {
+    "retry": "Try again",
+    "tryAgain": "Try the last action again.",
+    "pullThenPush": "Pull, then push again",
+    "stashFirst": "Stash changes first",
+    "openLfs": "Open LFS manager",
+    "pull": {
+      "noSource": "This branch has no remote to pull from. Publish it or add a remote by URL first.",
+      "done": "Pulled the new commits from the server",
+      "mergedUnrelated": "Merged the server's history with yours",
+      "pushHint": "You can push now."
+    },
+    "lock": {
+      "title": "Git is locked by {{file}}",
+      "hint": "Another git process is running in this repository (VS Code, a terminal, another tool…), or an earlier git run stopped half-way and left the lock file {{file}} behind. The app waited a few seconds but it is still there. If nothing else is using git in this repository, removing the lock file is safe.",
+      "fix": "Remove {{file}}",
+      "fixRetry": "Remove {{file}} and try again",
+      "done": "Removed {{file}}"
+    },
+    "indexCorrupt": {
+      "title": "Git's index file is damaged",
+      "hint": "Usually after a crash or a full disk while git was writing. Rebuild the index from the last commit: files in the folder are not touched, only what was staged becomes unstaged again. The old file is kept as .git/index.broken.",
+      "fix": "Rebuild the index",
+      "done": "Index rebuilt"
+    },
+    "longPaths": {
+      "title": "File path too long (Windows)",
+      "hint": "Windows limits paths to 260 characters by default. Turn on core.longpaths for this repository so git can handle deeply nested files (node_modules, assets…).",
+      "fix": "Enable long paths for this repository",
+      "fixRetry": "Enable long paths and try again",
+      "done": "core.longpaths enabled for this repository"
+    },
+    "postBuffer": {
+      "title": "The connection dropped while sending a lot of data",
+      "hint": "The server or a proxy cut the connection half-way (HTTP 413 / RPC failed), usually because the push is large. Raise git's HTTP buffer for this repository and try again; if it still fails, split the commits or use Git LFS for big files.",
+      "fix": "Raise the push buffer",
+      "fixRetry": "Raise the push buffer and try again",
+      "done": "http.postBuffer set to 500 MB for this repository"
+    },
+    "dubiousOwnership": {
+      "title": "Git does not trust this folder yet",
+      "hint": "The folder belongs to another user account on this computer (common with external drives, folders copied from another machine or created as admin), so git blocks it to be safe. If this is your project, mark it as trusted (adds it to safe.directory in the global git config).",
+      "fix": "Trust this folder",
+      "done": "Folder added to safe.directory"
+    },
+    "unrelatedHistories": {
+      "title": "The server's history and yours are unrelated",
+      "hint": "The repository on the server already has its own commit (usually a README / .gitignore / LICENSE created with the repository on GitHub / GitLab), while your local project has a different history. Merge both histories (one merge commit), then push. If files clash, the app shows the conflicts so you can choose.",
+      "fix": "Merge both histories (pull)"
+    },
+    "identityUnknown": {
+      "title": "No author name / e-mail for the commit",
+      "hint": "Git needs to know who authored the commit. Add an account or identity in the account manager, then pick it under \"Commit as\"."
+    },
+    "noCommits": {
+      "title": "The branch has no commit to push yet",
+      "hint": "Commit first: pick files in the Changes panel, write a message and click Commit — then push.",
+      "fix": "Write a commit"
+    },
+    "fileBusy": {
+      "title": "Could not write a file — it is open in another program",
+      "hint": "A file is open (editor, game engine, image viewer…) or read-only, so git cannot write or delete it. Close that program, then click Try again."
+    }
   },
   "notice": {
     "technical": "Technical details (git output)",

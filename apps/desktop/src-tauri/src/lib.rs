@@ -38,6 +38,8 @@ mod onboarding;
 mod publish;
 mod pulls;
 mod rebase;
+// One-click fixes offered by the notice bar (stale lock, corrupt index, safe.directory…).
+mod repair;
 mod repos;
 mod settings;
 mod signing;
@@ -117,6 +119,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             stash::stash_pop,
             stash::stash_drop,
             stash::stash_show,
+            repair::repair_remove_lock,
+            repair::repair_rebuild_index,
+            repair::repair_config,
+            repair::repair_trust_folder,
             lfs::lfs_status,
             lfs::lfs_install_local,
             lfs::lfs_track,

@@ -17,6 +17,8 @@ import { shortcutLabel } from "./layoutShortcuts";
 import { useLayout, usePanelShown } from "@/stores/layout";
 import { useActiveRepo } from "@/stores/workspace";
 import { StashCreateDialogHost } from "@/features/stash/StashCreateDialog";
+import { StashPickerDialogHost } from "@/features/stash/StashPickerDialog";
+import { StashPopMenu } from "@/features/stash/StashPopMenu";
 import { useStashToolbar } from "@/features/stash/useStashToolbar";
 import { useTerminal } from "@/features/terminal/store";
 import { useTerminalShortcut } from "@/features/terminal/useTerminalShortcut";
@@ -59,10 +61,18 @@ export function Toolbar() {
         id="pop"
         icon={ArchiveRestore}
         label={t("toolbar.pop")}
+        tooltip={stash.tooltip}
+        tone={stash.tone}
+        badge={
+          stash.count > 0 && stash.tone ? { text: String(stash.count), tone: stash.tone } : null
+        }
         onClick={() => void stash.pop()}
         disabled={!stash.canPop}
+        menu={stash.count > 0 ? <StashPopMenu stash={stash} /> : undefined}
+        menuLabel={t("stash.menuLabel")}
       />
       <StashCreateDialogHost />
+      <StashPickerDialogHost />
       <Separator orientation="vertical" className="mx-1 !h-6" />
       <UndoButtons key={`undo-${repoId ?? "none"}`} repoId={repoId} />
       <RebaseDialogsHost />

@@ -472,7 +472,26 @@
     "noFiles": "Stash này không có file nào",
     "loading": "Đang đọc…",
     "error": "Không đọc được stash: {{message}}",
-    "binary": "nhị phân"
+    "binary": "nhị phân",
+    "popSingle": "Pop {{name}}: {{message}}\n{{meta}}\nBấm để lấy lại các thay đổi và xoá stash này khỏi danh sách.",
+    "popOtherBranch": "Stash duy nhất được tạo trên nhánh {{branch}} — bạn đang ở {{current}}.\nBấm để xem lại trước khi Pop. Bấm ▾ để Pop ngay: {{message}}",
+    "popMany": "Có {{count}} stash — bấm để chọn stash muốn lấy lại (▾ để Pop nhanh).",
+    "menuLabel": "Chọn stash để Pop",
+    "menuTitle": "Stash ({{count}}) — chọn để Pop",
+    "menuAll": "Xem tất cả stash ({{count}})…",
+    "picker": {
+      "title": "Chọn stash để lấy lại ({{count}})",
+      "desc": "Pop = lấy lại thay đổi rồi xoá stash khỏi danh sách. Apply = lấy lại nhưng vẫn giữ stash để dùng lần nữa.",
+      "dirty": "Bạn đang có thay đổi chưa commit. Pop có thể bị từ chối nếu stash sửa cùng file — nên Commit hoặc Stash các thay đổi hiện tại trước.",
+      "otherBranchWarn": "Stash này được tạo trên nhánh {{branch}}, còn bạn đang ở {{current}}. Pop sẽ áp các thay đổi đó vào {{current}}.",
+      "thisBranch": "Được tạo trên nhánh hiện tại",
+      "thisBranchShort": "{{branch}} (hiện tại)",
+      "otherBranch": "Được tạo trên nhánh khác",
+      "newest": "mới nhất",
+      "applyHint": "Lấy lại thay đổi, vẫn giữ stash trong danh sách",
+      "popHint": "Lấy lại thay đổi rồi xoá stash (Enter)",
+      "pop": "Pop {{name}}"
+    }
   },
   "lfs": {
     "version": "git-lfs {{version}}",
@@ -628,7 +647,8 @@
     "pullMode": {
       "merge": "Pull (merge, fast-forward nếu được)",
       "rebase": "Pull (rebase)",
-      "fastForwardOnly": "Pull (chỉ fast-forward)"
+      "fastForwardOnly": "Pull (chỉ fast-forward)",
+      "mergeUnrelated": "Pull (merge, gộp cả lịch sử không liên quan)"
     },
     "pulled": {
       "upToDate": "Nhánh đã cập nhật mới nhất.",
@@ -1542,6 +1562,70 @@
     "dirtyWorktree": "Trong đó có file đã sửa hoặc file mới. Mở ra, commit hoặc stash chúng rồi thử lại — hoặc chọn tùy chọn cưỡng bức để bỏ các thay đổi đó.",
     "worktreeLocked": "Mở khóa trước (sidebar → Worktrees → chuột phải → Mở khóa) rồi thử lại.",
     "signingFailed": "Identity của {{account}} được cấu hình ký commit nhưng khóa ký không chạy được. Mở Quản lý tài khoản → identity → Thử ký: kiểm tra khóa còn tồn tại (GPG: gpg --list-secret-keys; SSH: file .pub), hoặc tắt ký cho identity đó."
+  },
+  "recovery": {
+    "retry": "Thử lại",
+    "tryAgain": "Hãy thử lại thao tác vừa rồi.",
+    "pullThenPush": "Pull về rồi Push lại",
+    "stashFirst": "Stash thay đổi trước",
+    "openLfs": "Mở quản lý LFS",
+    "pull": {
+      "noSource": "Nhánh này chưa có remote để pull về. Hãy Publish hoặc thêm remote bằng URL trước.",
+      "done": "Đã pull về các commit mới từ server",
+      "mergedUnrelated": "Đã gộp lịch sử trên server với lịch sử trên máy",
+      "pushHint": "Giờ có thể Push lên được rồi."
+    },
+    "lock": {
+      "title": "Git đang bị khoá bởi file {{file}}",
+      "hint": "Có một tiến trình git khác đang chạy trong repo này (VS Code, terminal, công cụ khác…), hoặc một lần chạy git trước đã bị dừng giữa chừng và để lại file khoá {{file}}. App đã chờ vài giây nhưng file vẫn còn. Nếu không còn chương trình nào đang dùng git ở repo này, xoá file khoá là an toàn.",
+      "fix": "Xoá {{file}}",
+      "fixRetry": "Xoá {{file}} và thử lại",
+      "done": "Đã xoá {{file}}"
+    },
+    "indexCorrupt": {
+      "title": "File index của git bị hỏng",
+      "hint": "Thường do máy tắt đột ngột hoặc ổ đầy khi git đang ghi. Dựng lại index từ commit gần nhất: file trong thư mục không bị đụng tới, chỉ những gì đã stage sẽ trở về trạng thái chưa stage. Bản cũ được giữ ở .git/index.broken.",
+      "fix": "Dựng lại index",
+      "done": "Đã dựng lại index"
+    },
+    "longPaths": {
+      "title": "Đường dẫn file quá dài (Windows)",
+      "hint": "Windows mặc định giới hạn đường dẫn 260 ký tự. Bật core.longpaths cho repo này để git xử lý được các file nằm sâu trong thư mục (node_modules, assets…).",
+      "fix": "Bật long paths cho repo này",
+      "fixRetry": "Bật long paths và thử lại",
+      "done": "Đã bật core.longpaths cho repo này"
+    },
+    "postBuffer": {
+      "title": "Kết nối bị ngắt khi gửi dữ liệu lớn",
+      "hint": "Server hoặc proxy cắt kết nối giữa chừng (HTTP 413 / RPC failed), thường do lần push quá lớn. Tăng bộ đệm HTTP của git cho repo này rồi thử lại; nếu vẫn lỗi, hãy chia nhỏ commit hoặc dùng Git LFS cho file lớn.",
+      "fix": "Tăng bộ đệm push",
+      "fixRetry": "Tăng bộ đệm push và thử lại",
+      "done": "Đã đặt http.postBuffer = 500 MB cho repo này"
+    },
+    "dubiousOwnership": {
+      "title": "Git chưa tin tưởng thư mục này",
+      "hint": "Thư mục thuộc về một tài khoản người dùng khác trên máy (hay gặp với ổ cứng ngoài, thư mục copy từ máy khác hoặc tạo bằng quyền admin), nên git chặn lại để an toàn. Nếu đây là project của bạn, hãy đánh dấu tin tưởng (thêm vào safe.directory trong cấu hình git chung).",
+      "fix": "Tin tưởng thư mục này",
+      "done": "Đã thêm thư mục vào safe.directory"
+    },
+    "unrelatedHistories": {
+      "title": "Lịch sử trên server và trên máy không liên quan nhau",
+      "hint": "Repo trên server đã có commit riêng (thường là README / .gitignore / LICENSE tạo lúc lập repo trên GitHub / GitLab), còn project trên máy có lịch sử khác. Gộp hai lịch sử lại (tạo một merge commit) rồi Push. Nếu có file trùng tên, app sẽ báo xung đột để bạn chọn giữ bản nào.",
+      "fix": "Gộp hai lịch sử (pull)"
+    },
+    "identityUnknown": {
+      "title": "Chưa có tên / email tác giả cho commit",
+      "hint": "Git cần biết ai là tác giả của commit. Thêm tài khoản hoặc identity trong Quản lý tài khoản rồi chọn ở mục \"Commit as\"."
+    },
+    "noCommits": {
+      "title": "Nhánh chưa có commit nào để push",
+      "hint": "Hãy commit trước: chọn file ở bảng Changes, viết message rồi bấm Commit — sau đó mới Push.",
+      "fix": "Viết commit"
+    },
+    "fileBusy": {
+      "title": "Không ghi được file — file đang bị chương trình khác mở",
+      "hint": "Một file đang được mở (editor, game engine, trình xem ảnh…) hoặc chỉ đọc nên git không ghi / xoá được. Đóng chương trình đó rồi bấm Thử lại."
+    }
   },
   "notice": {
     "technical": "Chi tiết kỹ thuật (log của git)",
