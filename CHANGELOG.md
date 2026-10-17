@@ -5,6 +5,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-17
+
+### Added
+
+- Common git errors now come with a plain-words explanation and a one-click fix in the message bar:
+  - "Unable to create '…/index.lock': File exists" → **Remove index.lock and try again** (also other `.lock` files git leaves behind).
+  - A damaged index → **Rebuild the index** (your files are not touched).
+  - Windows "Filename too long" → **Enable long paths** for the repository.
+  - A large push cut off by the server ("RPC failed", HTTP 413) → **Raise the push buffer and try again**.
+  - "detected dubious ownership" when opening a folder → **Trust this folder**.
+  - Pushing to a repository created on GitHub / GitLab with a README ("refusing to merge unrelated histories") → **Merge both histories**, then Push.
+  - Push rejected because the server has new commits → **Pull, then push again**; local changes in the way → **Stash changes first**.
+- Pop: when you have several stashes, Pop opens a list to choose one, with the branch each stash was made on and how old it is (Pop, Apply, show files, drop). The ▾ next to Pop pops a recent stash directly.
+
+### Changed
+
+- When another program holds git's `index.lock` for a moment, the app waits a few seconds and carries on instead of failing at once.
+- The Pop button shows how many stashes you have and is colored when there is something to pop: green when one stash from this branch pops in one click, amber when the only stash was made on another branch, blue when there are several.
+
 ## [1.1.0] - 2026-10-16
 
 ### Added
