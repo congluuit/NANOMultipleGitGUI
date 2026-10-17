@@ -87,10 +87,10 @@ describe("stash helpers", () => {
     expect(topStash([])).toBeNull();
     expect(
       topStash([
-        { index: 0, message: "On main: x" },
-        { index: 1, message: "On main: y" },
+        { index: 0, message: "On main: x", time: 0, branch: "main" },
+        { index: 1, message: "On main: y", time: 0, branch: "main" },
       ]),
-    ).toEqual({ index: 0, message: "On main: x" });
+    ).toEqual({ index: 0, message: "On main: x", time: 0, branch: "main" });
   });
 });
 
