@@ -733,7 +733,8 @@ export const commands = {
 	aiOllamaStatus: () => __TAURI_INVOKE<OllamaStatus>("ai_ollama_status"),
 	/**
 	 *  Installs Ollama with winget (Windows) / Homebrew (macOS). Linux / no manager →
-	 *  `managerMissing` (the UI opens the download page).
+	 *  `managerMissing` (the UI opens the download page). Progress arrives as
+	 *  [`ollama::AiInstallProgress`].
 	 */
 	aiOllamaInstall: () => __TAURI_INVOKE<AiInstallResult>("ai_ollama_install"),
 	aiOllamaInstallCancel: () => __TAURI_INVOKE<boolean>("ai_ollama_install_cancel"),
@@ -780,6 +781,7 @@ export const commands = {
 
 /** Events */
 export const events = {
+	aiInstallProgress: makeEvent<AiInstallProgress>("ai-install-progress"),
 	aiPullProgress: makeEvent<AiPullProgress>("ai-pull-progress"),
 	cloneListUpdated: makeEvent<CloneListUpdated>("clone-list-updated"),
 	cloneProgress: makeEvent<CloneProgress>("clone-progress"),
@@ -1038,6 +1040,17 @@ export type AiError = { kind: "notEnabled"; message: string } | { kind: "missing
 { kind: "service"; message: string; status: number } | { kind: "emptyAnswer"; message: string } | { kind: "busy"; message: string } | { kind: "invalidInput"; message: string } | { kind: "git"; message: string } | { kind: "internal"; message: string };
 
 export type AiHostOs = "windows" | "macos" | "linux";
+
+/**
+ *  Live progress of `ai_ollama_install` (event `ai-install-progress`); same reading of the
+ *  installer's output as the setup's "Install it for me".
+ */
+export type AiInstallProgress = {
+	phase: SetupInstallPhase,
+	percent: number | null,
+	/**  Last few readable output lines, oldest first. */
+	recent: string[],
+};
 
 export type AiInstallResult = {
 	outcome: SetupInstallOutcome,

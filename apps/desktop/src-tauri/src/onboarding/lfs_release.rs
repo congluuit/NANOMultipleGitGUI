@@ -173,7 +173,7 @@ pub(crate) async fn fetch_verified(
     emit: &mut (dyn FnMut(SetupInstallProgress) + Send),
 ) -> Result<(Picked, Vec<u8>), Fail> {
     tracker.note(&format!("GET {api_url}"));
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     let raw = get(http, api_url).await?.bytes().await.map_err(net)?;
     let release: Release = serde_json::from_slice(&raw)
         .map_err(|e| Fail::Other(format!("unexpected answer from GitHub: {e}")))?;
@@ -189,13 +189,13 @@ pub(crate) async fn fetch_verified(
 
     tracker.set_phase(SetupInstallPhase::Downloading);
     tracker.note(&format!("Downloading {}", picked.archive_url));
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     tracker.emitted();
     let zip = download(http, &picked.archive_url, cancel, |p| {
         if p != tracker.percent() {
             tracker.set_percent(p);
             if tracker.due() || p == Some(100) {
-                emit(tracker.snapshot());
+                emit(ev(tracker));
                 tracker.emitted();
             }
         }
@@ -204,7 +204,7 @@ pub(crate) async fn fetch_verified(
 
     tracker.set_phase(SetupInstallPhase::Verifying);
     tracker.note("Verifying the SHA-256 checksum");
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     let sums = get(http, &picked.sums_url)
         .await?
         .text()
@@ -224,8 +224,12 @@ pub(crate) async fn fetch_verified(
         )));
     }
     tracker.note(&format!("Checksum OK ({})", &got[..12]));
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     Ok((picked, zip))
+}
+
+fn ev(t: &ProgressTracker) -> SetupInstallProgress {
+    SetupInstallProgress::of(SetupToolId::GitLfs, t)
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -324,7 +328,7 @@ pub(crate) async fn install(
 ) -> SetupInstallResult {
     let tool = SetupToolId::GitLfs;
     let arch = if mac_intel { "amd64" } else { "arm64" };
-    let mut tracker = ProgressTracker::new(tool);
+    let mut tracker = ProgressTracker::new();
     let mut log: Vec<String> = Vec::new();
     let outcome = match run(http, arch, cancel, &mut tracker, emit, &mut log).await {
         Ok(()) => SetupInstallOutcome::Installed,
@@ -370,7 +374,7 @@ async fn run(
     let dest_dir = target_dir(Path::new("/usr/local/bin"), home.as_deref())
         .ok_or_else(|| Fail::Other("no folder to install into (HOME is not set)".into()))?;
     tracker.note(&format!("Installing to {}", dest_dir.display()));
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     if cancel.load(Ordering::Relaxed) {
         return Err(Fail::Cancelled);
     }
@@ -388,7 +392,7 @@ async fn run(
 
     tracker.set_phase(SetupInstallPhase::Finishing);
     tracker.note("git lfs install --skip-repo");
-    emit(tracker.snapshot());
+    emit(ev(tracker));
     // Not fatal: without git the filter is set up later, and the binary is in place.
     let mut cmd = super::command(&dest);
     cmd.args(["install", "--skip-repo"]);
@@ -535,7 +539,7 @@ mod tests {
             cancel: bool,
         ) -> (Result<(Picked, Vec<u8>), Fail>, Vec<SetupInstallProgress>) {
             let http = reqwest::Client::new();
-            let mut tracker = ProgressTracker::new(SetupToolId::GitLfs);
+            let mut tracker = ProgressTracker::new();
             let mut events = Vec::new();
             let r = fetch_verified(
                 &http,

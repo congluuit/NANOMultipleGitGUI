@@ -17,7 +17,15 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { copyText, openExternal } from "@/features/accounts/manager/openExternal";
-import { type AiInstallResult, commands, type OllamaModel, type OllamaStatus } from "@/ipc";
+import { InstallProgress } from "@/features/onboarding/setup/InstallProgress";
+import {
+  type AiInstallProgress,
+  type AiInstallResult,
+  commands,
+  events,
+  type OllamaModel,
+  type OllamaStatus,
+} from "@/ipc";
 import { formatBytes } from "@/lib/format";
 import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -54,14 +62,18 @@ export function OllamaPanel({
   const status = useOllamaStatus(true);
   const [installing, setInstalling] = useState(false);
   const [install, setInstall] = useState<AiInstallResult | null>(null);
+  const [progress, setProgress] = useState<AiInstallProgress | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const runInstall = async () => {
     setInstalling(true);
     setInstall(null);
+    setProgress(null);
     setError(null);
+    let unlisten: (() => void) | undefined;
     try {
+      unlisten = await events.aiInstallProgress.listen(({ payload }) => setProgress(payload));
       const r = await commands.aiOllamaInstall();
       setInstall(r);
       if (r.outcome === "managerMissing") void openExternal(OLLAMA_DOWNLOAD_URL);
@@ -69,7 +81,9 @@ export function OllamaPanel({
     } catch (e) {
       setError(aiErrorText(t, e));
     } finally {
+      unlisten?.();
       setInstalling(false);
+      setProgress(null);
     }
   };
 
@@ -125,6 +139,7 @@ export function OllamaPanel({
         <NotInstalled
           status={s}
           installing={installing}
+          progress={progress}
           result={install}
           onInstall={() => void runInstall()}
         />
@@ -184,11 +199,13 @@ export function OllamaPanel({
 function NotInstalled({
   status,
   installing,
+  progress,
   result,
   onInstall,
 }: {
   status: OllamaStatus;
   installing: boolean;
+  progress: AiInstallProgress | null;
   result: AiInstallResult | null;
   onInstall: () => void;
 }) {
@@ -204,23 +221,17 @@ function NotInstalled({
             {t("ai.ollama.install")}
           </Button>
         )}
-        {installing && (
-          <Button variant="outline" size="sm" onClick={() => void commands.aiOllamaInstallCancel()}>
-            <X />
-            {t("common.cancel")}
-          </Button>
-        )}
         <Button variant="outline" size="sm" onClick={() => void openExternal(status.downloadUrl)}>
           <ExternalLink />
           {t("ai.ollama.manual")}
         </Button>
       </div>
       {installing && (
-        <p className="text-[11px] text-muted-foreground">
-          {status.installer === "winget"
-            ? t("setup.install.runningWinget")
-            : t("setup.install.running")}
-        </p>
+        <InstallProgress
+          manager={status.installer}
+          progress={progress}
+          onCancel={() => void commands.aiOllamaInstallCancel()}
+        />
       )}
       {!status.installer && status.os === "macos" && (
         <p className="text-[11px] text-muted-foreground">{t("ai.ollama.noBrew")}</p>

@@ -14,8 +14,9 @@ use specta::Type;
 
 use super::AiError;
 use crate::onboarding::{
-    InstallPlan, Managers, ProbeEnv, SetupInstallOutcome, SetupPackageManager, TargetOs, classify,
-    clean_output, command as no_window_command, find_in, run_cancellable, which,
+    InstallPlan, Managers, ProbeEnv, ProgressTracker, SetupInstallOutcome, SetupInstallPhase,
+    SetupPackageManager, TargetOs, classify, clean_output, command as no_window_command, find_in,
+    run_tracked, which,
 };
 
 pub const DOWNLOAD_URL: &str = "https://ollama.com/download";
@@ -331,8 +332,33 @@ pub fn start_wait() -> Duration {
 
 // ----- install ---------------------------------------------------------------------------------
 
-pub fn run_install(plan: &InstallPlan, cancel: &AtomicBool, timeout: Duration) -> AiInstallResult {
-    let cmd = plan.command();
+/// Live progress of `ai_ollama_install` (event `ai-install-progress`); same reading of the
+/// installer's output as the setup's "Install it for me".
+#[derive(Debug, Clone, PartialEq, Serialize, Type, tauri_specta::Event)]
+#[serde(rename_all = "camelCase")]
+pub struct AiInstallProgress {
+    pub phase: SetupInstallPhase,
+    pub percent: Option<u8>,
+    /// Last few readable output lines, oldest first.
+    pub recent: Vec<String>,
+}
+
+impl AiInstallProgress {
+    pub(crate) fn of(t: &ProgressTracker) -> Self {
+        Self {
+            phase: t.phase(),
+            percent: t.percent(),
+            recent: t.recent(),
+        }
+    }
+}
+
+pub fn run_install(
+    plan: &InstallPlan,
+    cancel: &AtomicBool,
+    timeout: Duration,
+    emit: &mut dyn FnMut(AiInstallProgress),
+) -> AiInstallResult {
     let result = |outcome, exit_code, output: String| AiInstallResult {
         outcome,
         manager: Some(plan.manager),
@@ -340,7 +366,8 @@ pub fn run_install(plan: &InstallPlan, cancel: &AtomicBool, timeout: Duration) -
         exit_code,
         output,
     };
-    match run_cancellable(cmd, cancel, timeout) {
+    let mut on_progress = |t: &ProgressTracker| emit(AiInstallProgress::of(t));
+    match run_tracked(plan, cancel, timeout, &mut on_progress) {
         Err(e) => result(SetupInstallOutcome::ManagerMissing, None, e.to_string()),
         Ok(out) => {
             let outcome = if out.cancelled {

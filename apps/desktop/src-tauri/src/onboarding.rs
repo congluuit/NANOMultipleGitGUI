@@ -193,6 +193,17 @@ pub struct SetupInstallProgress {
     pub recent: Vec<String>,
 }
 
+impl SetupInstallProgress {
+    pub(crate) fn of(tool: SetupToolId, t: &ProgressTracker) -> Self {
+        Self {
+            tool,
+            phase: t.phase(),
+            percent: t.percent(),
+            recent: t.recent(),
+        }
+    }
+}
+
 // ----- environment ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1146,9 +1157,10 @@ pub(crate) fn phase_of(line: &str) -> Option<SetupInstallPhase> {
     }
 }
 
-/// Follows an installer's output and turns it into [`SetupInstallProgress`] events.
+/// Follows an installer's output: phase, percent and the last readable lines (sent as
+/// [`SetupInstallProgress`] or, for Ollama, `AiInstallProgress`).
+#[derive(Debug)]
 pub(crate) struct ProgressTracker {
-    tool: SetupToolId,
     phase: SetupInstallPhase,
     percent: Option<u8>,
     recent: std::collections::VecDeque<String>,
@@ -1156,9 +1168,8 @@ pub(crate) struct ProgressTracker {
 }
 
 impl ProgressTracker {
-    pub(crate) fn new(tool: SetupToolId) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            tool,
             phase: SetupInstallPhase::Preparing,
             percent: None,
             recent: Default::default(),
@@ -1166,13 +1177,12 @@ impl ProgressTracker {
         }
     }
 
-    pub(crate) fn snapshot(&self) -> SetupInstallProgress {
-        SetupInstallProgress {
-            tool: self.tool,
-            phase: self.phase,
-            percent: self.percent,
-            recent: self.recent.iter().cloned().collect(),
-        }
+    pub(crate) fn phase(&self) -> SetupInstallPhase {
+        self.phase
+    }
+
+    pub(crate) fn recent(&self) -> Vec<String> {
+        self.recent.iter().cloned().collect()
     }
 
     /// Moves to `phase` (a new phase starts without a percent).
@@ -1243,6 +1253,27 @@ impl ProgressTracker {
     }
 }
 
+/// Runs `plan` and calls `on_progress` when the tracker has something new to show (the first
+/// call comes before the installer starts).
+pub(crate) fn run_tracked(
+    plan: &InstallPlan,
+    cancel: &AtomicBool,
+    timeout: Duration,
+    on_progress: &mut dyn FnMut(&ProgressTracker),
+) -> std::io::Result<RunOutput> {
+    let mut tracker = ProgressTracker::new();
+    tracker.note(&plan.display());
+    on_progress(&tracker);
+    tracker.emitted();
+    let mut on_line = |line: &str| {
+        if tracker.feed(line) {
+            on_progress(&tracker);
+            tracker.emitted();
+        }
+    };
+    run_streaming(plan.command(), cancel, timeout, &mut on_line)
+}
+
 pub(crate) fn run_install(
     tool: SetupToolId,
     plan: &InstallPlan,
@@ -1250,7 +1281,6 @@ pub(crate) fn run_install(
     timeout: Duration,
     emit: &mut dyn FnMut(SetupInstallProgress),
 ) -> SetupInstallResult {
-    let cmd = plan.command();
     let result = |outcome, exit_code, output: String| SetupInstallResult {
         tool,
         outcome,
@@ -1259,17 +1289,8 @@ pub(crate) fn run_install(
         exit_code,
         output,
     };
-    let mut tracker = ProgressTracker::new(tool);
-    tracker.note(&plan.display());
-    emit(tracker.snapshot());
-    tracker.emitted();
-    let mut on_line = |line: &str| {
-        if tracker.feed(line) {
-            emit(tracker.snapshot());
-            tracker.emitted();
-        }
-    };
-    match run_streaming(cmd, cancel, timeout, &mut on_line) {
+    let mut on_progress = |t: &ProgressTracker| emit(SetupInstallProgress::of(tool, t));
+    match run_tracked(plan, cancel, timeout, &mut on_progress) {
         Err(e) => result(SetupInstallOutcome::ManagerMissing, None, e.to_string()),
         Ok(out) => {
             let output = clean_output(&out.text);
@@ -2069,26 +2090,28 @@ mod tests {
 
     #[test]
     fn tracker_follows_the_phases_and_keeps_recent_lines() {
-        let mut t = ProgressTracker::new(SetupToolId::Git);
+        let mut t = ProgressTracker::new();
         assert!(!t.feed("   "));
         assert!(!t.feed("  -  "));
         assert!(t.feed("Found Git [Git.Git] Version 2.47.0"));
         assert!(t.feed("Downloading https://github.com/git.exe"));
-        assert_eq!(t.snapshot().phase, SetupInstallPhase::Downloading);
+        assert_eq!(t.phase(), SetupInstallPhase::Downloading);
         // A redrawn bar only moves the percent and is not kept as a line.
         assert!(t.feed("  ██████▒▒▒▒  30.0 MB / 60.0 MB"));
         t.emitted();
         assert!(!t.feed("  ███████▒▒▒  35.0 MB / 60.0 MB"), "throttled");
-        assert_eq!(t.snapshot().percent, Some(58));
+        assert_eq!(t.percent(), Some(58));
         assert!(t.feed("Successfully verified installer hash"));
-        let s = t.snapshot();
-        assert_eq!((s.phase, s.percent), (SetupInstallPhase::Verifying, None));
+        assert_eq!(
+            (t.phase(), t.percent()),
+            (SetupInstallPhase::Verifying, None)
+        );
         for i in 0..10 {
             t.feed(&format!("line {i}"));
         }
-        let s = t.snapshot();
-        assert_eq!(s.recent.len(), RECENT_LINES);
-        assert_eq!(s.recent.last().map(String::as_str), Some("line 9"));
+        let recent = t.recent();
+        assert_eq!(recent.len(), RECENT_LINES);
+        assert_eq!(recent.last().map(String::as_str), Some("line 9"));
     }
 
     #[test]

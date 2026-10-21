@@ -388,6 +388,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             app_paths::StorageMoveProgress,
             // Phase 6.4: Ollama model download progress.
             ai::ollama::AiPullProgress,
+            ai::ollama::AiInstallProgress,
             // Live output of "Install it for me" in the setup.
             onboarding::SetupInstallProgress
         ])

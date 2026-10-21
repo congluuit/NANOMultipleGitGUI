@@ -461,11 +461,12 @@ pub async fn ai_ollama_status(app: AppHandle) -> AiResult<OllamaStatus> {
 }
 
 /// Installs Ollama with winget (Windows) / Homebrew (macOS). Linux / no manager →
-/// `managerMissing` (the UI opens the download page).
+/// `managerMissing` (the UI opens the download page). Progress arrives as
+/// [`ollama::AiInstallProgress`].
 #[tauri::command]
 #[specta::specta]
-pub async fn ai_ollama_install() -> AiResult<AiInstallResult> {
-    tauri::async_runtime::spawn_blocking(|| {
+pub async fn ai_ollama_install(app: AppHandle) -> AiResult<AiInstallResult> {
+    tauri::async_runtime::spawn_blocking(move || {
         let env = ProbeEnv::current();
         let Some(plan) = ollama::install_plan(env.os, &Managers::detect(&env)) else {
             return Ok(AiInstallResult {
@@ -482,7 +483,17 @@ pub async fn ai_ollama_install() -> AiResult<AiInstallResult> {
         };
         let (_slot, cancel) = InstallSlot::take()?;
         tracing::info!(command = %plan.display(), "ollama install started");
-        Ok(ollama::run_install(&plan, &cancel, ollama::INSTALL_TIMEOUT))
+        let mut emit = |p: ollama::AiInstallProgress| {
+            if let Err(e) = p.emit(&app) {
+                tracing::warn!(error = %e, "failed to emit ai install progress");
+            }
+        };
+        Ok(ollama::run_install(
+            &plan,
+            &cancel,
+            ollama::INSTALL_TIMEOUT,
+            &mut emit,
+        ))
     })
     .await
     .map_err(|e| AiError::internal(e.to_string()))?
