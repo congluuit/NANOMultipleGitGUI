@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-21
+
 ### Added
 
 - "Install it for me" in the setup now shows what the installer is doing while it runs: the current step (preparing, downloading, verifying, installing, finishing), a progress bar with the download percent, the latest installer lines and the elapsed time. **Cancel install** stops it at any point. The same progress view is used by **Install Ollama for me** in the AI settings.

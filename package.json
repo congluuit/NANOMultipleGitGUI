@@ -1,7 +1,7 @@
 {
   "name": "nanomultiplegitgui",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Open-source multi-account Git GUI for GitHub and GitLab (Tauri 2 + Rust + React)",
   "license": "Apache-2.0",
   "repository": "github:congluuit/NANOMultipleGitGUI",
