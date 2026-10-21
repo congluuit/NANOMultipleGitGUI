@@ -4253,7 +4253,7 @@ export type SetupInstallResult = {
 	output: string,
 };
 
-export type SetupPackageManager = "winget" | "brew" | "xcodeSelect" |
+export type SetupPackageManager = "winget" | "brew" | "xcodeSelect" | 
 /**
  *  The official release archive from GitHub, unpacked by the app (git-lfs on macOS when
  *  Homebrew cannot install it: Intel Macs, or no Homebrew).
