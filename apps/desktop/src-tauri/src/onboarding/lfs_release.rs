@@ -83,6 +83,8 @@ pub(crate) enum Fail {
     Cancelled,
     Network(String),
     NotFound(String),
+    // Only `place` (Unix) hits file permissions.
+    #[cfg_attr(not(unix), allow(dead_code))]
     NoPermission(String),
     Other(String),
 }
@@ -110,6 +112,7 @@ fn net(e: reqwest::Error) -> Fail {
     Fail::Network(e.to_string())
 }
 
+#[cfg_attr(not(unix), allow(dead_code))]
 fn io(context: &str, e: std::io::Error) -> Fail {
     let msg = format!("{context}: {e}");
     if e.kind() == std::io::ErrorKind::PermissionDenied {

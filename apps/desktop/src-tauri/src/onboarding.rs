@@ -1102,7 +1102,7 @@ pub(crate) fn percent_in(line: &str) -> Option<u8> {
         .rfind(|c: char| !(c.is_ascii_digit() || c == '.'))
         .map_or(0, |i| i + 1);
     let v: f32 = head[start..].parse().ok()?;
-    (0.0..=100.0).contains(&v).then(|| v as u8)
+    (0.0..=100.0).contains(&v).then_some(v as u8)
 }
 
 fn bytes_of(num: &str, unit: &str) -> Option<f64> {
