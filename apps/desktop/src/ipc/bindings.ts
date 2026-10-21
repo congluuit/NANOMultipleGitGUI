@@ -398,7 +398,11 @@ export const commands = {
 	/**  Saves the whole progress object (finish, skip, steps done). */
 	setupSave: (progress: SetupProgress) => __TAURI_INVOKE<SetupStatus>("setup_save", { progress }),
 	setupTools: () => __TAURI_INVOKE<SetupToolsReport>("setup_tools"),
-	/**  Installs `tool` with the whitelisted package-manager command of this OS. */
+	/**
+	 *  Installs `tool` with the whitelisted package-manager command of this OS (or, for git-lfs on
+	 *  an Intel Mac / a Mac without Homebrew, the official release). Progress arrives as
+	 *  [`SetupInstallProgress`].
+	 */
 	setupInstall: (tool: SetupToolId) => __TAURI_INVOKE<SetupInstallResult>("setup_install", { tool }),
 	/**  Stops the running install, if any. */
 	setupInstallCancel: () => __TAURI_INVOKE<boolean>("setup_install_cancel"),
@@ -781,6 +785,7 @@ export const events = {
 	cloneProgress: makeEvent<CloneProgress>("clone-progress"),
 	lfsTransferProgress: makeEvent<LfsTransferProgress>("lfs-transfer-progress"),
 	repoChanged: makeEvent<RepoChanged>("repo-changed"),
+	setupInstallProgress: makeEvent<SetupInstallProgress>("setup-install-progress"),
 	storageMoveProgress: makeEvent<StorageMoveProgress>("storage-move-progress"),
 	transferProgress: makeEvent<TransferProgress>("transfer-progress"),
 	updateProgress: makeEvent<UpdateProgress>("update-progress"),
@@ -4211,6 +4216,19 @@ export type SetupInstallOutcome = "installed" | "alreadyInstalled" |
 /**  The user said no to the administrator (UAC) prompt or closed the installer. */
 "userCancelled" | "needsAdmin" | "managerMissing" | "network" | "packageNotFound" | "timedOut" | "failed";
 
+/**  What an install is doing now, read from the installer's output. */
+export type SetupInstallPhase = "preparing" | "downloading" | "verifying" | "installing" | "finishing";
+
+/**  Live progress of `setup_install` (event `setup-install-progress`). */
+export type SetupInstallProgress = {
+	tool: SetupToolId,
+	phase: SetupInstallPhase,
+	/**  Of the current phase (a download), when the installer prints one. */
+	percent: number | null,
+	/**  Last few readable output lines, oldest first. */
+	recent: string[],
+};
+
 export type SetupInstallResult = {
 	tool: SetupToolId,
 	outcome: SetupInstallOutcome,
@@ -4222,7 +4240,12 @@ export type SetupInstallResult = {
 	output: string,
 };
 
-export type SetupPackageManager = "winget" | "brew" | "xcodeSelect";
+export type SetupPackageManager = "winget" | "brew" | "xcodeSelect" |
+/**
+ *  The official release archive from GitHub, unpacked by the app (git-lfs on macOS when
+ *  Homebrew cannot install it: Intel Macs, or no Homebrew).
+ */
+"githubRelease";
 
 /**  Stored under [`KEY_SETUP`]. */
 export type SetupProgress = {

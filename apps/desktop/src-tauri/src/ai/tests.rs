@@ -1019,7 +1019,7 @@ fn ollama_install_whitelist_and_locations() {
     use std::path::PathBuf;
     let winget = Managers {
         winget: Some(PathBuf::from("C:/wa/winget.exe")),
-        brew: None,
+        ..Default::default()
     };
     let plan: InstallPlan = ollama::install_plan(TargetOs::Windows, &winget).unwrap();
     assert_eq!(plan.manager, SetupPackageManager::Winget);
@@ -1028,8 +1028,8 @@ fn ollama_install_whitelist_and_locations() {
         "winget install --id Ollama.Ollama -e --source winget --accept-source-agreements --accept-package-agreements"
     );
     let brew = Managers {
-        winget: None,
         brew: Some(PathBuf::from("/opt/homebrew/bin/brew")),
+        ..Default::default()
     };
     assert_eq!(
         ollama::install_plan(TargetOs::Macos, &brew).unwrap().args,

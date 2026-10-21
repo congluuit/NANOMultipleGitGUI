@@ -6,6 +6,9 @@ import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { initI18n } from "@/i18n";
 import {
   commands,
+  events,
+  type SetupInstallProgress,
+  type SetupInstallResult,
   type SetupProgress,
   type SetupStatus,
   type SetupTool,
@@ -69,7 +72,20 @@ const report = (gitState: SetupTool["state"]): SetupToolsReport => ({
   packageManagerFound: true,
 });
 
+/** Captures the `setup-install-progress` handler so a test can play installer output. */
+function mockProgressEvents() {
+  const handlers: ((e: { payload: SetupInstallProgress }) => void)[] = [];
+  const unlisten = vi.fn();
+  vi.spyOn(events.setupInstallProgress, "listen").mockImplementation(async (h) => {
+    handlers.push(h as (e: { payload: SetupInstallProgress }) => void);
+    return unlisten;
+  });
+  const send = (p: SetupInstallProgress) => act(() => handlers.forEach((h) => h({ payload: p })));
+  return { send, unlisten };
+}
+
 function mockBackend(tools: SetupToolsReport) {
+  mockProgressEvents();
   vi.spyOn(commands, "setupTools").mockResolvedValue(tools);
   vi.spyOn(commands, "accountList").mockResolvedValue([]);
   vi.spyOn(commands, "providerList").mockResolvedValue([]);
@@ -175,6 +191,49 @@ describe("first-run setup", () => {
     expect(install).toHaveBeenCalledWith("git");
     expect(await within(git).findByText(/Cài đặt bị hủy/)).toBeInTheDocument();
     expect(within(git).getByText("Chi tiết kỹ thuật")).toBeInTheDocument();
+  });
+
+  it("shows live install progress and can cancel half way", async () => {
+    mockBackend(report("missing"));
+    const { send, unlisten } = mockProgressEvents();
+    let finish: (r: SetupInstallResult) => void = () => {};
+    vi.spyOn(commands, "setupInstall").mockImplementation(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
+    const cancel = vi.spyOn(commands, "setupInstallCancel").mockResolvedValue(true);
+    queryClient.setQueryData(setupKeys.status, status({ shouldAutoOpen: false }));
+    useSetupDialog.setState({ open: true, step: "tools" });
+    renderHost();
+    const user = userEvent.setup();
+    const git = await screen.findByRole("listitem", { name: "Git" });
+    await user.click(within(git).getByRole("button", { name: /Cài giúp tôi/ }));
+    expect(await within(git).findByText("Đang chuẩn bị…")).toBeInTheDocument();
+
+    send({ tool: "git", phase: "downloading", percent: 42, recent: ["Downloading https://x"] });
+    expect(within(git).getByText("Đang tải xuống… 42%")).toBeInTheDocument();
+    expect(within(git).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "42");
+    expect(within(git).getByText("Downloading https://x")).toBeInTheDocument();
+    // Another tool's progress is not shown on this row.
+    send({ tool: "gh", phase: "installing", percent: null, recent: [] });
+    expect(within(git).getByText("Đang tải xuống… 42%")).toBeInTheDocument();
+
+    await user.click(within(git).getByRole("button", { name: "Hủy cài đặt" }));
+    expect(cancel).toHaveBeenCalled();
+    expect(within(git).getByText("Đang dừng cài đặt…")).toBeInTheDocument();
+
+    await act(async () =>
+      finish({
+        tool: "git",
+        outcome: "cancelled",
+        manager: "winget",
+        command: "winget install --id Git.Git -e",
+        exitCode: null,
+        output: "",
+      }),
+    );
+    expect(await within(git).findByText("Đã dừng cài đặt.")).toBeInTheDocument();
+    expect(within(git).queryByRole("progressbar")).toBeNull();
+    expect(unlisten).toHaveBeenCalled();
   });
 
   it("skipping remembers the skip and the steps already done", async () => {

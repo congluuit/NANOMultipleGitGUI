@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import {
   CircleAlert,
@@ -10,6 +10,7 @@ import {
   LoaderCircle,
   RefreshCw,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ import { repoKeys } from "@/features/repos/queries";
 import {
   commands,
   errorMessage,
+  events,
+  type SetupInstallProgress,
   type SetupInstallResult,
   type SetupTool,
   type SetupToolId,
@@ -55,19 +58,27 @@ export function ToolsStep() {
   const tools = useSetupTools(true);
   const [installing, setInstalling] = useState<SetupToolId | null>(null);
   const [results, setResults] = useState<Partial<Record<SetupToolId, SetupInstallResult>>>({});
+  const [progress, setProgress] = useState<SetupInstallProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const install = async (id: SetupToolId) => {
     setInstalling(id);
+    setProgress(null);
     setError(null);
+    let unlisten: (() => void) | undefined;
     try {
+      unlisten = await events.setupInstallProgress.listen(({ payload }) => {
+        if (payload.tool === id) setProgress(payload);
+      });
       const r = await commands.setupInstall(id);
       setResults((old) => ({ ...old, [id]: r }));
       if (installSucceeded(r.outcome)) await recheck();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
+      unlisten?.();
       setInstalling(null);
+      setProgress(null);
     }
   };
 
@@ -123,6 +134,7 @@ export function ToolsStep() {
             key={`tool-${tool.id}`}
             tool={tool}
             installing={installing === tool.id}
+            progress={installing === tool.id ? progress : null}
             busy={installing !== null}
             result={results[tool.id]}
             onInstall={() => void install(tool.id)}
@@ -171,12 +183,14 @@ function GateNotice({ report }: { report: SetupToolsReport }) {
 function ToolRow({
   tool,
   installing,
+  progress,
   busy,
   result,
   onInstall,
 }: {
   tool: SetupTool;
   installing: boolean;
+  progress: SetupInstallProgress | null;
   busy: boolean;
   result: SetupInstallResult | undefined;
   onInstall: () => void;
@@ -225,7 +239,7 @@ function ToolRow({
           </Button>
         </div>
       )}
-      {installing && <InstallRunning manager={tool.installer} />}
+      {installing && <InstallRunning manager={tool.installer} progress={progress} />}
       {result && !installing && <InstallReport result={result} />}
     </li>
   );
@@ -245,26 +259,90 @@ function StateText({ tool }: { tool: SetupTool }) {
   }
 }
 
-function InstallRunning({ manager }: { manager: SetupTool["installer"] }) {
+/** Seconds since the component mounted, ticking once a second. */
+function useElapsed(): number {
+  const [started] = useState(() => Date.now());
+  const [now, setNow] = useState(started);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return Math.floor((now - started) / 1000);
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function InstallRunning({
+  manager,
+  progress,
+}: {
+  manager: SetupTool["installer"];
+  progress: SetupInstallProgress | null;
+}) {
   const { t } = useTranslation();
   const [cancelling, setCancelling] = useState(false);
+  const elapsed = useElapsed();
+  const phase = progress?.phase ?? "preparing";
+  const percent = progress?.percent ?? null;
+  const recent = progress?.recent ?? [];
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2 pl-6 text-xs" role="status">
-      <LoaderCircle className="size-3.5 animate-spin" />
-      <span className="min-w-0 flex-1">
-        {t(manager === "winget" ? "setup.install.runningWinget" : "setup.install.running")}
-      </span>
-      <Button
-        size="xs"
-        variant="outline"
-        disabled={cancelling}
-        onClick={() => {
-          setCancelling(true);
-          void commands.setupInstallCancel();
-        }}
+    <div className="mt-2 space-y-1.5 pl-6 text-xs" role="status">
+      <div className="flex items-center gap-2">
+        <LoaderCircle className="size-3.5 shrink-0 animate-spin" />
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {cancelling
+            ? t("setup.install.cancelling")
+            : `${t(`setup.install.phase.${phase}`)}${percent !== null ? ` ${percent}%` : ""}`}
+        </span>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+          {formatElapsed(elapsed)}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={t(`setup.install.phase.${phase}`)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent ?? undefined}
+        className="h-1.5 overflow-hidden rounded-full bg-surface-2"
       >
-        {t("common.cancel")}
-      </Button>
+        <div
+          className={cn(
+            "h-full bg-primary transition-[width]",
+            percent === null && "animate-pulse",
+          )}
+          style={{ width: `${percent ?? 100}%` }}
+        />
+      </div>
+      <p className="text-muted-foreground">
+        {t(manager === "winget" ? "setup.install.runningWinget" : "setup.install.running")}
+      </p>
+      {recent.length > 0 && (
+        <pre
+          className="max-h-24 overflow-hidden rounded bg-muted px-2 py-1 font-mono text-[11px] whitespace-pre-wrap break-all text-muted-foreground"
+          aria-label={t("setup.install.liveOutput")}
+        >
+          {recent.join("\n")}
+        </pre>
+      )}
+      <div className="flex justify-end">
+        <Button
+          size="xs"
+          variant="outline"
+          disabled={cancelling}
+          onClick={() => {
+            setCancelling(true);
+            void commands.setupInstallCancel();
+          }}
+        >
+          <X />
+          {t("setup.install.cancel")}
+        </Button>
+      </div>
     </div>
   );
 }

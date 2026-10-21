@@ -5,6 +5,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- "Install it for me" in the setup now shows what the installer is doing while it runs: the current step (preparing, downloading, verifying, installing, finishing), a progress bar with the download percent, the latest installer lines and the elapsed time. **Cancel install** stops it at any point.
+
+### Fixed
+
+- Installing Git LFS on an Intel Mac no longer fails: Homebrew can no longer install git-lfs there, so the app downloads the official git-lfs release from GitHub, checks its SHA-256 and installs it into `/usr/local/bin` (or `~/.local/bin`) without asking for an administrator password. Macs without Homebrew can now install Git LFS this way too.
+
 ## [1.1.1] - 2026-10-17
 
 ### Added

@@ -21,11 +21,14 @@ use nanomgg_git_engine::version::{MIN_GIT, MIN_GIT_LFS, parse_git_version, parse
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, Manager};
+use tauri_specta::Event;
 
 use crate::accounts::storage_err;
 use crate::error::{AppError, AppResult};
 use crate::import::KEY_IMPORT_DONE;
 use crate::state::AppState;
+
+mod lfs_release;
 
 /// Setting: [`SetupProgress`].
 pub const KEY_SETUP: &str = "onboarding.setup";
@@ -101,6 +104,9 @@ pub enum SetupPackageManager {
     Winget,
     Brew,
     XcodeSelect,
+    /// The official release archive from GitHub, unpacked by the app (git-lfs on macOS when
+    /// Homebrew cannot install it: Intel Macs, or no Homebrew).
+    GithubRelease,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -162,6 +168,29 @@ pub struct SetupInstallResult {
     pub exit_code: Option<i32>,
     /// Cleaned, shortened output (progress bars dropped).
     pub output: String,
+}
+
+/// What an install is doing now, read from the installer's output.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum SetupInstallPhase {
+    Preparing,
+    Downloading,
+    Verifying,
+    Installing,
+    Finishing,
+}
+
+/// Live progress of `setup_install` (event `setup-install-progress`).
+#[derive(Debug, Clone, PartialEq, Serialize, Type, tauri_specta::Event)]
+#[serde(rename_all = "camelCase")]
+pub struct SetupInstallProgress {
+    pub tool: SetupToolId,
+    pub phase: SetupInstallPhase,
+    /// Of the current phase (a download), when the installer prints one.
+    pub percent: Option<u8>,
+    /// Last few readable output lines, oldest first.
+    pub recent: Vec<String>,
 }
 
 // ----- environment ---------------------------------------------------------------------------
@@ -236,6 +265,8 @@ impl ProbeEnv {
             ]
             .into_iter()
             .map(PathBuf::from)
+            // Where the app puts git-lfs when `/usr/local/bin` is not writable.
+            .chain(var("HOME").map(|h| h.join(".local").join("bin")))
             .collect(),
         }
     }
@@ -378,9 +409,44 @@ fn kill_tree(child: &mut std::process::Child) {
 /// killed). Pipes are drained on threads; a grandchild still holding them does not block the
 /// result.
 pub(crate) fn run_cancellable(
+    cmd: Command,
+    cancel: &AtomicBool,
+    timeout: Duration,
+) -> std::io::Result<RunOutput> {
+    run_streaming(cmd, cancel, timeout, &mut |_| {})
+}
+
+/// Splits a pipe's bytes into lines as they arrive; `\r` ends a line too, so a progress bar
+/// redrawn in place reports each state.
+#[derive(Default)]
+struct LineSplitter(Vec<u8>);
+
+impl LineSplitter {
+    fn push(&mut self, bytes: &[u8], on_line: &mut dyn FnMut(&str)) {
+        for &b in bytes {
+            if b == b'\n' || b == b'\r' {
+                self.flush(on_line);
+            } else {
+                self.0.push(b);
+            }
+        }
+    }
+
+    fn flush(&mut self, on_line: &mut dyn FnMut(&str)) {
+        if !self.0.is_empty() {
+            on_line(&String::from_utf8_lossy(&self.0));
+            self.0.clear();
+        }
+    }
+}
+
+/// [`run_cancellable`] that also hands every output line (stdout or stderr) to `on_line` while
+/// the process runs.
+pub(crate) fn run_streaming(
     mut cmd: Command,
     cancel: &AtomicBool,
     timeout: Duration,
+    on_line: &mut dyn FnMut(&str),
 ) -> std::io::Result<RunOutput> {
     #[cfg(unix)]
     {
@@ -388,7 +454,9 @@ pub(crate) fn run_cancellable(
         cmd.process_group(0);
     }
     let mut child = cmd.spawn()?;
-    let (tx, rx) = mpsc::channel::<(bool, Vec<u8>)>();
+    // `(is_err, Some(chunk))` while reading, `(is_err, None)` at the end of the pipe.
+    let (tx, rx) = mpsc::channel::<(bool, Option<Vec<u8>>)>();
+    let mut open = 0;
     for (is_err, pipe) in [
         (
             false,
@@ -406,18 +474,43 @@ pub(crate) fn run_cancellable(
         ),
     ] {
         if let Some(mut pipe) = pipe {
+            open += 1;
             let tx = tx.clone();
             std::thread::spawn(move || {
-                let mut buf = Vec::new();
-                let _ = pipe.read_to_end(&mut buf);
-                let _ = tx.send((is_err, buf));
+                let mut buf = [0u8; 8192];
+                loop {
+                    match pipe.read(&mut buf) {
+                        Ok(0) | Err(_) => break,
+                        Ok(n) => {
+                            if tx.send((is_err, Some(buf[..n].to_vec()))).is_err() {
+                                return;
+                            }
+                        }
+                    }
+                }
+                let _ = tx.send((is_err, None));
             });
         }
     }
     drop(tx);
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    let mut split = [LineSplitter::default(), LineSplitter::default()];
+    let mut take = |msg: (bool, Option<Vec<u8>>), open: &mut usize| match msg {
+        (is_err, Some(chunk)) => {
+            split[usize::from(is_err)].push(&chunk, on_line);
+            (if is_err { &mut err } else { &mut out }).extend_from_slice(&chunk);
+        }
+        (is_err, None) => {
+            split[usize::from(is_err)].flush(on_line);
+            *open -= 1;
+        }
+    };
     let start = Instant::now();
     let (mut cancelled, mut timed_out) = (false, false);
     let status = loop {
+        while let Ok(msg) = rx.try_recv() {
+            take(msg, &mut open);
+        }
         if let Some(status) = child.try_wait()? {
             break Some(status);
         }
@@ -432,13 +525,11 @@ pub(crate) fn run_cancellable(
         }
         std::thread::sleep(Duration::from_millis(50));
     };
-    let (mut out, mut err) = (Vec::new(), Vec::new());
     let deadline = Instant::now() + Duration::from_secs(2);
-    for _ in 0..2 {
+    while open > 0 {
         let left = deadline.saturating_duration_since(Instant::now());
         match rx.recv_timeout(left) {
-            Ok((false, b)) => out = b,
-            Ok((true, b)) => err = b,
+            Ok(msg) => take(msg, &mut open),
             Err(_) => break,
         }
     }
@@ -538,6 +629,17 @@ pub(crate) fn download_url(tool: SetupToolId, os: TargetOs) -> &'static str {
 pub(crate) struct Managers {
     pub winget: Option<PathBuf>,
     pub brew: Option<PathBuf>,
+    /// An Intel Mac: Homebrew no longer has git-lfs bottles for it and building from source
+    /// fails, so git-lfs comes from the official release instead.
+    pub mac_intel: bool,
+}
+
+/// Apple silicon answers `hw.optional.arm64: 1`, also when this process runs under Rosetta.
+fn is_mac_intel() -> bool {
+    !command(Path::new("/usr/sbin/sysctl"))
+        .args(["-n", "hw.optional.arm64"])
+        .output()
+        .is_ok_and(|o| String::from_utf8_lossy(&o.stdout).trim() == "1")
 }
 
 impl Managers {
@@ -553,10 +655,12 @@ impl Managers {
                     find_in(&dir, "winget", env)
                 }),
                 brew: None,
+                mac_intel: false,
             },
             TargetOs::Macos => Self {
                 winget: None,
                 brew: locate(SetupToolId::Git, "brew", env).map(|(p, _)| p),
+                mac_intel: is_mac_intel(),
             },
             TargetOs::Linux => Self::default(),
         }
@@ -594,6 +698,9 @@ impl InstallPlan {
     }
 
     pub(crate) fn display(&self) -> String {
+        if self.manager == SetupPackageManager::GithubRelease {
+            return format!("download {}", lfs_release::RELEASES_PAGE);
+        }
         let name = self
             .program
             .file_stem()
@@ -638,6 +745,13 @@ pub(crate) fn install_plan(tool: SetupToolId, os: TargetOs, m: &Managers) -> Opt
                         manager: SetupPackageManager::XcodeSelect,
                         program: PathBuf::from("/usr/bin/xcode-select"),
                         args: vec!["--install"],
+                    });
+                }
+                SetupToolId::GitLfs if m.mac_intel || m.brew.is_none() => {
+                    return Some(InstallPlan {
+                        manager: SetupPackageManager::GithubRelease,
+                        program: PathBuf::new(),
+                        args: vec![],
                     });
                 }
                 SetupToolId::GitLfs => "git-lfs",
@@ -964,11 +1078,177 @@ pub(crate) fn clean_output(raw: &str) -> String {
     nanomgg_logging::redact(&lines[start..].join("\n")).into_owned()
 }
 
+/// Readable output lines kept in [`SetupInstallProgress::recent`].
+const RECENT_LINES: usize = 5;
+/// Progress-bar redraws are reported at most this often.
+const PROGRESS_EVERY: Duration = Duration::from_millis(150);
+
+/// The number right before a `%` (`######## 45.0%`, `██▒▒  45%`).
+pub(crate) fn percent_in(line: &str) -> Option<u8> {
+    let at = line.rfind('%')?;
+    let head = &line[..at];
+    let start = head
+        .rfind(|c: char| !(c.is_ascii_digit() || c == '.'))
+        .map_or(0, |i| i + 1);
+    let v: f32 = head[start..].parse().ok()?;
+    (0.0..=100.0).contains(&v).then(|| v as u8)
+}
+
+fn bytes_of(num: &str, unit: &str) -> Option<f64> {
+    let n: f64 = num.parse().ok()?;
+    let k = match unit.to_ascii_uppercase().as_str() {
+        "B" => 1.0,
+        "KB" | "KIB" => 1024.0,
+        "MB" | "MIB" => 1024.0 * 1024.0,
+        "GB" | "GIB" => 1024.0 * 1024.0 * 1024.0,
+        _ => return None,
+    };
+    Some(n * k)
+}
+
+/// `done / total` sizes as a percent (winget: `██████▒▒▒▒  10.0 MB / 60.0 MB`).
+pub(crate) fn sizes_percent(line: &str) -> Option<u8> {
+    let (left, right) = line.split_once(" / ")?;
+    let mut l = left.split_whitespace().rev();
+    let (lu, ln) = (l.next()?, l.next()?);
+    let mut r = right.split_whitespace();
+    let (rn, ru) = (r.next()?, r.next()?);
+    let (done, total) = (bytes_of(ln, lu)?, bytes_of(rn, ru)?);
+    (total > 0.0 && done <= total).then(|| (done * 100.0 / total) as u8)
+}
+
+/// The phase a winget / Homebrew output line announces.
+pub(crate) fn phase_of(line: &str) -> Option<SetupInstallPhase> {
+    use SetupInstallPhase as P;
+    let l = line.to_ascii_lowercase();
+    let has = |needles: &[&str]| needles.iter().any(|n| l.contains(n));
+    if has(&[
+        "successfully installed",
+        "🍺",
+        "==> summary",
+        "==> caveats",
+        "linking ",
+    ]) {
+        Some(P::Finishing)
+    } else if has(&["verif", "checksum"]) {
+        Some(P::Verifying)
+    } else if has(&[
+        "pouring",
+        "installing",
+        "starting package install",
+        "extracting",
+    ]) {
+        Some(P::Installing)
+    } else if has(&["downloading", "fetching", "download"]) {
+        Some(P::Downloading)
+    } else {
+        None
+    }
+}
+
+/// Follows an installer's output and turns it into [`SetupInstallProgress`] events.
+pub(crate) struct ProgressTracker {
+    tool: SetupToolId,
+    phase: SetupInstallPhase,
+    percent: Option<u8>,
+    recent: std::collections::VecDeque<String>,
+    last_emit: Option<Instant>,
+}
+
+impl ProgressTracker {
+    pub(crate) fn new(tool: SetupToolId) -> Self {
+        Self {
+            tool,
+            phase: SetupInstallPhase::Preparing,
+            percent: None,
+            recent: Default::default(),
+            last_emit: None,
+        }
+    }
+
+    pub(crate) fn snapshot(&self) -> SetupInstallProgress {
+        SetupInstallProgress {
+            tool: self.tool,
+            phase: self.phase,
+            percent: self.percent,
+            recent: self.recent.iter().cloned().collect(),
+        }
+    }
+
+    /// Moves to `phase` (a new phase starts without a percent).
+    pub(crate) fn set_phase(&mut self, phase: SetupInstallPhase) {
+        if phase != self.phase {
+            self.phase = phase;
+            self.percent = None;
+        }
+    }
+
+    pub(crate) fn set_percent(&mut self, percent: Option<u8>) {
+        self.percent = percent;
+    }
+
+    pub(crate) fn note(&mut self, line: &str) {
+        let line = nanomgg_logging::redact(line.trim()).into_owned();
+        if self.recent.back() != Some(&line) {
+            if self.recent.len() == RECENT_LINES {
+                self.recent.pop_front();
+            }
+            self.recent.push_back(line);
+        }
+    }
+
+    /// Reads one output line; returns whether it is worth an event now.
+    pub(crate) fn feed(&mut self, line: &str) -> bool {
+        let t = line.trim();
+        if t.is_empty() {
+            return false;
+        }
+        let pct = percent_in(t).or_else(|| sizes_percent(t));
+        // A redrawn bar (`#####  45.0%`) has no words; it only moves the percent.
+        let bar_only = pct.is_some()
+            && !t
+                .split_whitespace()
+                .any(|w| w.chars().filter(|c| c.is_alphabetic()).count() >= 4);
+        if bar_only {
+            if self.phase == SetupInstallPhase::Preparing {
+                self.set_phase(SetupInstallPhase::Downloading);
+            }
+            self.percent = pct;
+            return self.due();
+        }
+        if t.chars()
+            .all(|c| matches!(c, '-' | '\\' | '|' | '/' | '█' | '▒' | '#' | '=' | ' '))
+        {
+            return false;
+        }
+        if let Some(phase) = phase_of(t) {
+            self.set_phase(phase);
+        }
+        self.note(t);
+        true
+    }
+
+    pub(crate) fn percent(&self) -> Option<u8> {
+        self.percent
+    }
+
+    /// A progress-only change may be reported (not too soon after the last event).
+    pub(crate) fn due(&self) -> bool {
+        self.last_emit
+            .is_none_or(|at| at.elapsed() >= PROGRESS_EVERY)
+    }
+
+    pub(crate) fn emitted(&mut self) {
+        self.last_emit = Some(Instant::now());
+    }
+}
+
 pub(crate) fn run_install(
     tool: SetupToolId,
     plan: &InstallPlan,
     cancel: &AtomicBool,
     timeout: Duration,
+    emit: &mut dyn FnMut(SetupInstallProgress),
 ) -> SetupInstallResult {
     let cmd = plan.command();
     let result = |outcome, exit_code, output: String| SetupInstallResult {
@@ -979,7 +1259,17 @@ pub(crate) fn run_install(
         exit_code,
         output,
     };
-    match run_cancellable(cmd, cancel, timeout) {
+    let mut tracker = ProgressTracker::new(tool);
+    tracker.note(&plan.display());
+    emit(tracker.snapshot());
+    tracker.emitted();
+    let mut on_line = |line: &str| {
+        if tracker.feed(line) {
+            emit(tracker.snapshot());
+            tracker.emitted();
+        }
+    };
+    match run_streaming(cmd, cancel, timeout, &mut on_line) {
         Err(e) => result(SetupInstallOutcome::ManagerMissing, None, e.to_string()),
         Ok(out) => {
             let output = clean_output(&out.text);
@@ -1025,25 +1315,32 @@ impl Drop for InstallSlot {
     }
 }
 
+fn manager_missing(tool: SetupToolId, os: TargetOs) -> SetupInstallResult {
+    SetupInstallResult {
+        tool,
+        outcome: SetupInstallOutcome::ManagerMissing,
+        manager: package_manager(os),
+        command: None,
+        exit_code: None,
+        output: String::new(),
+    }
+}
+
+/// Installs `tool` with a package-manager command (the GitHub release is installed by
+/// [`setup_install`] itself).
 pub(crate) fn install_impl(
     tool: SetupToolId,
     env: &ProbeEnv,
     timeout: Duration,
+    emit: &mut dyn FnMut(SetupInstallProgress),
 ) -> AppResult<SetupInstallResult> {
     let managers = Managers::detect(env);
     let Some(plan) = install_plan(tool, env.os, &managers) else {
-        return Ok(SetupInstallResult {
-            tool,
-            outcome: SetupInstallOutcome::ManagerMissing,
-            manager: package_manager(env.os),
-            command: None,
-            exit_code: None,
-            output: String::new(),
-        });
+        return Ok(manager_missing(tool, env.os));
     };
     let (_slot, cancel) = InstallSlot::take()?;
     tracing::info!(?tool, command = %plan.display(), "setup install started");
-    Ok(run_install(tool, &plan, &cancel, timeout))
+    Ok(run_install(tool, &plan, &cancel, timeout, emit))
 }
 
 fn cancel_install() -> bool {
@@ -1125,15 +1422,41 @@ pub async fn setup_tools() -> AppResult<SetupToolsReport> {
     .map_err(|e| AppError::Internal(e.to_string()))
 }
 
-/// Installs `tool` with the whitelisted package-manager command of this OS.
+/// Installs `tool` with the whitelisted package-manager command of this OS (or, for git-lfs on
+/// an Intel Mac / a Mac without Homebrew, the official release). Progress arrives as
+/// [`SetupInstallProgress`].
 #[tauri::command]
 #[specta::specta]
-pub async fn setup_install(tool: SetupToolId) -> AppResult<SetupInstallResult> {
-    tauri::async_runtime::spawn_blocking(move || {
-        install_impl(tool, &ProbeEnv::current(), INSTALL_TIMEOUT)
+pub async fn setup_install(app: AppHandle, tool: SetupToolId) -> AppResult<SetupInstallResult> {
+    let handle = app.clone();
+    let emit = move |p: SetupInstallProgress| {
+        if let Err(e) = p.emit(&handle) {
+            tracing::warn!(error = %e, "failed to emit setup install progress");
+        }
+    };
+    let (env, managers) = tauri::async_runtime::spawn_blocking(|| {
+        let env = ProbeEnv::current();
+        let managers = Managers::detect(&env);
+        (env, managers)
     })
     .await
-    .map_err(|e| AppError::Internal(e.to_string()))?
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+    match install_plan(tool, env.os, &managers) {
+        Some(plan) if plan.manager == SetupPackageManager::GithubRelease => {
+            let (_slot, cancel) = InstallSlot::take()?;
+            tracing::info!(?tool, "setup install started (GitHub release)");
+            let http = app.state::<crate::auth::AuthRuntime>().http.clone();
+            let mut emit = emit;
+            Ok(lfs_release::install(&http, managers.mac_intel, &cancel, &mut emit).await)
+        }
+        Some(_) => tauri::async_runtime::spawn_blocking(move || {
+            let mut emit = emit;
+            install_impl(tool, &env, INSTALL_TIMEOUT, &mut emit)
+        })
+        .await
+        .map_err(|e| AppError::Internal(e.to_string()))?,
+        None => Ok(manager_missing(tool, env.os)),
+    }
 }
 
 /// Stops the running install, if any.
@@ -1282,7 +1605,7 @@ mod tests {
     fn install_commands_are_a_fixed_whitelist() {
         let winget = Managers {
             winget: Some(PathBuf::from("C:/wa/winget.exe")),
-            brew: None,
+            ..Default::default()
         };
         let plan = install_plan(SetupToolId::Git, TargetOs::Windows, &winget).unwrap();
         assert_eq!(plan.manager, SetupPackageManager::Winget);
@@ -1320,8 +1643,8 @@ mod tests {
         assert!(install_plan(SetupToolId::Git, TargetOs::Windows, &Managers::default()).is_none());
 
         let brew = Managers {
-            winget: None,
             brew: Some(PathBuf::from("/opt/homebrew/bin/brew")),
+            ..Default::default()
         };
         let git = install_plan(SetupToolId::Git, TargetOs::Macos, &Managers::default()).unwrap();
         assert_eq!(git.manager, SetupPackageManager::XcodeSelect);
@@ -1333,7 +1656,23 @@ mod tests {
         let env: Vec<_> = cmd.get_envs().collect();
         assert!(env.contains(&("HOMEBREW_NO_AUTO_UPDATE".as_ref(), Some("1".as_ref()))));
         assert!(env.contains(&("HOMEBREW_NO_INSTALL_CLEANUP".as_ref(), Some("1".as_ref()))));
-        assert!(install_plan(SetupToolId::GitLfs, TargetOs::Macos, &Managers::default()).is_none());
+        // Intel Mac, or no Homebrew: git-lfs comes from the official release instead.
+        for m in [
+            Managers {
+                mac_intel: true,
+                ..brew.clone()
+            },
+            Managers::default(),
+        ] {
+            let plan = install_plan(SetupToolId::GitLfs, TargetOs::Macos, &m).unwrap();
+            assert_eq!(plan.manager, SetupPackageManager::GithubRelease);
+            assert!(
+                plan.display()
+                    .contains("github.com/git-lfs/git-lfs/releases")
+            );
+        }
+        // Other tools still need Homebrew.
+        assert!(install_plan(SetupToolId::Gh, TargetOs::Macos, &Managers::default()).is_none());
         for tool in [SetupToolId::Git, SetupToolId::GitLfs, SetupToolId::Gh] {
             assert!(install_plan(tool, TargetOs::Linux, &brew).is_none());
         }
@@ -1622,6 +1961,7 @@ mod tests {
             &plan,
             &AtomicBool::new(false),
             Duration::from_secs(30),
+            &mut |_| {},
         );
         assert_eq!(r.outcome, SetupInstallOutcome::UserCancelled);
         assert_eq!(r.exit_code, Some(7));
@@ -1662,7 +2002,13 @@ mod tests {
             c2.store(true, Ordering::Relaxed);
         });
         let start = Instant::now();
-        let r = run_install(SetupToolId::GitLfs, &plan, &cancel, Duration::from_secs(60));
+        let r = run_install(
+            SetupToolId::GitLfs,
+            &plan,
+            &cancel,
+            Duration::from_secs(60),
+            &mut |_| {},
+        );
         assert_eq!(r.outcome, SetupInstallOutcome::Cancelled);
         assert_eq!(r.exit_code, None);
         assert!(
@@ -1676,8 +2022,111 @@ mod tests {
             &plan,
             &AtomicBool::new(false),
             Duration::from_millis(300),
+            &mut |_| {},
         );
         assert_eq!(r.outcome, SetupInstallOutcome::TimedOut);
+    }
+
+    #[test]
+    fn reads_percent_and_phase_from_installer_output() {
+        use SetupInstallPhase as P;
+        assert_eq!(
+            percent_in("######################           45.0%"),
+            Some(45)
+        );
+        assert_eq!(percent_in("  ██████▒▒▒▒  100%"), Some(100));
+        assert_eq!(percent_in("no percent here"), None);
+        assert_eq!(percent_in("150%"), None);
+        assert_eq!(sizes_percent("  ██████▒▒▒▒  15.0 MB / 60.0 MB"), Some(25));
+        assert_eq!(sizes_percent("  ███  512 KB / 1.00 MB"), Some(50));
+        assert_eq!(sizes_percent("a / b"), None);
+        // winget
+        assert_eq!(
+            phase_of("Downloading https://github.com/git.exe"),
+            Some(P::Downloading)
+        );
+        assert_eq!(
+            phase_of("Successfully verified installer hash"),
+            Some(P::Verifying)
+        );
+        assert_eq!(phase_of("Starting package install..."), Some(P::Installing));
+        assert_eq!(phase_of("Successfully installed"), Some(P::Finishing));
+        // Homebrew
+        assert_eq!(
+            phase_of("==> Fetching downloads for: git-lfs"),
+            Some(P::Downloading)
+        );
+        assert_eq!(
+            phase_of("==> Pouring git-lfs--3.7.1.bottle.tar.gz"),
+            Some(P::Installing)
+        );
+        assert_eq!(
+            phase_of("🍺  /usr/local/Cellar/git-lfs/3.7.1: 82 files"),
+            Some(P::Finishing)
+        );
+        assert_eq!(phase_of("Found Git [Git.Git] Version 2.47.0"), None);
+    }
+
+    #[test]
+    fn tracker_follows_the_phases_and_keeps_recent_lines() {
+        let mut t = ProgressTracker::new(SetupToolId::Git);
+        assert!(!t.feed("   "));
+        assert!(!t.feed("  -  "));
+        assert!(t.feed("Found Git [Git.Git] Version 2.47.0"));
+        assert!(t.feed("Downloading https://github.com/git.exe"));
+        assert_eq!(t.snapshot().phase, SetupInstallPhase::Downloading);
+        // A redrawn bar only moves the percent and is not kept as a line.
+        assert!(t.feed("  ██████▒▒▒▒  30.0 MB / 60.0 MB"));
+        t.emitted();
+        assert!(!t.feed("  ███████▒▒▒  35.0 MB / 60.0 MB"), "throttled");
+        assert_eq!(t.snapshot().percent, Some(58));
+        assert!(t.feed("Successfully verified installer hash"));
+        let s = t.snapshot();
+        assert_eq!((s.phase, s.percent), (SetupInstallPhase::Verifying, None));
+        for i in 0..10 {
+            t.feed(&format!("line {i}"));
+        }
+        let s = t.snapshot();
+        assert_eq!(s.recent.len(), RECENT_LINES);
+        assert_eq!(s.recent.last().map(String::as_str), Some("line 9"));
+    }
+
+    #[test]
+    fn streams_output_lines_while_the_installer_runs() {
+        let tmp = tempfile::tempdir().unwrap();
+        let p = fake(
+            tmp.path(),
+            "winget",
+            "Downloading https://example.test/x.exe\nSuccessfully verified installer hash\nSuccessfully installed",
+            false,
+            0,
+        );
+        let plan = InstallPlan {
+            manager: SetupPackageManager::Winget,
+            program: p,
+            args: vec![],
+        };
+        let mut seen = Vec::new();
+        let r = run_install(
+            SetupToolId::Git,
+            &plan,
+            &AtomicBool::new(false),
+            Duration::from_secs(30),
+            &mut |e| seen.push(e),
+        );
+        assert_eq!(r.outcome, SetupInstallOutcome::Installed);
+        let phases: Vec<_> = seen.iter().map(|e| e.phase).collect();
+        assert_eq!(phases[0], SetupInstallPhase::Preparing);
+        assert!(phases.contains(&SetupInstallPhase::Downloading));
+        assert!(phases.contains(&SetupInstallPhase::Verifying));
+        assert_eq!(phases.last(), Some(&SetupInstallPhase::Finishing));
+        assert!(
+            seen.last()
+                .unwrap()
+                .recent
+                .iter()
+                .any(|l| l == "Successfully installed")
+        );
     }
 
     #[test]
@@ -1687,7 +2136,7 @@ mod tests {
             os: TargetOs::Linux,
             ..env(&[tmp.path()], os())
         };
-        let r = install_impl(SetupToolId::Git, &e, Duration::from_secs(1)).unwrap();
+        let r = install_impl(SetupToolId::Git, &e, Duration::from_secs(1), &mut |_| {}).unwrap();
         assert_eq!(r.outcome, SetupInstallOutcome::ManagerMissing);
         assert_eq!(r.command, None);
 

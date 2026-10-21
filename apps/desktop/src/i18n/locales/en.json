@@ -2276,8 +2276,9 @@
       "restart": "Restart the app",
       "managerMissing": {
         "winget": "winget (the Windows package installer) is not available, so \"Install it for me\" cannot be used. Install \"App Installer\" from the Microsoft Store, or use \"Open official download page\".",
-        "brew": "Homebrew is not installed, so only Git can be installed for you (via the Xcode Command Line Tools). For the others use \"Open official download page\" or install Homebrew from brew.sh.",
-        "xcodeSelect": "xcode-select was not found. Use \"Open official download page\"."
+        "brew": "Homebrew is not installed, so only Git and Git LFS can be installed for you. For the others use \"Open official download page\" or install Homebrew from brew.sh.",
+        "xcodeSelect": "xcode-select was not found. Use \"Open official download page\".",
+        "githubRelease": "GitHub could not be reached. Use \"Open official download page\"."
       }
     },
     "tool": {
@@ -2330,9 +2331,20 @@
     "manager": {
       "winget": "winget",
       "brew": "Homebrew",
-      "xcodeSelect": "Xcode Command Line Tools"
+      "xcodeSelect": "Xcode Command Line Tools",
+      "githubRelease": "the official GitHub release"
     },
     "install": {
+      "cancel": "Cancel install",
+      "cancelling": "Stopping the installation…",
+      "liveOutput": "Installer output",
+      "phase": {
+        "preparing": "Preparing…",
+        "downloading": "Downloading…",
+        "verifying": "Verifying the download…",
+        "installing": "Installing…",
+        "finishing": "Finishing up…"
+      },
       "running": "Installing… this can take a few minutes.",
       "runningWinget": "Installing with winget… If Windows asks for administrator permission (UAC), click \"Yes\". This can take a few minutes.",
       "details": "Technical details",

@@ -46,6 +46,8 @@ nanomgg-auth = { workspace = true, features = ["specta"] }
 nanomgg-providers = { workspace = true, features = ["specta"] }
 reqwest = { version = "0.13", default-features = false }
 tokio = { version = "1", features = ["time", "sync", "macros"] }
+# Checks the git-lfs release archive installed on Intel Macs (onboarding/lfs_release.rs).
+sha2 = "0.10"
 # First-run import wizard (PLAN §4.2): read-only scan of ~/.gitconfig, ~/.ssh/config, gh, glab.
 nanomgg-import = { path = "../../../crates/import", features = ["specta"] }
 # Phase 3B.3: log / cache / app-data folders (pointer file, safe moves).

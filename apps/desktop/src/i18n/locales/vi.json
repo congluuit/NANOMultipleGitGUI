@@ -2276,8 +2276,9 @@
       "restart": "Khởi động lại app",
       "managerMissing": {
         "winget": "Máy chưa có winget (trình cài đặt của Windows) nên nút \"Cài giúp tôi\" không dùng được. Hãy cài \"App Installer\" từ Microsoft Store, hoặc dùng nút \"Mở trang tải chính thức\".",
-        "brew": "Máy chưa có Homebrew nên chỉ cài giúp được Git (qua Xcode Command Line Tools). Công cụ khác hãy dùng nút \"Mở trang tải chính thức\" hoặc cài Homebrew từ brew.sh.",
-        "xcodeSelect": "Không tìm thấy xcode-select. Hãy dùng nút \"Mở trang tải chính thức\"."
+        "brew": "Máy chưa có Homebrew nên chỉ cài giúp được Git và Git LFS. Công cụ khác hãy dùng nút \"Mở trang tải chính thức\" hoặc cài Homebrew từ brew.sh.",
+        "xcodeSelect": "Không tìm thấy xcode-select. Hãy dùng nút \"Mở trang tải chính thức\".",
+        "githubRelease": "Không kết nối được GitHub. Hãy dùng nút \"Mở trang tải chính thức\"."
       }
     },
     "tool": {
@@ -2330,9 +2331,20 @@
     "manager": {
       "winget": "winget",
       "brew": "Homebrew",
-      "xcodeSelect": "Xcode Command Line Tools"
+      "xcodeSelect": "Xcode Command Line Tools",
+      "githubRelease": "bản phát hành chính thức trên GitHub"
     },
     "install": {
+      "cancel": "Hủy cài đặt",
+      "cancelling": "Đang dừng cài đặt…",
+      "liveOutput": "Nội dung trình cài đặt",
+      "phase": {
+        "preparing": "Đang chuẩn bị…",
+        "downloading": "Đang tải xuống…",
+        "verifying": "Đang kiểm tra bản tải…",
+        "installing": "Đang cài đặt…",
+        "finishing": "Đang hoàn tất…"
+      },
       "running": "Đang cài đặt… việc này có thể mất vài phút.",
       "runningWinget": "Đang cài bằng winget… Nếu Windows hỏi quyền quản trị (UAC), hãy bấm \"Có\". Việc này có thể mất vài phút.",
       "details": "Chi tiết kỹ thuật",
