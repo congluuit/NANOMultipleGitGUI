@@ -1,12 +1,13 @@
-import { Plus, UserRoundX, Wand2, X } from "lucide-react";
+import { LogIn, Plus, UserRoundX, Wand2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { AccountAvatar } from "../AccountAvatar";
 import { useAccountDialogs } from "../dialogs";
+import { useProviders } from "../queries";
 import { bindRepo } from "./actions";
 import { dismissBanner, useBannerDismissed } from "./bannerStore";
 import { useRepoAccount, useSortedAccounts } from "./hooks";
-import { accountLabel } from "./model";
+import { accountLabel, missingSignIn, signInName } from "./model";
 
 /** At most this many quick "bind to …" buttons. */
 const QUICK = 5;
@@ -21,6 +22,9 @@ export function UnboundBanner({ repoId }: { repoId: number }) {
   const accounts = useSortedAccounts();
   const dismissed = useBannerDismissed((s) => s.ids[repoId] === true);
   const openManager = useAccountDialogs((s) => s.openManager);
+  const providers = useProviders().data ?? [];
+  // Nobody is signed in to the remote's host: signing in there binds the repo by itself.
+  const signIn = missingSignIn(ctx.context, accounts, providers);
 
   // Wait for the context: no flash of the banner while it loads.
   if (dismissed || !ctx.context || ctx.account) return null;
@@ -35,6 +39,12 @@ export function UnboundBanner({ repoId }: { repoId: number }) {
       <span className="font-medium">{t("account.unbound")}</span>
       <span className="text-muted-foreground">{t("switcher.banner.readOnly")}</span>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+        {signIn && (
+          <Button size="xs" className="gap-1.5" onClick={() => openManager({ signIn })}>
+            <LogIn />
+            {t("switcher.signIn", { name: signInName(signIn, providers) })}
+          </Button>
+        )}
         {accounts.slice(0, QUICK).map((a) => (
           <Button
             key={a.id}
@@ -47,7 +57,7 @@ export function UnboundBanner({ repoId }: { repoId: number }) {
             {accountLabel(a)}
           </Button>
         ))}
-        {accounts.length === 0 && (
+        {accounts.length === 0 && !signIn && (
           <Button
             size="xs"
             variant="outline"

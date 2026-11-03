@@ -113,7 +113,7 @@ describe("ImportWizard", () => {
     expect(selection.markDone).toBe(true);
 
     expect(await screen.findByText(/Đã tạo 1 · đã có 0 · lỗi 1/)).toBeInTheDocument();
-    expect(screen.getByText(/nhập passphrase rồi thử lại/)).toBeInTheDocument();
+    expect(screen.getByText(/Nhập passphrase rồi thử lại/)).toBeInTheDocument();
     expect(screen.getByText(/an-dev @ github.com/)).toBeInTheDocument();
   });
 
@@ -144,13 +144,14 @@ describe("ImportWizard", () => {
     expect(importCli).toHaveBeenCalledWith([
       { tool: "gh", host: "github.com", username: "an-dev" },
     ]);
-    expect(await within(accounts).findByText(/Đã thêm — dùng được ngay/)).toBeInTheDocument();
+    expect(await within(accounts).findByText(/Đã thêm: dùng được ngay/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Thêm tài khoản/ }));
     expect(useAccountDialogs.getState().manager).toEqual({
       accountId: null,
       add: true,
       reauth: false,
+      signIn: null,
     });
   });
 

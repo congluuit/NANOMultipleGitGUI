@@ -6,6 +6,18 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@nanomgg/desktop", "dev", "--port", "1437", "--strictPort"],
       "port": 1437
+    },
+    {
+      "name": "desktop-web-node",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "apps/desktop/node_modules/vite/bin/vite.js",
+        "apps/desktop",
+        "--port",
+        "1437",
+        "--strictPort"
+      ],
+      "port": 1437
     }
   ]
 }

@@ -14,10 +14,20 @@ import {
   asAccountOf,
   settleOneShot,
   takeOneShot,
+  useRepoAccount,
   useRepoAccountSummary,
   useSortedAccounts,
   type OneShot,
 } from "@/features/accounts/switcher";
+import { trackingMismatch, type TrackingMismatch } from "@/features/accounts/switcher/model";
+import { TrackingDialog } from "@/features/accounts/switcher/TrackingDialog";
+import {
+  followAccountRemote,
+  isTrackingKept,
+  keepTracking,
+  remoteAccountName,
+  remoteWithHost,
+} from "@/features/accounts/switcher/tracking";
 import {
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -44,6 +54,11 @@ import { startTransfer, useRepoTransfer } from "./transfers";
 
 const PULL_MODES: PullMode[] = ["merge", "rebase", "fastForwardOnly"];
 
+/** Push/Pull about to go through a remote of another account than the repo's. */
+type TrackingAsk =
+  | { op: "push"; m: TrackingMismatch; force: boolean }
+  | { op: "pull"; m: TrackingMismatch; mode: PullMode };
+
 /** Fetch / Pull / Push / Branch buttons of the toolbar for the active repository. */
 export function RemoteButtons({ repoId }: { repoId: number }) {
   const { t } = useTranslation();
@@ -52,7 +67,9 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
   const openDialog = useRefDialog((s) => s.open);
   const usesLfs = useLfsStatus(repoId).data?.usesLfs ?? false;
   const account = useRepoAccountSummary(repoId);
+  const accountContext = useRepoAccount(repoId).context;
   const accounts = useSortedAccounts();
+  const [trackingAsk, setTrackingAsk] = useState<TrackingAsk | null>(null);
   const [confirmForce, setConfirmForce] = useState(false);
   // Push while the branch misses commits from its upstream: offer to pull first.
   const [behindConfirm, setBehindConfirm] = useState(false);
@@ -98,10 +115,24 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
           null,
           shot,
         ),
-      () => void pull("merge"),
+      () => startPull("merge"),
     ).then((s) => {
       if (s) useLastFetch.getState().mark(repoId);
     });
+  };
+
+  // The pill says one account but the branch pulls/pushes through a remote of another one:
+  // ask once (unless the user chose to keep it, or set a one-shot account for this action).
+  const askTracking = (op: "push" | "fetch") => {
+    const m = trackingMismatch(accountContext, refs);
+    if (!m || peekOneShot(repoId, op) || isTrackingKept(repoId, m)) return null;
+    return m;
+  };
+
+  const startPull = (mode: PullMode) => {
+    const m = askTracking("fetch");
+    if (m) setTrackingAsk({ op: "pull", m, mode });
+    else void pull(mode);
   };
 
   const pull = (mode: PullMode) => {
@@ -116,12 +147,33 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
     );
   };
 
+  // "origin (github.com)" and "As Pret": where a transfer goes and who it runs as.
+  const remoteCtxOf = (name: string | undefined) =>
+    name ? accountContext?.perRemote.find((r) => r.remote === name) : undefined;
+  const remoteText = (name: string) => {
+    const r = remoteCtxOf(name);
+    return r ? remoteWithHost(r) : name;
+  };
+  const viaText = (name: string | undefined) => {
+    const r = remoteCtxOf(name);
+    return r?.account
+      ? `
+${t("remote.viaAccount", { account: remoteAccountName(r) })}`
+      : "";
+  };
+
   const gitPush = (p: PushRequest, shot: OneShot | null, pulledFirst = false) => {
     // After a pull the counts in `refs` are stale: say it without a number then.
     const count = p.setUpstream || pulledFirst ? 0 : ahead;
     const target = `${p.remote}/${p.remoteBranch ?? p.branch}`;
     const shotAccount = shot ? accounts.find((a) => a.id === shot.accountId) : undefined;
-    const who = shotAccount ? accountLabel(shotAccount) : (account?.label ?? null);
+    // The account of the remote pushed to, which may differ from the repo's.
+    const remoteCtx = remoteCtxOf(p.remote);
+    const who = shotAccount
+      ? accountLabel(shotAccount)
+      : remoteCtx
+        ? remoteCtx.account && remoteAccountName(remoteCtx)
+        : (account?.label ?? null);
     return void startTransfer(
       repoId,
       "push",
@@ -134,7 +186,7 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
               message:
                 count > 0
                   ? t("remote.pushedCount", { count, branch: p.branch, target })
-                  : t("remote.pushed", { branch: p.branch, remote: p.remote }),
+                  : t("remote.pushed", { branch: p.branch, remote: remoteText(p.remote) }),
               hint:
                 [
                   who ? t("remote.pushedAs", { account: who }) : null,
@@ -156,10 +208,18 @@ export function RemoteButtons({ repoId }: { repoId: number }) {
    * LFS objects with progress (cancel/retry from the transfer queue), 3) `git push`, whose
    * pre-push hook then finds every object on the server already.
    */
-  const push = async (force: boolean, pulledFirst = false) => {
-    const p = refs ? pushPlan(refs, force) : null;
+  const push = async (force: boolean, pulledFirst = false, planned?: PushRequest) => {
+    const p = planned ?? (refs ? pushPlan(refs, force) : null);
     if (!p) return;
-    if (!force && !pulledFirst && behind > 0) {
+    if (!planned && !pulledFirst) {
+      const m = askTracking("push");
+      if (m) {
+        setTrackingAsk({ op: "push", m, force });
+        return;
+      }
+    }
+    // Ahead/behind are those of the old upstream when the branch was just moved to another remote.
+    if (!force && !pulledFirst && !planned && behind > 0) {
       setBehindConfirm(true);
       return;
     }
@@ -232,15 +292,15 @@ ${checkedAt}`}
         label={t("toolbar.pull")}
         tooltip={
           behind > 0
-            ? `${t("remote.behindTip", { count: behind, upstream: current?.upstream ?? "" })}
+            ? `${t("remote.behindTip", { count: behind, upstream: current?.upstream ?? "" })}${viaText(plan?.remote)}
 ${checkedAt}`
-            : `${t("remote.pullTip")}
+            : `${t("remote.pullTip")}${viaText(plan?.remote)}
 ${checkedAt}`
         }
         badge={behind > 0 ? { text: `↓${behind}`, tone: ahead > 0 ? "warning" : "info" } : null}
         busy={running?.kind === "pull"}
         disabled={!hasRemote || busy || !!head?.detached}
-        onClick={() => void pull("merge")}
+        onClick={() => startPull("merge")}
         menuLabel={t("remote.pullOptions")}
         menu={
           <>
@@ -249,7 +309,7 @@ ${checkedAt}`
               <DropdownMenuItem
                 key={m}
                 disabled={!hasRemote || busy || !!head?.detached}
-                onSelect={() => void pull(m)}
+                onSelect={() => startPull(m)}
               >
                 {t(`remote.pullMode.${m}`)}
               </DropdownMenuItem>
@@ -287,9 +347,10 @@ ${checkedAt}`
           label={plan?.setUpstream ? t("toolbar.publishBranch") : t("toolbar.push")}
           tooltip={
             plan
-              ? plan.setUpstream
-                ? t("remote.pushNewTip", { branch: plan.branch, remote: plan.remote })
-                : t("remote.pushTip", { branch: plan.branch, remote: plan.remote })
+              ? (plan.setUpstream
+                  ? t("remote.pushNewTip", { branch: plan.branch, remote: remoteText(plan.remote) })
+                  : t("remote.pushTip", { branch: plan.branch, remote: remoteText(plan.remote) })) +
+                viaText(plan.remote)
               : head?.unborn
                 ? t("remote.pushNoCommit")
                 : t("remote.pushUnavailable")
@@ -349,6 +410,35 @@ ${checkedAt}`
           void push(true);
         }}
         onCancel={() => setConfirmForce(false)}
+      />
+      <TrackingDialog
+        ask={trackingAsk}
+        onSwitch={() => {
+          const ask = trackingAsk;
+          setTrackingAsk(null);
+          if (!ask) return;
+          void followAccountRemote(repoId, ask.m, false).then((ok) => {
+            if (!ok) return;
+            if (ask.op === "pull") void pull(ask.mode);
+            else
+              void push(ask.force, false, {
+                remote: ask.m.target.remote,
+                branch: ask.m.branch,
+                remoteBranch: null,
+                setUpstream: true,
+                forceWithLease: ask.force,
+              });
+          });
+        }}
+        onKeep={() => {
+          const ask = trackingAsk;
+          setTrackingAsk(null);
+          if (!ask) return;
+          keepTracking(repoId, ask.m);
+          if (ask.op === "pull") void pull(ask.mode);
+          else void push(ask.force);
+        }}
+        onCancel={() => setTrackingAsk(null)}
       />
       <ConfirmDialog
         open={behindConfirm}

@@ -21,6 +21,7 @@ import {
   Tag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { RemoteAccountContext } from "@/ipc";
 import { useTranslation } from "react-i18next";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commits/RefMenuItems";
@@ -42,6 +43,8 @@ import { WorktreeList } from "@/features/linked-worktrees/WorktreeList";
 import { useSubmodules } from "@/features/submodules/queries";
 import { SubmoduleList } from "@/features/submodules/SubmoduleList";
 import { RemoteMenuItems } from "@/features/forks/RemoteMenuItems";
+import { AccountAvatar } from "@/features/accounts/AccountAvatar";
+import { accountLabel, useRepoAccount } from "@/features/accounts/switcher";
 import { openPublishDialog } from "@/features/publish/store";
 import { IssueSidebarList } from "@/features/issues/IssueSidebarList";
 import { PullSidebarList } from "@/features/pulls/PullSidebarList";
@@ -276,6 +279,8 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
   const { t } = useTranslation();
   const repo = useActiveRepo();
   const refs = useRepoRefs(repo?.id ?? null, !repo?.missing);
+  // Host and account of each remote, so "origin" says where it goes and who it runs as.
+  const perRemote = useRepoAccount(repo && !repo.missing ? repo.id : null).context?.perRemote;
   const submodules = useSubmodules(repo?.id ?? -1, !!repo && !repo.missing);
   const worktrees = useLinkedWorktrees(repo?.id ?? -1, !!repo && !repo.missing);
   const [typed, setFilter] = useState("");
@@ -411,6 +416,7 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
                       >
                         <Server className="size-3.5 shrink-0 text-muted-foreground" />
                         <span className="truncate">{r.name}</span>
+                        <RemoteWho remote={perRemote?.find((x) => x.remote === r.name)} />
                       </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="w-64">
@@ -620,5 +626,25 @@ function ViewSwitch() {
         </button>
       ))}
     </div>
+  );
+}
+
+/** `github.com ● Pret` after a remote's name: its server and the account it runs as. */
+function RemoteWho({ remote }: { remote: RemoteAccountContext | undefined }) {
+  const { t } = useTranslation();
+  if (!remote?.host) return null;
+  const host = remote.host.replace(/:\d+$/, "");
+  return (
+    <span
+      className="ml-auto flex min-w-0 items-center gap-1 font-normal text-muted-foreground"
+      title={
+        remote.account
+          ? t("remote.viaAccount", { account: accountLabel(remote.account) })
+          : t("switcher.unboundShort")
+      }
+    >
+      <span className="truncate text-[11px]">{host}</span>
+      {remote.account && <AccountAvatar account={remote.account} size={14} />}
+    </span>
   );
 }

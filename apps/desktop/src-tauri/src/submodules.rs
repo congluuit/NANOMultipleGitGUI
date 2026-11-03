@@ -20,7 +20,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use nanomgg_accounts::url::hostname_of;
-use nanomgg_accounts::{RemoteInfo, RemoteUrl};
+use nanomgg_accounts::{ContextSource, RemoteInfo, RemoteUrl};
 use nanomgg_git_engine::AccountContext;
 use nanomgg_git_engine::ops::OpError;
 use nanomgg_git_engine::progress::{CancelToken, Progress};
@@ -160,7 +160,9 @@ pub(crate) fn submodule_context(
             .account_host(account_id)
             .is_some_and(|h| hostname_of(&h) == hostname_of(&parsed.host))
     };
+    // A host-only match is the same guess as below and is reported as such.
     if let Some(r) = resolution.for_remote(Some("origin"))
+        && r.source != ContextSource::Host
         && (r.rule_id.is_some() || on_host(&r.account_id))
     {
         return Ok((

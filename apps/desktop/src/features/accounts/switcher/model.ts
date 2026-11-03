@@ -7,9 +7,12 @@ import type {
   ProviderKind,
   RemoteAccountContext,
   RepoAccountContext,
+  RepoRefs,
   Rule,
   Transport,
 } from "@/ipc";
+import { pushPlan } from "@/features/remote/plan";
+import type { SignInTarget } from "../dialogs";
 
 /** Fields of an account needed to name it. */
 export type NamedAccount = Pick<Account, "label" | "displayName" | "username">;
@@ -176,3 +179,91 @@ export function accountShortcutIndex(e: ShortcutKey, isMac: boolean): number | n
 /** Shortcut hint of the account at `index` (0-based), `null` past the ninth. */
 export const accountShortcutHint = (index: number, isMac: boolean) =>
   index < 9 ? `${isMac ? "⌘+⌥" : "Ctrl+Alt"}+${index + 1}` : null;
+
+/**
+ * The current branch pulls from / pushes to a remote that runs as another account than the
+ * repo's, while another remote runs as the repo's account: e.g. the pill says "Company GitLab"
+ * but `main` tracks `origin` on github.com, so Push would still go to GitHub as a GitHub account.
+ */
+export interface TrackingMismatch {
+  branch: string;
+  /** Where Pull/Push go now. */
+  current: RemoteAccountContext;
+  /** A remote that uses the repo's account. */
+  target: RemoteAccountContext;
+}
+
+export function trackingMismatch(
+  ctx: RepoAccountContext | null | undefined,
+  refs: RepoRefs | null | undefined,
+): TrackingMismatch | null {
+  const accountId = ctx?.account?.id;
+  const plan = refs ? pushPlan(refs) : null;
+  if (!ctx || !accountId || !plan) return null;
+  const current = ctx.perRemote.find((r) => r.remote === plan.remote);
+  if (!current || current.account?.id === accountId) return null;
+  const target = ctx.perRemote.find((r) => r.remote !== plan.remote && r.account?.id === accountId);
+  return target ? { branch: plan.branch, current, target } : null;
+}
+
+const hostOfUrl = (url: string) => {
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return "";
+  }
+};
+
+/**
+ * Provider to sign in to for a remote's host: a known instance, github.com, gitlab.com, or a
+ * self-hosted GitLab when the host name says so. `null` when it cannot be told.
+ */
+export function signInTargetFor(
+  remote: Pick<RemoteAccountContext, "host" | "transport">,
+  providers: readonly Provider[],
+): SignInTarget | null {
+  let host = remote.host?.toLowerCase() ?? "";
+  // An SSH port says nothing about the web address.
+  if (remote.transport === "ssh") host = host.replace(/:\d+$/, "");
+  if (!host) return null;
+  const known = providers.find((p) => hostOfUrl(p.baseUrl) === host);
+  if (known) return { kind: known.kind, baseUrl: known.baseUrl };
+  if (host === "github.com") return { kind: "github", baseUrl: "https://github.com" };
+  if (host === "gitlab.com") return { kind: "gitlab", baseUrl: "https://gitlab.com" };
+  if (/(^|[.-])gitlab([.-]|$)/.test(host)) {
+    return { kind: "gitlabSelfHosted", baseUrl: `https://${host}` };
+  }
+  return null;
+}
+
+/** "GitLab", or the name of the known instance at that address. */
+export function signInName(target: SignInTarget, providers: readonly Provider[]): string {
+  const known = providers.find((p) => p.kind === target.kind && p.baseUrl === target.baseUrl);
+  return known?.name || KIND_NAMES[target.kind];
+}
+
+/**
+ * First remote (primary first) that no account can serve because nobody is signed in to its
+ * host: what "Sign in to GitLab" should open. `null` when every remote has an account.
+ */
+export function missingSignIn(
+  ctx: RepoAccountContext | null | undefined,
+  accounts: readonly Account[],
+  providers: readonly Provider[],
+): SignInTarget | null {
+  if (!ctx) return null;
+  const primary = primaryRemoteContext(ctx.perRemote);
+  const ordered = primary ? [primary, ...ctx.perRemote.filter((r) => r !== primary)] : [];
+  for (const remote of ordered) {
+    if (remote.account) continue;
+    const target = signInTargetFor(remote, providers);
+    if (!target) continue;
+    const host = hostOfUrl(target.baseUrl);
+    const signedIn = accounts.some((a) => {
+      const p = providers.find((x) => x.id === a.providerId);
+      return p && hostOfUrl(p.baseUrl) === host;
+    });
+    if (!signedIn) return target;
+  }
+  return null;
+}

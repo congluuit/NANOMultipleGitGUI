@@ -296,7 +296,7 @@ function ScanStep({ scan }: { scan: UseQueryResult<ImportScan> }) {
             <li key={i} className="flex gap-1.5 text-warning">
               <CircleAlert className="mt-px size-3.5 shrink-0" />
               <span>
-                {t(`onboarding.warning.${w.kind}`)} —{" "}
+                {t(`onboarding.warning.${w.kind}`)}:{" "}
                 <span className="font-mono text-[11px] break-all">{sourceText(w.source)}</span>
               </span>
             </li>
@@ -464,7 +464,7 @@ function ChooseStep({
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-medium">
-                    {idn.name ?? "—"}{" "}
+                    {idn.name ?? "-"}{" "}
                     <span className="text-muted-foreground">
                       &lt;{idn.email ?? t("onboarding.noEmail")}&gt;
                     </span>

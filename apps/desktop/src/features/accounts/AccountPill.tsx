@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { Check, ChevronDown, Lock, Plus, Settings2, Unlink, X } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Check,
+  ChevronDown,
+  Lock,
+  Plus,
+  Settings2,
+  TriangleAlert,
+  Unlink,
+  X,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -17,6 +27,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRepoRefs } from "@/features/repos/queries";
 import type { Account, Identity, RemoteAccountContext } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { useActiveRepo } from "@/stores/workspace";
@@ -36,9 +47,11 @@ import {
   hasRepoBinding,
   hasSplitRemotes,
   identitiesOf,
+  trackingMismatch,
   type RepoAccount,
 } from "./switcher/model";
 import { clearOneShot, useOneShot } from "./switcher/oneShot";
+import { followAccountRemote, trackingVars } from "./switcher/tracking";
 
 type Mode = "repo" | "once";
 
@@ -207,6 +220,8 @@ export function AccountPill() {
   const locked = remember ?? current.source === "locked";
   const isMac = navigator.userAgent.includes("Mac");
   const shotAccount = oneShot ? accounts.find((a) => a.id === oneShot.accountId) : undefined;
+  const refs = useRepoRefs(repoId).data;
+  const mismatch = repoId === null ? null : trackingMismatch(current.context, refs);
 
   const choose = (accountId: string, identityId: string | null) => {
     if (repoId === null) return;
@@ -266,6 +281,26 @@ export function AccountPill() {
             </>
           )}
         </DropdownMenuLabel>
+        {repoId !== null && mismatch && (
+          <>
+            <p
+              data-testid="tracking-mismatch"
+              className="flex gap-1.5 px-2 pb-1 text-[11px] text-warning"
+            >
+              <TriangleAlert className="mt-px size-3.5 shrink-0" />
+              <span>{t("switcher.tracking.warn", trackingVars(mismatch))}</span>
+            </p>
+            <DropdownMenuItem
+              onSelect={() => void followAccountRemote(repoId, mismatch)}
+              className="text-xs"
+            >
+              <ArrowRightLeft />
+              <span className="min-w-0 flex-1 truncate">
+                {t("switcher.tracking.use", trackingVars(mismatch))}
+              </span>
+            </DropdownMenuItem>
+          </>
+        )}
         {repoId !== null && oneShot && (
           <DropdownMenuItem onSelect={() => clearOneShot(repoId)} className="text-xs">
             <X />

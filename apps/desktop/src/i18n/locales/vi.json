@@ -8,7 +8,7 @@
     "useForRepo": "Dùng cho repo này",
     "onlyThisAction": "Chỉ cho thao tác này",
     "manage": "Quản lý tài khoản…",
-    "unbound": "Repo này chưa gắn tài khoản — chọn tài khoản",
+    "unbound": "Repo này chưa gắn tài khoản. Chọn tài khoản",
     "commitAs": "Commit với tư cách"
   },
   "tabs": {
@@ -59,7 +59,7 @@
     "detached": "HEAD tách rời @ {{oid}}",
     "upstreamGone": "Nhánh upstream đã bị xóa trên remote",
     "tracking": "Theo dõi {{upstream}}",
-    "noRemotes": "Chưa có remote — project chỉ nằm trên máy này.",
+    "noRemotes": "Chưa có remote. Project chỉ nằm trên máy này.",
     "noTags": "Chưa có tag",
     "noStashes": "Chưa có stash",
     "comingSoon": "Sắp có ở bước sau",
@@ -112,8 +112,8 @@
     "submitAmend": "Sửa commit trước",
     "shortcut": "Ctrl+Enter",
     "nothingStaged": "Chưa có file nào được stage",
-    "hasConflicts": "Còn file xung đột — giải quyết và stage trước khi commit",
-    "noIdentity": "Chưa có user.name / user.email — git sẽ từ chối commit. Hãy gắn tài khoản cho repo này (bấm vào account pill) để dùng danh tính của tài khoản, hoặc cấu hình bằng git config.",
+    "hasConflicts": "Còn file xung đột. Giải quyết và stage trước khi commit",
+    "noIdentity": "Chưa có user.name / user.email. Git sẽ từ chối commit. Hãy gắn tài khoản cho repo này (bấm vào account pill) để dùng danh tính của tài khoản, hoặc cấu hình bằng git config.",
     "done": "Đã tạo commit {{hash}}: {{summary}}",
     "amended": "Đã sửa commit {{hash}}: {{summary}}",
     "submit_one": "Commit {{count}} file"
@@ -192,9 +192,9 @@
   },
   "tools": {
     "gitMissing": "Không tìm thấy Git. Hãy cài Git {{min}} trở lên (https://git-scm.com/downloads) rồi bấm Kiểm tra lại.",
-    "gitOld": "Git {{version}} quá cũ — cần {{min}} trở lên. Hãy cập nhật Git.",
-    "lfsMissing": "Chưa cài Git LFS — repo dùng LFS sẽ không tải được file lớn. Cài git-lfs {{min}} trở lên (https://git-lfs.com).",
-    "lfsOld": "Git LFS {{version}} quá cũ — cần {{min}} trở lên.",
+    "gitOld": "Git {{version}} quá cũ. Cần {{min}} trở lên. Hãy cập nhật Git.",
+    "lfsMissing": "Chưa cài Git LFS. Repo dùng LFS sẽ không tải được file lớn. Cài git-lfs {{min}} trở lên (https://git-lfs.com).",
+    "lfsOld": "Git LFS {{version}} quá cũ. Cần {{min}} trở lên.",
     "recheck": "Kiểm tra lại",
     "dismiss": "Ẩn"
   },
@@ -209,7 +209,7 @@
     "author": "Tác giả",
     "committer": "Người commit",
     "files": "{{count}} file thay đổi",
-    "comparedTo": "Merge commit — so với commit cha đầu tiên {{oid}}",
+    "comparedTo": "Merge commit: so với commit cha đầu tiên {{oid}}",
     "binary": "nhị phân",
     "renamedFrom": "đổi tên từ {{path}}",
     "noFiles": "Commit này không thay đổi file nào.",
@@ -237,14 +237,14 @@
     "copyPath": "Sao chép đường dẫn",
     "selected": "{{count}} file đã chọn",
     "more": "và {{count}} file khác",
-    "clean": "Không có thay đổi nào — working tree sạch.",
+    "clean": "Không có thay đổi nào. Working tree sạch.",
     "large": "Nặng",
-    "largeTitle": "File {{size}} — nên dùng Git LFS",
+    "largeTitle": "File {{size}}: nên dùng Git LFS",
     "discardTitle": "Hủy thay đổi?",
     "discardBody": "Thay đổi chưa stage của {{count}} file sẽ mất, file mới chưa theo dõi sẽ bị xóa. Không thể hoàn tác.",
     "discardConfirm": "Hủy thay đổi",
     "row": "WIP",
-    "rowTitle": "Thay đổi chưa commit — bấm để stage và commit",
+    "rowTitle": "Thay đổi chưa commit. Bấm để stage và commit",
     "stagedCount": "{{count}} đã stage",
     "conflictCount": "{{count}} xung đột",
     "kind": {
@@ -279,7 +279,7 @@
     "ignoreWs": "Bỏ qua khoảng trắng",
     "loading": "Đang đọc diff…",
     "error": "Không đọc được diff: {{message}}",
-    "binary": "File nhị phân — không hiển thị nội dung.",
+    "binary": "File nhị phân. Không hiển thị nội dung.",
     "tooLarge": "Diff quá lớn để hiển thị.",
     "noChanges": "Không còn thay đổi nào ở phía này.",
     "newFile": "File mới",
@@ -301,7 +301,7 @@
     "wholeFileOnly": "Thay đổi này chỉ stage được cả file (file mới, bị xóa, đổi tên hoặc nhị phân).",
     "discardLinesTitle": "Hủy các thay đổi đã chọn?",
     "discardLinesBody": "Các dòng đã chọn sẽ được khôi phục về bản trong index; thay đổi đó mất hẳn. Không thể hoàn tác.",
-    "truncated": "Diff dài — chỉ hiện {{count}} dòng đầu. Dùng chế độ Inline hoặc Song song để xem toàn bộ.",
+    "truncated": "Diff dài: chỉ hiện {{count}} dòng đầu. Dùng chế độ Inline hoặc Song song để xem toàn bộ.",
     "noNewline": "Không có xuống dòng ở cuối file",
     "linesSelected_one": "Đã chọn {{count}} dòng",
     "stageLines_one": "Stage {{count}} dòng",
@@ -321,9 +321,9 @@
     "revert": "Revert commit",
     "resetBranch": "Reset {{branch}} về đây",
     "resetHead": "Reset HEAD về đây",
-    "resetSoft": "Soft — giữ thay đổi ở trạng thái đã stage",
-    "resetMixed": "Mixed — giữ thay đổi, bỏ stage",
-    "resetHard": "Hard — xóa mọi thay đổi…",
+    "resetSoft": "Soft: giữ thay đổi ở trạng thái đã stage",
+    "resetMixed": "Mixed: giữ thay đổi, bỏ stage",
+    "resetHard": "Hard: xóa mọi thay đổi…",
     "amend": "Sửa commit này (amend)…",
     "checkout": "Checkout",
     "checkoutRemote": "Checkout thành nhánh local",
@@ -377,7 +377,7 @@
   },
   "ops": {
     "cancelled": "Đã hủy thao tác.",
-    "conflicts": "Dừng lại vì có xung đột ở {{count}} file — giải quyết, stage rồi bấm Tiếp tục (hoặc Hủy).",
+    "conflicts": "Dừng lại vì có xung đột ở {{count}} file. Giải quyết, stage rồi bấm Tiếp tục (hoặc Hủy).",
     "cherryPicked": "Đã cherry-pick {{oid}}.",
     "reverted": "Đã revert {{oid}}.",
     "resetDone": "Đã reset ({{mode}}) về {{oid}}.",
@@ -394,7 +394,7 @@
       "fastForward": "Đã fast-forward tới {{rev}}.",
       "merged": "Đã merge {{rev}}.",
       "rebased": "Đã rebase lên {{rev}}.",
-      "squashStaged": "Đã gộp thay đổi của {{rev}} vào vùng stage — hãy commit.",
+      "squashStaged": "Đã gộp thay đổi của {{rev}} vào vùng stage. Hãy commit.",
       "conflicts": "Merge {{rev}} bị xung đột."
     },
     "inProgress": "Đang {{op}} dở",
@@ -413,7 +413,7 @@
       "bisect": "bisect",
       "applyMailbox": "áp dụng patch"
     },
-    "conflicts_one": "Dừng lại vì có xung đột ở {{count}} file — giải quyết, stage rồi bấm Tiếp tục (hoặc Hủy).",
+    "conflicts_one": "Dừng lại vì có xung đột ở {{count}} file. Giải quyết, stage rồi bấm Tiếp tục (hoặc Hủy).",
     "conflictsLeft_one": "còn {{count}} file xung đột"
   },
   "failure": {
@@ -423,20 +423,20 @@
     "alreadyExists": "Tên này đã tồn tại",
     "currentBranch": "Không thể làm với nhánh đang checkout",
     "notFullyMerged": "Nhánh chưa được merge",
-    "localChanges": "Có thay đổi chưa commit sẽ bị ghi đè — commit hoặc stash trước",
+    "localChanges": "Có thay đổi chưa commit sẽ bị ghi đè. Commit hoặc stash trước",
     "untrackedFiles": "Có file chưa theo dõi sẽ bị ghi đè",
     "unmergedFiles": "Còn file xung đột chưa giải quyết",
     "operationInProgress": "Đang có thao tác dở (merge/rebase/cherry-pick)",
     "noOperation": "Không có thao tác nào đang dở",
     "nothingToCommit": "Không có gì để commit",
-    "nonFastForward": "Remote có commit mới hơn — hãy pull trước",
+    "nonFastForward": "Remote có commit mới hơn. Hãy pull trước",
     "staleLease": "Nhánh trên remote đã thay đổi kể từ lần fetch trước",
     "remoteRejected": "Remote từ chối",
     "authFailed": "Xác thực thất bại",
     "connectionFailed": "Không kết nối được tới remote",
     "noUpstream": "Nhánh chưa có upstream",
     "detachedHead": "Đang ở HEAD tách rời",
-    "permissionDenied": "Tài khoản này không có quyền với repo — hãy đổi tài khoản hoặc xin quyền truy cập",
+    "permissionDenied": "Tài khoản này không có quyền với repo. Hãy đổi tài khoản hoặc xin quyền truy cập",
     "workflowScope": "Tài khoản chưa được cấp quyền sửa GitHub Actions (scope workflow)",
     "protectedBranch": "Nhánh này được bảo vệ trên server",
     "emailPrivacy": "GitHub chặn push vì commit lộ email riêng tư của bạn",
@@ -481,15 +481,15 @@
     "error": "Không đọc được stash: {{message}}",
     "binary": "nhị phân",
     "popSingle": "Pop {{name}}: {{message}}\n{{meta}}\nBấm để lấy lại các thay đổi và xoá stash này khỏi danh sách.",
-    "popOtherBranch": "Stash duy nhất được tạo trên nhánh {{branch}} — bạn đang ở {{current}}.\nBấm để xem lại trước khi Pop. Bấm ▾ để Pop ngay: {{message}}",
-    "popMany": "Có {{count}} stash — bấm để chọn stash muốn lấy lại (▾ để Pop nhanh).",
+    "popOtherBranch": "Stash duy nhất được tạo trên nhánh {{branch}}. Bạn đang ở {{current}}.\nBấm để xem lại trước khi Pop. Bấm ▾ để Pop ngay: {{message}}",
+    "popMany": "Có {{count}} stash. Bấm để chọn stash muốn lấy lại (▾ để Pop nhanh).",
     "menuLabel": "Chọn stash để Pop",
-    "menuTitle": "Stash ({{count}}) — chọn để Pop",
+    "menuTitle": "Stash ({{count}}): chọn để Pop",
     "menuAll": "Xem tất cả stash ({{count}})…",
     "picker": {
       "title": "Chọn stash để lấy lại ({{count}})",
       "desc": "Pop = lấy lại thay đổi rồi xoá stash khỏi danh sách. Apply = lấy lại nhưng vẫn giữ stash để dùng lần nữa.",
-      "dirty": "Bạn đang có thay đổi chưa commit. Pop có thể bị từ chối nếu stash sửa cùng file — nên Commit hoặc Stash các thay đổi hiện tại trước.",
+      "dirty": "Bạn đang có thay đổi chưa commit. Pop có thể bị từ chối nếu stash sửa cùng file. Nên Commit hoặc Stash các thay đổi hiện tại trước.",
       "otherBranchWarn": "Stash này được tạo trên nhánh {{branch}}, còn bạn đang ở {{current}}. Pop sẽ áp các thay đổi đó vào {{current}}.",
       "thisBranch": "Được tạo trên nhánh hiện tại",
       "thisBranchShort": "{{branch}} (hiện tại)",
@@ -509,7 +509,7 @@
     "noPatterns": "Chưa track pattern nào",
     "lockable": "lockable",
     "declaredIn": "{{file}}, dòng {{line}}",
-    "nestedOnly": "Khai báo trong {{file}} — sửa trực tiếp file đó để bỏ track",
+    "nestedOnly": "Khai báo trong {{file}}. Sửa trực tiếp file đó để bỏ track",
     "track": "Track pattern…",
     "trackTitle": "Track bằng Git LFS",
     "trackDesc": "Thêm pattern vào .gitattributes ở thư mục gốc. File khớp sẽ được lưu bằng LFS từ lần stage tiếp theo.",
@@ -526,9 +526,9 @@
     "untracked": "Đã bỏ track {{pattern}}",
     "needsInstall": "Hook LFS chưa được cài cho repo này",
     "install": "Cài hook LFS cho repo này",
-    "installHint": "Chạy git lfs install --local — chỉ áp dụng cho repo này, không đổi cấu hình global",
+    "installHint": "Chạy git lfs install --local. Chỉ áp dụng cho repo này, không đổi cấu hình global",
     "installed": "Đã cài hook LFS cho repo này",
-    "missingTool": "Repo dùng LFS nhưng máy chưa có git-lfs — file LFS sẽ chỉ là pointer",
+    "missingTool": "Repo dùng LFS nhưng máy chưa có git-lfs. File LFS sẽ chỉ là pointer",
     "loading": "Đang đọc…",
     "error": "Không đọc được trạng thái LFS: {{message}}",
     "managerTitle": "Git LFS",
@@ -549,7 +549,7 @@
     "storage_one": "{{count}} object · {{size}}",
     "storage_other": "{{count}} object · {{size}}",
     "fetchAll": "Tải mọi object LFS (fetch --all)",
-    "fetchAllHint": "Lấy mọi phiên bản của mọi file LFS từ máy chủ — tốn nhiều dung lượng; hiếm khi cần.",
+    "fetchAllHint": "Lấy mọi phiên bản của mọi file LFS từ máy chủ. Tốn nhiều dung lượng; hiếm khi cần.",
     "pruneTitle": "Giải phóng ổ đĩa (prune)",
     "pruneHint": "Xóa các bản sao cũ của file LFS trên máy, chỉ những bản đã có trên máy chủ và không dùng trong bản checkout hiện tại. Có thể tải lại sau.",
     "verifyRemote": "Hỏi máy chủ trước xem từng object đã có trên đó chưa (chậm hơn, an toàn hơn)",
@@ -603,7 +603,7 @@
     "titleOver": "{{count}} file vượt ngưỡng {{size}}",
     "titleSuggest": "{{count}} file nên lưu bằng Git LFS",
     "desc": "File lớn commit thẳng vào git sẽ làm repo nặng mãi mãi. Track bằng LFS để git chỉ lưu một pointer nhỏ.",
-    "blockNote": "{{count}} file vượt giới hạn cứng {{size}} — push chắc chắn bị từ chối, nên không thể commit nguyên trạng.",
+    "blockNote": "{{count}} file vượt giới hạn cứng {{size}}. Push chắc chắn bị từ chối, nên không thể commit nguyên trạng.",
     "levelBlock": "Vượt giới hạn",
     "levelWarn": "Vượt ngưỡng",
     "levelSuggest": "Nên dùng LFS",
@@ -616,7 +616,7 @@
     "byExtension": "Theo đuôi file",
     "byPath": "Theo đường dẫn",
     "willAdd": "Sẽ thêm vào .gitattributes: {{patterns}}",
-    "restageOnly": "Không cần thêm pattern — chỉ stage lại file đã track LFS",
+    "restageOnly": "Không cần thêm pattern. Chỉ stage lại file đã track LFS",
     "track": "Track bằng LFS (khuyến nghị)",
     "gitignore": "Thêm vào .gitignore",
     "comingSoon": "Sắp có ở bước sau",
@@ -633,8 +633,8 @@
       "removed": "− {{name}} (đã xóa trên remote)",
       "behind": "Nhánh {{branch}} của bạn đang chậm {{count}} commit",
       "behind_one": "Nhánh {{branch}} của bạn đang chậm {{count}} commit",
-      "behindHead": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit — Pull để lấy về",
-      "behindHead_one": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit — Pull để lấy về",
+      "behindHead": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit. Pull để lấy về",
+      "behindHead_one": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit. Pull để lấy về",
       "more": "… và {{count}} mục khác",
       "pull": "Pull {{branch}}"
     },
@@ -662,7 +662,7 @@
       "fastForward": "Đã pull (fast-forward).",
       "merged": "Đã pull và tạo merge commit.",
       "rebased": "Đã pull và rebase commit local lên trên.",
-      "squashStaged": "Đã pull (squash) — thay đổi nằm trong vùng stage.",
+      "squashStaged": "Đã pull (squash). Thay đổi nằm trong vùng stage.",
       "conflicts": "Pull bị xung đột."
     },
     "pushTip": "Push {{branch}} lên {{remote}}",
@@ -682,19 +682,20 @@
     "notCheckedYet": "Chưa kiểm tra remote trong lần mở app này.",
     "pushedCount": "Đã push {{count}} commit của {{branch}} lên {{target}}.",
     "pushedCount_one": "Đã push 1 commit của {{branch}} lên {{target}}.",
+    "viaAccount": "Dùng tài khoản {{account}}",
     "pushedAs": "Gửi bằng tài khoản {{account}}.",
     "pushedHint": "Nếu dự án có CI, kết quả build / test sẽ hiện ở thanh trạng thái sau vài phút.",
-    "behindTip": "Pull — {{upstream}} có {{count}} commit mới bạn chưa có.",
-    "behindTip_one": "Pull — {{upstream}} có 1 commit mới bạn chưa có.",
+    "behindTip": "Pull: {{upstream}} có {{count}} commit mới bạn chưa có.",
+    "behindTip_one": "Pull: {{upstream}} có 1 commit mới bạn chưa có.",
     "behindTitle": "Cần pull trước: {{branch}} đang thiếu {{count}} commit",
     "behindTitle_one": "Cần pull trước: {{branch}} đang thiếu 1 commit",
-    "behindBody": "Có người đã push {{count}} commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
-    "behindBody_one": "Có người đã push 1 commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push — app có thể làm cả hai giúp bạn.",
+    "behindBody": "Có người đã push {{count}} commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push. App có thể làm cả hai giúp bạn.",
+    "behindBody_one": "Có người đã push 1 commit lên {{upstream}} mà máy bạn chưa có. Push bây giờ sẽ bị từ chối. Hãy pull về trước (merge) rồi mới push. App có thể làm cả hai giúp bạn.",
     "pullThenPush": "Pull rồi push",
     "publishTip": "Project chưa có trên máy chủ: tạo repo trên GitHub / GitLab bằng tài khoản của bạn rồi push lần đầu",
     "publishNew": "Tạo repo mới trên GitHub / GitLab…",
     "addRemoteUrl": "Thêm remote bằng URL…",
-    "pushNoCommit": "Chưa có commit nào để push — hãy commit trước",
+    "pushNoCommit": "Chưa có commit nào để push. Hãy commit trước",
     "publishBranchItem": "Publish {{branch}} lên {{remote}}"
   },
   "terminal": {
@@ -709,7 +710,7 @@
     "exitedUnknown": "Tiến trình đã thoát. Nhấn Enter để khởi động lại.",
     "openFailed": "Không mở được terminal: {{message}}",
     "account": "Lệnh git trong terminal này chạy bằng tài khoản này",
-    "noAccount": "Chưa gắn tài khoản — git dùng cấu hình global",
+    "noAccount": "Chưa gắn tài khoản. Git dùng cấu hình global",
     "copyPasteHint": "Ctrl+Shift+C / Ctrl+Shift+V để sao chép / dán"
   },
   "transfers": {
@@ -913,6 +914,7 @@
       "manual": "chọn thủ công",
       "clone": "từ lúc clone",
       "rule": "theo rule {{rule}}",
+      "host": "tài khoản duy nhất trên host này",
       "none": "chưa gắn"
     },
     "remember": "Ghi nhớ (khóa, ưu tiên hơn rule)",
@@ -926,6 +928,28 @@
     "clearRemote": "Bỏ gắn remote {{remote}}",
     "unbind": "Bỏ gắn",
     "add": "Thêm tài khoản…",
+    "signedIn": "Đã đăng nhập {{label}}",
+    "signedInHint": "Các repo trên máy chủ này sẽ tự dùng tài khoản vừa đăng nhập.",
+    "signIn": "Đăng nhập {{name}}",
+    "tracking": {
+      "warn": "Pull/Push của nhánh {{branch}} đang đi qua {{from}} bằng {{account}}, không phải {{targetAccount}}.",
+      "hint": "Nhánh {{branch}} vẫn Pull/Push qua {{from}} bằng {{account}}. Chuyển sang {{to}} để dùng {{targetAccount}}.",
+      "use": "Pull/Push qua {{target}} ({{targetAccount}})",
+      "done": "Nhánh {{branch}} giờ Pull/Push qua {{target}} bằng {{targetAccount}}",
+      "title": {
+        "push": "Push lên {{from}} bằng {{account}}?",
+        "pull": "Pull từ {{from}} bằng {{account}}?"
+      },
+      "body": "Bạn đã chọn {{targetAccount}} cho repo này, nhưng nhánh {{branch}} đang gắn với {{from}} nên thao tác sẽ chạy bằng {{account}}. Chọn {{to}} để dùng {{targetAccount}}, app sẽ nhớ lựa chọn cho các lần sau.",
+      "switch": {
+        "push": "Push lên {{target}}",
+        "pull": "Pull từ {{target}}"
+      },
+      "keep": {
+        "push": "Vẫn push lên {{remote}}",
+        "pull": "Vẫn pull từ {{remote}}"
+      }
+    },
     "op": {
       "commit": "commit",
       "push": "push",
@@ -946,8 +970,8 @@
     "commitAs": {
       "once": "chỉ lần commit này",
       "cancel": "Dùng lại tài khoản của repo",
-      "configDiffers": "git config của repo đang dùng {{email}} — git ngoài app sẽ commit bằng email này",
-      "unbound": "Chưa gắn tài khoản — dùng git config của repo"
+      "configDiffers": "git config của repo đang dùng {{email}}. Git ngoài app sẽ commit bằng email này",
+      "unbound": "Chưa gắn tài khoản. Dùng git config của repo"
     },
     "cmd": {
       "manage": "Quản lý tài khoản…",
@@ -956,7 +980,7 @@
       "unbind": "Bỏ gắn tài khoản khỏi repo",
       "noAccounts": "chưa có tài khoản",
       "current": "đang dùng",
-      "pushLater": "Đã chọn tài khoản cho lần push kế tiếp — bấm Push khi sẵn sàng"
+      "pushLater": "Đã chọn tài khoản cho lần push kế tiếp. Bấm Push khi sẵn sàng"
     }
   },
   "accounts": {
@@ -1019,7 +1043,7 @@
       "sshKeys": "SSH key…",
       "delete": "Xóa tài khoản",
       "deleteTitle": "Xóa tài khoản {{name}}?",
-      "deleteBody": "Token và refresh token của tài khoản sẽ bị xóa khỏi keychain của hệ điều hành; danh tính, quy tắc và liên kết repo của nó cũng bị xóa. SSH key vẫn được giữ lại. Token trên GitHub/GitLab không bị thu hồi — hãy tự thu hồi nếu cần."
+      "deleteBody": "Token và refresh token của tài khoản sẽ bị xóa khỏi keychain của hệ điều hành; danh tính, quy tắc và liên kết repo của nó cũng bị xóa. SSH key vẫn được giữ lại. Token trên GitHub/GitLab không bị thu hồi. Hãy tự thu hồi nếu cần."
     },
     "identities": {
       "title": "Danh tính commit",
@@ -1117,7 +1141,7 @@
       "testPath": "Thư mục repo",
       "testRun": "Thử",
       "testMatch": "Dùng {{account}} · {{identity}} ({{matches}} quy tắc khớp)",
-      "testNone": "Không quy tắc nào khớp — repo sẽ chưa gắn tài khoản."
+      "testNone": "Không quy tắc nào khớp. Repo sẽ chưa gắn tài khoản."
     },
     "settings": {
       "writeIdentity": "Ghi danh tính vào .git/config của repo",
@@ -1170,7 +1194,7 @@
     },
     "device": {
       "requesting": "Đang lấy mã…",
-      "instructions": "Đã mở {{url}} trong trình duyệt và chép sẵn mã dưới đây — dán mã vào đó rồi bấm Authorize:",
+      "instructions": "Đã mở {{url}} trong trình duyệt và chép sẵn mã dưới đây. Dán mã vào đó rồi bấm Authorize:",
       "code": "Mã xác nhận",
       "copy": "Chép mã",
       "open": "Chép mã và mở trình duyệt",
@@ -1222,7 +1246,7 @@
     }
   },
   "ssh": {
-    "title": "Khóa SSH — {{account}}",
+    "title": "Khóa SSH: {{account}}",
     "description": "Khóa SSH dùng cho các repo gắn tài khoản này với giao thức SSH. App tự chèn khóa mặc định qua GIT_SSH_COMMAND, nên không cần host alias trong ~/.ssh/config và URL remote giữ nguyên dạng git@host:org/repo.git.",
     "empty": "Tài khoản này chưa có khóa SSH. Tạo khóa mới hoặc nhập khóa có sẵn.",
     "loading": "Đang tải…",
@@ -1264,11 +1288,11 @@
       "pick": "Chọn file private key",
       "file": "File",
       "passphrase": "Passphrase",
-      "passphraseRequired": "Khóa này có passphrase — nhập passphrase rồi thử lại.",
+      "passphraseRequired": "Khóa này có passphrase. Nhập passphrase rồi thử lại.",
       "wrongPassphrase": "Sai passphrase.",
       "alreadyKnown": "Khóa này đã có trong tài khoản.",
       "alreadyOther": "Khóa này đang gắn với một tài khoản khác.",
-      "publicMismatch": "File .pub cạnh khóa không khớp với private key — đã dùng public key lấy từ private key.",
+      "publicMismatch": "File .pub cạnh khóa không khớp với private key. Đã dùng public key lấy từ private key.",
       "note": "File gốc không bị sửa: app lưu một bản sao trong thư mục dữ liệu, chỉ người dùng hiện tại đọc được.",
       "submit": "Nhập",
       "done": "Đã nhập khóa."
@@ -1281,13 +1305,13 @@
     },
     "uploadResult": {
       "uploaded": "Đã tải public key lên provider.",
-      "alreadyRegistered": "Khóa đã có trên tài khoản này — đã đánh dấu là đã tải lên.",
-      "usedByAnotherAccount": "Provider báo khóa này đã được đăng ký cho một tài khoản khác. Mỗi khóa chỉ gắn với một người dùng — hãy tạo khóa mới cho tài khoản này.",
+      "alreadyRegistered": "Khóa đã có trên tài khoản này. Đã đánh dấu là đã tải lên.",
+      "usedByAnotherAccount": "Provider báo khóa này đã được đăng ký cho một tài khoản khác. Mỗi khóa chỉ gắn với một người dùng. Hãy tạo khóa mới cho tài khoản này.",
       "missingScope": "Token thiếu quyền thêm khóa SSH (cần {{scopes}}). Đăng nhập lại và cấp quyền này, hoặc sao chép public key rồi dán thủ công trong trang cài đặt SSH của provider.",
       "missingScopeUnknown": "Provider từ chối thêm khóa: token thiếu quyền. Đăng nhập lại với quyền quản lý khóa SSH, hoặc dán public key thủ công trên provider.",
       "tokenPermissionMissing": "Fine-grained token thiếu quyền \"Git SSH keys\" (ghi). Cập nhật quyền token hoặc dán public key thủ công trên provider.",
-      "noToken": "Tài khoản chưa có token — hãy đăng nhập lại để tải khóa lên.",
-      "unauthorized": "Token đã hết hạn hoặc bị thu hồi — hãy đăng nhập lại.",
+      "noToken": "Tài khoản chưa có token. Hãy đăng nhập lại để tải khóa lên.",
+      "unauthorized": "Token đã hết hạn hoặc bị thu hồi. Hãy đăng nhập lại.",
       "signIn": "Đăng nhập lại"
     },
     "testResult": {
@@ -1298,12 +1322,12 @@
       "hostKeyFailed": "Không xác minh được host key của {{host}}.",
       "network": "Không kết nối được tới {{host}} qua SSH (cổng 22).",
       "passphraseNeeded": "Khóa cần passphrase nhưng passphrase chưa được lưu.",
-      "unknown": "Không rõ kết quả — xem chi tiết.",
+      "unknown": "Không rõ kết quả. Xem chi tiết.",
       "details": "Chi tiết"
     },
     "deleteConfirm": {
       "title": "Xóa khóa SSH?",
-      "body": "Xóa khóa {{fingerprint}} khỏi app: file khóa trong thư mục dữ liệu app và passphrase trong keychain. Khóa vẫn còn đăng ký trên provider — hãy gỡ ở đó nếu không dùng nữa.",
+      "body": "Xóa khóa {{fingerprint}} khỏi app: file khóa trong thư mục dữ liệu app và passphrase trong keychain. Khóa vẫn còn đăng ký trên provider. Hãy gỡ ở đó nếu không dùng nữa.",
       "confirm": "Xóa khóa"
     },
     "error": "Thao tác thất bại: {{message}}",
@@ -1314,7 +1338,7 @@
   },
   "onboarding": {
     "title": "Nhập cấu hình có sẵn",
-    "subtitle": "Tìm danh tính, quy tắc và khóa SSH trong ~/.gitconfig, ~/.ssh/config, gh và glab. Chỉ đọc — không file nào bị thay đổi.",
+    "subtitle": "Tìm danh tính, quy tắc và khóa SSH trong ~/.gitconfig, ~/.ssh/config, gh và glab. Chỉ đọc: không file nào bị thay đổi.",
     "step": {
       "scan": "Quét",
       "choose": "Chọn",
@@ -1354,7 +1378,7 @@
     "keyKnown": "Đã có trong app",
     "passphrase": "Passphrase (nếu khóa có)",
     "signInAgain": "Đăng nhập lại",
-    "signInNote": "App không dùng lại token của gh/glab — cần đăng nhập lại để thêm tài khoản.",
+    "signInNote": "App không dùng lại token của gh/glab. Cần đăng nhập lại để thêm tài khoản.",
     "plainToken": "CLI đang lưu token dạng văn bản thường trong file cấu hình.",
     "active": "đang dùng",
     "unknownUser": "(không rõ tên)",
@@ -1376,7 +1400,7 @@
       "failed": "Lỗi"
     },
     "code": {
-      "passphraseRequired": "Khóa có passphrase — nhập passphrase rồi thử lại",
+      "passphraseRequired": "Khóa có passphrase. Nhập passphrase rồi thử lại",
       "wrongPassphrase": "Sai passphrase",
       "keyOfAnotherAccount": "Khóa thuộc tài khoản khác",
       "identityNotFound": "Không tìm thấy danh tính cho quy tắc",
@@ -1395,7 +1419,7 @@
   "clone": {
     "open": "Clone repository…",
     "title": "Clone repository",
-    "description": "Chọn repo từ mọi tài khoản, hoặc dán URL — app tự đoán tài khoản phù hợp.",
+    "description": "Chọn repo từ mọi tài khoản, hoặc dán URL. App tự đoán tài khoản phù hợp.",
     "searchPlaceholder": "Tìm repo trên mọi tài khoản...",
     "accountFilter": "Lọc theo tài khoản",
     "allAccounts": "Tài khoản: Tất cả",
@@ -1404,9 +1428,9 @@
     "count_one": "{{count}} / {{total}} repo",
     "refresh": "Làm mới",
     "listLabel": "Danh sách repo",
-    "emptyNoAccounts": "Chưa có repo — hãy đăng nhập tài khoản, hoặc dán URL bên dưới.",
+    "emptyNoAccounts": "Chưa có repo. Hãy đăng nhập tài khoản, hoặc dán URL bên dưới.",
     "noMatch": "Không có repo nào khớp.",
-    "more": "Còn {{count}} repo — hãy thu hẹp tìm kiếm",
+    "more": "Còn {{count}} repo. Hãy thu hẹp tìm kiếm",
     "listError": "Không tải được {{account}}: {{reason}}",
     "listErrorCode": {
       "noToken": "chưa có token, hãy đăng nhập lại",
@@ -1428,7 +1452,7 @@
     "urlPlaceholder": "https://… hoặc git@host:owner/repo.git",
     "guessOne": "→ tài khoản: {{account}}",
     "guessMany": "→ {{count}} tài khoản có thể clone: hãy chọn",
-    "guessNone": "Chưa có tài khoản cho host này — sẽ dùng thông tin đăng nhập của git.",
+    "guessNone": "Chưa có tài khoản cho host này. Sẽ dùng thông tin đăng nhập của git.",
     "account": "Tài khoản",
     "noAccount": "Không dùng tài khoản (mặc định của git)",
     "suggested": "đề xuất",
@@ -1486,9 +1510,9 @@
       "unboundTitle": "Repo này chưa gắn tài khoản",
       "unboundDesc": "Commit sẽ dùng identity trong cấu hình git của máy.",
       "unverifiedTitle": "Email chưa được xác minh",
-      "unverified": "{{email}} chưa được xác minh trên tài khoản {{label}} — commit sẽ không liên kết với profile của bạn.",
+      "unverified": "{{email}} chưa được xác minh trên tài khoản {{label}}. Commit sẽ không liên kết với profile của bạn.",
       "signingTitle": "Thiếu khóa ký commit",
-      "signing": "Repo bật commit.gpgsign nhưng chưa cấu hình user.signingkey — commit có thể thất bại hoặc không được ký.",
+      "signing": "Repo bật commit.gpgsign nhưng chưa cấu hình user.signingkey. Commit có thể thất bại hoặc không được ký.",
       "switchTo": "Đổi sang tài khoản {{label}}",
       "commitAnyway": "Vẫn commit"
     },
@@ -1498,7 +1522,7 @@
       "summary_other": "{{count}} commit sẽ được push lên {{remote}}/{{branch}}",
       "newBranch": "(nhánh mới trên remote)",
       "identity": "Identity hiện tại: {{email}}",
-      "permissionDenied": "Tài khoản {{label}} không có quyền push vào remote này (quyền: {{level}}). Push sẽ bị từ chối — hãy đổi tài khoản hoặc xin quyền ghi.",
+      "permissionDenied": "Tài khoản {{label}} không có quyền push vào remote này (quyền: {{level}}). Push sẽ bị từ chối. Hãy đổi tài khoản hoặc xin quyền ghi.",
       "permissionDeniedNoLabel": "Tài khoản đang dùng không có quyền push vào remote này. Push sẽ bị từ chối.",
       "permissionUnknown": "Chưa kiểm tra được quyền push ({{reason}}).",
       "authorsTitle_one": "{{count}} commit có tác giả khác identity hiện tại",
@@ -1508,7 +1532,7 @@
       "fixAll_one": "Sửa tác giả {{count}} commit chưa push",
       "fixAll_other": "Sửa tác giả {{count}} commit chưa push",
       "fixNotCurrent": "Hãy checkout nhánh {{branch}} trước khi sửa",
-      "fixShared": "Có commit đã nằm trên nhánh remote khác — không viết lại lịch sử đã chia sẻ",
+      "fixShared": "Có commit đã nằm trên nhánh remote khác. Không viết lại lịch sử đã chia sẻ",
       "fixLastUnavailable": "Commit cuối có tác giả đúng hoặc đã được push",
       "sharedCommit": "đã push",
       "blobsTitle_one": "{{count}} file vượt giới hạn của provider",
@@ -1539,34 +1563,35 @@
     "notFound": "Nhánh, tag, commit hoặc repo không còn tồn tại. Bấm Fetch để cập nhật từ server, hoặc kiểm tra lại URL remote.",
     "alreadyExists": "Đã có nhánh/tag trùng tên. Đặt tên khác, hoặc xóa cái cũ trước nếu chắc chắn không cần nữa.",
     "currentBranch": "Không thể xóa/đổi nhánh đang được checkout. Chuyển sang nhánh khác (ví dụ main) trước rồi làm lại.",
-    "notFullyMerged": "Nhánh còn commit chưa được merge vào đâu cả — xóa đi là mất các commit đó. Nếu chắc chắn không cần, chọn xóa cưỡng bức.",
+    "notFullyMerged": "Nhánh còn commit chưa được merge vào đâu cả. Xóa đi là mất các commit đó. Nếu chắc chắn không cần, chọn xóa cưỡng bức.",
     "localChanges": "Bạn có thay đổi chưa commit sẽ bị ghi đè. Cách an toàn: Commit các thay đổi, hoặc bấm Stash để cất tạm rồi Pop lại sau.",
     "untrackedFiles": "Có file mới (chưa từng commit) trùng tên với file sắp được tạo. Hãy commit, stash (tick 'gồm file mới') hoặc di chuyển các file đó đi chỗ khác.",
     "unmergedFiles": "Còn file đang xung đột. Mở từng file trong mục Xung đột, chọn giữ phần nào, đánh dấu đã giải quyết rồi bấm Tiếp tục.",
     "operationInProgress": "Một thao tác merge/rebase/cherry-pick đang dở. Dùng banner phía trên để Tiếp tục (sau khi giải quyết xung đột) hoặc Hủy để quay về như cũ.",
-    "noOperation": "Không có thao tác nào đang dở — không cần làm gì thêm.",
+    "noOperation": "Không có thao tác nào đang dở. Không cần làm gì thêm.",
     "nothingToCommit": "Chưa có thay đổi nào được stage. Stage file ở mục 'Chưa stage' trước, hoặc thay đổi này đã có sẵn trong lịch sử.",
     "nonFastForward": "Trên server có commit mới mà máy bạn chưa có. Bấm Pull để lấy về (giải quyết xung đột nếu có) rồi Push lại. Đừng dùng force push nếu không chắc chắn.",
     "staleLease": "Có người vừa push lên nhánh này sau lần Fetch cuối của bạn, nên force push bị chặn để không xóa mất commit của họ. Bấm Fetch, xem lại lịch sử rồi quyết định.",
     "remoteRejected": "Server từ chối thay đổi (thường do hook hoặc quy tắc của repo). Mở 'Chi tiết kỹ thuật' bên dưới để xem lý do server ghi kèm.",
     "authFailed": "Đăng nhập của {{account}} không còn hợp lệ (token hết hạn hoặc bị thu hồi). Đăng nhập lại để lấy token mới.",
     "connectionFailed": "Không kết nối được tới server. Kiểm tra mạng/VPN/proxy và URL remote, rồi thử lại.",
-    "noUpstream": "Nhánh này chưa gắn với nhánh nào trên server. Bấm Push — app sẽ tự tạo nhánh trên server và gắn upstream.",
+    "noUpstream": "Nhánh này chưa gắn với nhánh nào trên server. Bấm Push: app sẽ tự tạo nhánh trên server và gắn upstream.",
     "detachedHead": "Bạn đang đứng ở một commit lẻ chứ không ở nhánh nào (HEAD tách rời). Tạo nhánh mới tại đây hoặc checkout một nhánh có sẵn trước.",
     "permissionDenied": "{{account}} đã đăng nhập nhưng không có quyền ghi vào repo này. Đổi sang tài khoản có quyền (account pill trên thanh trên cùng), hoặc nhờ chủ repo mời bạn làm collaborator.",
-    "workflowScope": "Bạn đang push file trong .github/workflows/ (GitHub Actions). GitHub yêu cầu token có quyền 'workflow' cho việc này, nhưng token hiện tại của {{account}} chưa có. Bấm nút bên dưới để đăng nhập lại — trang GitHub sẽ hỏi cấp thêm quyền, bấm Authorize rồi Push lại. Nếu dùng token cá nhân (PAT), hãy tạo token mới có tick 'workflow'.",
+    "workflowScope": "Bạn đang push file trong .github/workflows/ (GitHub Actions). GitHub yêu cầu token có quyền 'workflow' cho việc này, nhưng token hiện tại của {{account}} chưa có. Bấm nút bên dưới để đăng nhập lại. Trang GitHub sẽ hỏi cấp thêm quyền, bấm Authorize rồi Push lại. Nếu dùng token cá nhân (PAT), hãy tạo token mới có tick 'workflow'.",
     "protectedBranch": "Chủ repo đã bật bảo vệ cho nhánh này (cấm push thẳng, cấm force push hoặc bắt buộc review). Tạo nhánh mới, push nhánh đó rồi mở Pull Request / Merge Request.",
     "emailPrivacy": "Bạn đã bật 'Block command line pushes that expose my email' trên GitHub. Đổi email của identity sang địa chỉ dạng …@users.noreply.github.com (xem ở GitHub Settings → Emails), sửa tác giả các commit chưa push rồi Push lại.",
     "secretDetected": "Một commit chưa push có chứa mật khẩu, API key hoặc token. Xóa bí mật đó khỏi file, sửa lại commit (Amend, hoặc reset về trước commit đó rồi commit lại), thu hồi/đổi bí mật đã lộ, sau đó Push lại.",
     "fileTooLarge": "GitHub không nhận file lớn hơn 100 MB. Hãy dùng Git LFS cho file này: Push Guard có nút 'Chuyển sang LFS' cho các commit chưa push.",
     "action": {
+      "signIn": "Đăng nhập {{name}}",
       "reauth": "Đăng nhập lại {{account}}",
       "accounts": "Mở quản lý tài khoản",
       "emailSettings": "Mở cài đặt email của GitHub"
     },
-    "pushedCommits": "Viết lại commit đã push chỉ đổi lịch sử ở máy bạn, sau đó muốn cập nhật remote phải force push — người khác đang dùng các commit đó có thể gặp rắc rối. Nếu chắc chắn (ví dụ nhánh chỉ mình bạn dùng), mở lại hộp thoại và đánh dấu “Tôi hiểu, vẫn viết lại”. Nếu không, chỉ chọn các commit chưa push.",
+    "pushedCommits": "Viết lại commit đã push chỉ đổi lịch sử ở máy bạn, sau đó muốn cập nhật remote phải force push. Người khác đang dùng các commit đó có thể gặp rắc rối. Nếu chắc chắn (ví dụ nhánh chỉ mình bạn dùng), mở lại hộp thoại và đánh dấu “Tôi hiểu, vẫn viết lại”. Nếu không, chỉ chọn các commit chưa push.",
     "checkedOutElsewhere": "Git chỉ cho mỗi nhánh nằm ở một worktree tại một thời điểm. Mở worktree đó (sidebar → Worktrees) để làm việc ở đó, đổi nó sang nhánh khác, hoặc xóa worktree đó.",
-    "dirtyWorktree": "Trong đó có file đã sửa hoặc file mới. Mở ra, commit hoặc stash chúng rồi thử lại — hoặc chọn tùy chọn cưỡng bức để bỏ các thay đổi đó.",
+    "dirtyWorktree": "Trong đó có file đã sửa hoặc file mới. Mở ra, commit hoặc stash chúng rồi thử lại. Hoặc chọn tùy chọn cưỡng bức để bỏ các thay đổi đó.",
     "worktreeLocked": "Mở khóa trước (sidebar → Worktrees → chuột phải → Mở khóa) rồi thử lại.",
     "signingFailed": "Identity của {{account}} được cấu hình ký commit nhưng khóa ký không chạy được. Mở Quản lý tài khoản → identity → Thử ký: kiểm tra khóa còn tồn tại (GPG: gpg --list-secret-keys; SSH: file .pub), hoặc tắt ký cho identity đó."
   },
@@ -1626,11 +1651,11 @@
     },
     "noCommits": {
       "title": "Nhánh chưa có commit nào để push",
-      "hint": "Hãy commit trước: chọn file ở bảng Changes, viết message rồi bấm Commit — sau đó mới Push.",
+      "hint": "Hãy commit trước: chọn file ở bảng Changes, viết message rồi bấm Commit. Sau đó mới Push.",
       "fix": "Viết commit"
     },
     "fileBusy": {
-      "title": "Không ghi được file — file đang bị chương trình khác mở",
+      "title": "Không ghi được file. File đang bị chương trình khác mở",
       "hint": "Một file đang được mở (editor, game engine, trình xem ảnh…) hoặc chỉ đọc nên git không ghi / xoá được. Đóng chương trình đó rồi bấm Thử lại."
     }
   },
@@ -1645,7 +1670,7 @@
     "push": "Push",
     "setUpstream": "Đặt upstream",
     "unsetUpstream": "Bỏ upstream",
-    "noRemoteBranches": "Chưa có nhánh remote — hãy fetch trước.",
+    "noRemoteBranches": "Chưa có nhánh remote. Hãy fetch trước.",
     "checkout": "Checkout {{name}}",
     "worktree": "Tạo worktree từ {{name}}…",
     "createBranchHere": "Tạo nhánh tại đây…",
@@ -1686,13 +1711,13 @@
       "title": "Rebase {{branch}} lên {{onto}}",
       "hint": "Các commit của {{branch}} chưa có trong {{onto}} sẽ được áp dụng lại lên trên {{onto}} (thành commit mới). App tạo bản sao lưu trước, nên bạn luôn hoàn tác được.",
       "loading": "Đang kiểm tra…",
-      "checkoutFirst": "{{branch}} chưa được checkout — app sẽ checkout nó trước.",
+      "checkoutFirst": "{{branch}} chưa được checkout. App sẽ checkout nó trước.",
       "commits_one": "{{count}} commit sẽ được viết lại:",
       "commits_other": "{{count}} commit sẽ được viết lại:",
       "more": "… và {{count}} commit khác",
-      "upToDate": "{{branch}} đã chứa {{onto}} — không có gì để rebase.",
+      "upToDate": "{{branch}} đã chứa {{onto}}. Không có gì để rebase.",
       "fastForward": "{{branch}} chỉ đi sau {{onto}}: rebase sẽ fast-forward, không viết lại commit nào.",
-      "merges": "Có {{count}} merge commit trong khoảng này — rebase thường sẽ làm phẳng chúng (bỏ merge commit, giữ thay đổi).",
+      "merges": "Có {{count}} merge commit trong khoảng này. Rebase thường sẽ làm phẳng chúng (bỏ merge commit, giữ thay đổi).",
       "pushedWarn": "{{count}} commit đã có trên remote. Viết lại chúng chỉ đổi lịch sử ở máy bạn; để cập nhật remote bạn sẽ phải force push, và người khác đang dùng các commit này có thể gặp rắc rối.",
       "pushedConfirm": "Tôi hiểu, vẫn viết lại các commit đã push",
       "dirtyWarn": "Bạn có thay đổi chưa commit. Hãy commit hoặc stash trước, hoặc bật tùy chọn dưới đây.",
@@ -1712,12 +1737,12 @@
       "dragHandle": "Kéo để đổi thứ tự {{oid}}",
       "row": "{{oid}} {{subject}}",
       "action": {
-        "pick": "pick — giữ nguyên",
-        "reword": "reword — sửa message",
-        "squash": "squash — gộp vào commit trên, gộp message",
-        "fixup": "fixup — gộp vào commit trên, bỏ message",
-        "drop": "drop — bỏ commit",
-        "edit": "edit — dừng lại để sửa"
+        "pick": "pick: giữ nguyên",
+        "reword": "reword: sửa message",
+        "squash": "squash: gộp vào commit trên, gộp message",
+        "fixup": "fixup: gộp vào commit trên, bỏ message",
+        "drop": "drop: bỏ commit",
+        "edit": "edit: dừng lại để sửa"
       },
       "messageLabel": "Message mới cho {{oid}}",
       "squashLabel": "Message của commit sau khi gộp",
@@ -1733,24 +1758,24 @@
       "previewDropped_one": "{{count}} commit bị bỏ",
       "previewDropped_other": "{{count}} commit bị bỏ",
       "unchanged": "Chưa có thay đổi nào so với hiện tại.",
-      "errorSquashFirst": "Commit đầu tiên được giữ lại không thể squash/fixup — phía trên nó không có commit nào để gộp vào.",
+      "errorSquashFirst": "Commit đầu tiên được giữ lại không thể squash/fixup. Phía trên nó không có commit nào để gộp vào.",
       "errorEmptyMessage": "Message của {{oid}} đang trống.",
-      "mergesBlocked": "Khoảng này có merge commit — interactive rebase kéo-thả chưa hỗ trợ trường hợp này. Hãy chọn một commit mới hơn merge commit cuối cùng.",
-      "tooMany": "Có {{count}} commit — quá nhiều để sửa ở đây (tối đa {{max}}). Hãy chọn một commit gần HEAD hơn.",
+      "mergesBlocked": "Khoảng này có merge commit. Interactive rebase kéo-thả chưa hỗ trợ trường hợp này. Hãy chọn một commit mới hơn merge commit cuối cùng.",
+      "tooMany": "Có {{count}} commit. Quá nhiều để sửa ở đây (tối đa {{max}}). Hãy chọn một commit gần HEAD hơn.",
       "pushedBadge": "Commit này đã có trên remote",
       "start": "Bắt đầu rebase"
     },
     "done": "Đã rebase {{branch}}.",
-    "doneAutostashConflict": "Đã rebase {{branch}}, nhưng thay đổi đã cất tạm không áp lại được sạch — chúng vẫn an toàn trong Stash.",
+    "doneAutostashConflict": "Đã rebase {{branch}}, nhưng thay đổi đã cất tạm không áp lại được sạch. Chúng vẫn an toàn trong Stash.",
     "upToDate": "{{branch}} đã cập nhật, không có gì để rebase.",
     "stopped": "Rebase dừng ở bước {{step}}/{{total}} để bạn sửa commit. Sửa xong (có thể amend), bấm Tiếp tục trên thanh màu vàng.",
-    "stoppedOther": "Rebase đang dừng — xem thanh màu vàng phía trên để Tiếp tục, Bỏ qua hoặc Hủy.",
-    "conflicts_one": "Rebase bị xung đột ở {{count}} file — giải quyết, stage rồi bấm Tiếp tục, hoặc Bỏ qua commit này / Hủy.",
-    "conflicts_other": "Rebase bị xung đột ở {{count}} file — giải quyết, stage rồi bấm Tiếp tục, hoặc Bỏ qua commit này / Hủy.",
+    "stoppedOther": "Rebase đang dừng. Xem thanh màu vàng phía trên để Tiếp tục, Bỏ qua hoặc Hủy.",
+    "conflicts_one": "Rebase bị xung đột ở {{count}} file. Giải quyết, stage rồi bấm Tiếp tục, hoặc Bỏ qua commit này / Hủy.",
+    "conflicts_other": "Rebase bị xung đột ở {{count}} file. Giải quyết, stage rồi bấm Tiếp tục, hoặc Bỏ qua commit này / Hủy.",
     "banner": {
       "title": "Rebase bước {{step}}/{{total}}",
       "titleNoStep": "Đang rebase dở",
-      "stoppedEdit": "không còn xung đột — sửa commit nếu cần (có thể amend) rồi bấm Tiếp tục",
+      "stoppedEdit": "không còn xung đột, sửa commit nếu cần (có thể amend) rồi bấm Tiếp tục",
       "skip": "Bỏ qua commit này",
       "skipTip": "Bỏ commit đang áp dụng (git rebase --skip) và đi tiếp"
     },
@@ -1768,10 +1793,10 @@
     "nothingRedo": "Không có gì để làm lại",
     "blocked": {
       "stateChanged": "Repo đã thay đổi kể từ thao tác này nên không thể tự hoàn tác.",
-      "operationInProgress": "Đang có thao tác dở (merge, rebase…) — hoàn tất hoặc hủy trước.",
+      "operationInProgress": "Đang có thao tác dở (merge, rebase…). Hoàn tất hoặc hủy trước.",
       "unsupported": "Thao tác này không thể hoàn tác."
     },
-    "pushedNote": "Các commit này đã có trên remote — hoàn tác chỉ đổi ở máy bạn.",
+    "pushedNote": "Các commit này đã có trên remote. Hoàn tác chỉ đổi ở máy bạn.",
     "op": {
       "commit": "commit “{{subject}}”",
       "amend": "sửa commit (amend) “{{subject}}”",
@@ -1834,56 +1859,56 @@
     },
     "origin": {
       "merge": {
-        "ours": "Bản của tôi — nhánh hiện tại {{branch}}",
-        "theirs": "Bản của họ — nhánh {{name}} đang được merge vào",
+        "ours": "Bản của tôi: nhánh hiện tại {{branch}}",
+        "theirs": "Bản của họ: nhánh {{name}} đang được merge vào",
         "oursShort": "của tôi ({{branch}})",
         "theirsShort": "của họ ({{name}})",
         "explain": "Bạn đang merge {{name}} vào {{branch}}. “Của tôi” (git gọi là ours) là nội dung trên nhánh hiện tại {{branch}}; “của họ” (theirs) là nội dung từ {{name}}."
       },
       "mergeSquash": {
-        "ours": "Bản của tôi — nhánh hiện tại {{branch}}",
-        "theirs": "Bản của họ — thay đổi đang được gộp (squash) vào",
+        "ours": "Bản của tôi: nhánh hiện tại {{branch}}",
+        "theirs": "Bản của họ: thay đổi đang được gộp (squash) vào",
         "oursShort": "của tôi ({{branch}})",
         "theirsShort": "của họ",
         "explain": "Bạn đang gộp (merge --squash) thay đổi của nhánh khác vào {{branch}}. “Của tôi” (ours) là {{branch}} hiện tại; “của họ” (theirs) là thay đổi được gộp vào."
       },
       "rebase": {
-        "ours": "Bản đích — {{onto}} (nơi bạn đang rebase lên)",
-        "theirs": "Commit của bạn đang được áp lại — {{commit}} trên {{mine}}",
+        "ours": "Bản đích: {{onto}} (nơi bạn đang rebase lên)",
+        "theirs": "Commit của bạn đang được áp lại: {{commit}} trên {{mine}}",
         "oursShort": "bản {{onto}}",
         "theirsShort": "commit của bạn",
-        "explain": "Lưu ý khi rebase: git ĐẢO NGƯỢC hai bên so với merge. “ours” là {{onto}} — nhánh bạn đang rebase lên (cộng các commit đã áp xong); “theirs” là commit {{commit}} của chính bạn trên nhánh {{mine}}. Muốn giữ code của bạn thì chọn “commit của bạn”."
+        "explain": "Lưu ý khi rebase: git ĐẢO NGƯỢC hai bên so với merge. “ours” là {{onto}}, tức nhánh bạn đang rebase lên (cộng các commit đã áp xong); “theirs” là commit {{commit}} của chính bạn trên nhánh {{mine}}. Muốn giữ code của bạn thì chọn “commit của bạn”."
       },
       "cherryPick": {
-        "ours": "Bản của tôi — nhánh hiện tại {{branch}}",
-        "theirs": "Commit đang cherry-pick — {{commit}}",
+        "ours": "Bản của tôi: nhánh hiện tại {{branch}}",
+        "theirs": "Commit đang cherry-pick: {{commit}}",
         "oursShort": "của tôi ({{branch}})",
         "theirsShort": "commit {{commit}}",
         "explain": "Bạn đang cherry-pick commit {{commit}} vào {{branch}}. “Của tôi” (ours) là {{branch}} hiện tại; “của họ” (theirs) là thay đổi mang từ commit {{commit}}."
       },
       "revert": {
-        "ours": "Bản hiện tại — {{branch}}",
+        "ours": "Bản hiện tại: {{branch}}",
         "theirs": "Bản sau khi gỡ commit {{commit}}",
         "oursShort": "bản hiện tại",
         "theirsShort": "bản đã gỡ {{commit}}",
         "explain": "Bạn đang revert (hoàn tác) commit {{commit}}. “Ours” là code hiện tại trên {{branch}}; “theirs” là code sau khi gỡ bỏ thay đổi của {{commit}}."
       },
       "stash": {
-        "ours": "Bản hiện tại — {{branch}}",
+        "ours": "Bản hiện tại: {{branch}}",
         "theirs": "Thay đổi trong stash",
         "oursShort": "bản hiện tại",
         "theirsShort": "bản trong stash",
-        "explain": "Bạn đang lấy lại thay đổi đã cất (stash). “Ours” là code hiện tại trên {{branch}}; “theirs” là thay đổi trong stash. Khi có xung đột, git vẫn giữ stash — xóa nó sau khi đã giải quyết xong nếu không cần nữa."
+        "explain": "Bạn đang lấy lại thay đổi đã cất (stash). “Ours” là code hiện tại trên {{branch}}; “theirs” là thay đổi trong stash. Khi có xung đột, git vẫn giữ stash. Xóa nó sau khi đã giải quyết xong nếu không cần nữa."
       },
       "applyMailbox": {
-        "ours": "Bản hiện tại — {{branch}}",
+        "ours": "Bản hiện tại: {{branch}}",
         "theirs": "Bản vá đang áp dụng",
         "oursShort": "bản hiện tại",
         "theirsShort": "bản vá",
         "explain": "Bạn đang áp dụng bản vá (git am) lên {{branch}}. “Ours” là code hiện tại; “theirs” là nội dung từ bản vá."
       },
       "unknown": {
-        "ours": "Bản của tôi (HEAD — {{branch}})",
+        "ours": "Bản của tôi (HEAD, {{branch}})",
         "theirs": "Bản của họ (được đưa vào)",
         "oursShort": "của tôi",
         "theirsShort": "của họ",
@@ -1891,12 +1916,12 @@
       }
     },
     "result": "Kết quả",
-    "resultHint": "nội dung sẽ được lưu — chọn cho từng khối hoặc sửa tay trực tiếp",
+    "resultHint": "nội dung sẽ được lưu. Chọn cho từng khối hoặc sửa tay trực tiếp",
     "blockToolbar": "Các khối xung đột",
     "block": "Khối {{index}}/{{total}}",
     "blocksLeft_one": "còn {{count}} khối",
     "blocksLeft_other": "còn {{count}} khối",
-    "noBlocks": "Không còn khối xung đột — kiểm tra lại kết quả rồi bấm Lưu.",
+    "noBlocks": "Không còn khối xung đột. Kiểm tra lại kết quả rồi bấm Lưu.",
     "noBlockHere": "Đặt con trỏ vào một khối, hoặc bấm ‹ › để tới khối tiếp theo.",
     "prev": "Khối trước",
     "next": "Khối sau",
@@ -1917,14 +1942,14 @@
     "sideDeleted": "Bên {{side}} đã xóa file này.",
     "sideSize": "Dung lượng: {{size}}",
     "paneBinary": "Không hiển thị được nội dung (file nhị phân hoặc quá lớn).",
-    "binaryHint": "File nhị phân (ảnh, file nén, LFS…) không gộp từng dòng được — hãy xem hai bản rồi chọn giữ nguyên một bên.",
-    "notEditable": "File không phải văn bản UTF-8 hoặc quá lớn để sửa ở đây — hãy chọn giữ nguyên một bên.",
-    "wholeFileHint": "Một bên đã xóa hoặc chỉ một bên có file này — chọn giữ file (theo bên còn file) hoặc đồng ý xóa nó.",
+    "binaryHint": "File nhị phân (ảnh, file nén, LFS…) không gộp từng dòng được. Hãy xem hai bản rồi chọn giữ nguyên một bên.",
+    "notEditable": "File không phải văn bản UTF-8 hoặc quá lớn để sửa ở đây. Hãy chọn giữ nguyên một bên.",
+    "wholeFileHint": "Một bên đã xóa hoặc chỉ một bên có file này. Chọn giữ file (theo bên còn file) hoặc đồng ý xóa nó.",
     "alreadyResolved": "File này không còn xung đột (đã được giải quyết).",
-    "resolvedNext_one": "Đã giải quyết {{path}}. Còn {{count}} file xung đột — đã mở file tiếp theo.",
-    "resolvedNext_other": "Đã giải quyết {{path}}. Còn {{count}} file xung đột — đã mở file tiếp theo.",
+    "resolvedNext_one": "Đã giải quyết {{path}}. Còn {{count}} file xung đột. Đã mở file tiếp theo.",
+    "resolvedNext_other": "Đã giải quyết {{path}}. Còn {{count}} file xung đột. Đã mở file tiếp theo.",
     "allResolved": "Đã giải quyết hết xung đột. Bấm “Tiếp tục” trên thanh màu vàng phía trên để hoàn tất {{op}} (hoặc “Hủy” để quay lại như trước).",
-    "allResolvedNoOp": "Đã giải quyết hết xung đột. Các file đã được stage — giờ bạn có thể commit như bình thường.",
+    "allResolvedNoOp": "Đã giải quyết hết xung đột. Các file đã được stage. Giờ bạn có thể commit như bình thường.",
     "cmdResolve": "Giải quyết xung đột…"
   },
   "fileHistory": {
@@ -1949,9 +1974,9 @@
     "cmdPlaceholder": "Đường dẫn file trong repo, ví dụ src/main.rs",
     "cmdInvalid": "Nhập đường dẫn tương đối bên trong repo",
     "fileMissing": "File không tồn tại ở commit này.",
-    "fileBinary": "File nhị phân — không hiển thị nội dung.",
+    "fileBinary": "File nhị phân. Không hiển thị nội dung.",
     "fileTooLarge": "File quá lớn để hiển thị ({{size}}).",
-    "lfsPointerNote": "File này lưu bằng Git LFS — đây là nội dung file pointer (oid {{oid}}…, nội dung thật {{size}})."
+    "lfsPointerNote": "File này lưu bằng Git LFS. Đây là nội dung file pointer (oid {{oid}}…, nội dung thật {{size}})."
   },
   "blame": {
     "title": "Blame {{path}}",
@@ -1962,7 +1987,7 @@
     "atWorktree": "Working tree",
     "uncommitted": "Chưa commit",
     "tooLarge": "File quá lớn để blame (trên 5 MB).",
-    "binary": "File nhị phân — không blame được.",
+    "binary": "File nhị phân. Không blame được.",
     "empty": "File trống.",
     "parent": "Blame tại commit cha",
     "parentTitle": "Blame tại commit cha: xem các dòng này trước thay đổi của {{oid}}",
@@ -2007,7 +2032,7 @@
       "host": "Tải về bằng {{account}} (tài khoản trên máy chủ này)",
       "fallback": "Tải về bằng {{account}} (không có tài khoản nào khớp máy chủ này)",
       "none": "Tải về bằng thông tin đăng nhập riêng của git ({{account}})",
-      "mismatch": "Chưa có tài khoản cho máy chủ này: đang dùng {{account}} nhưng không đăng nhập được ở đó — submodule riêng tư sẽ lỗi. Hãy thêm tài khoản cho máy chủ đó."
+      "mismatch": "Chưa có tài khoản cho máy chủ này: đang dùng {{account}} nhưng không đăng nhập được ở đó. Submodule riêng tư sẽ lỗi. Hãy thêm tài khoản cho máy chủ đó."
     },
     "state": {
       "uninitialized": "chưa tải",
@@ -2032,14 +2057,14 @@
     "updated_one": "Đã cập nhật {{count}} submodule",
     "updated_other": "Đã cập nhật {{count}} submodule",
     "nothingToUpdate": "Các submodule đã ở đúng commit",
-    "added": "Đã thêm submodule {{path}} — hãy commit .gitmodules và thư mục mới để chia sẻ",
+    "added": "Đã thêm submodule {{path}}. Hãy commit .gitmodules và thư mục mới để chia sẻ",
     "synced": "Đã đồng bộ URL của submodule",
     "deinited": "Đã làm trống {{path}} (deinit). Bấm Tải về để lấy lại.",
-    "removed": "Đã xóa {{path}} — hãy commit thay đổi để chia sẻ",
+    "removed": "Đã xóa {{path}}. Hãy commit thay đổi để chia sẻ",
     "deinitTitle": "Deinit {{path}}?",
     "deinitBody": "Thư mục của submodule sẽ bị làm trống và URL bị quên trong bản clone này. .gitmodules không đổi; bạn có thể tải lại bất cứ lúc nào.",
     "removeTitle": "Xóa submodule {{path}}?",
-    "removeBody": "Submodule bị gỡ khỏi repo (.gitmodules và thư mục). Thay đổi đã được stage — hãy commit để chia sẻ.",
+    "removeBody": "Submodule bị gỡ khỏi repo (.gitmodules và thư mục). Thay đổi đã được stage. Hãy commit để chia sẻ.",
     "forceTitle": "{{path}} còn thay đổi chưa commit",
     "forceBody": "Submodule có file đã sửa hoặc file mới. Tiếp tục sẽ xóa vĩnh viễn các thay đổi đó. Muốn giữ lại thì mở submodule thành tab rồi commit hoặc stash trước.",
     "forceConfirm": "Bỏ thay đổi và tiếp tục",
@@ -2060,7 +2085,7 @@
     "main": "Worktree chính (chứa thư mục .git)",
     "lockedTitle": "Đã khóa: {{reason}}",
     "noReason": "không ghi lý do",
-    "prunableTitle": "Thư mục không còn — bấm Dọn để xóa mục này",
+    "prunableTitle": "Thư mục không còn. Bấm Dọn để xóa mục này",
     "detached": "HEAD tách rời @ {{oid}}",
     "open": "Mở thành tab",
     "copyPath": "Sao chép đường dẫn",
@@ -2073,7 +2098,7 @@
     "prune": "Dọn",
     "pruneHint": "Xóa các mục mà thư mục đã bị xóa bằng tay",
     "addTitle": "Thêm worktree",
-    "addDesc": "Worktree là một thư mục thứ hai của cùng repo, checkout nhánh khác — làm việc trên hai nhánh cùng lúc mà không cần stash.",
+    "addDesc": "Worktree là một thư mục thứ hai của cùng repo, checkout nhánh khác. Làm việc trên hai nhánh cùng lúc mà không cần stash.",
     "mode": {
       "newBranch": "Nhánh mới",
       "branch": "Nhánh có sẵn"
@@ -2111,18 +2136,18 @@
     "you": "bạn",
     "byYou": "Bạn đang khóa file này",
     "byOther": "{{owner}} đang khóa file này",
-    "editingLocked": "{{owner}} đang khóa file này — bạn đã sửa nó nhưng sẽ không push được cho tới khi họ mở khóa. Hãy hỏi họ, hoặc hủy thay đổi của bạn.",
+    "editingLocked": "{{owner}} đang khóa file này. Bạn đã sửa nó nhưng sẽ không push được cho tới khi họ mở khóa. Hãy hỏi họ, hoặc hủy thay đổi của bạn.",
     "lock": "Khóa",
     "unlock": "Mở khóa",
     "forceUnlock": "Mở khóa cưỡng bức…",
     "forceTitle": "Mở khóa cưỡng bức {{path}}?",
-    "forceBody": "{{owner}} đang giữ khóa và có thể đang sửa file. Chỉ mở khóa cưỡng bức khi họ đồng ý hoặc đã rời dự án — công việc của họ có thể xung đột với bạn. Cần quyền admin/maintainer trên máy chủ.",
-    "lockedOk": "Đã khóa {{path}} — người khác sẽ thấy file này do bạn giữ",
+    "forceBody": "{{owner}} đang giữ khóa và có thể đang sửa file. Chỉ mở khóa cưỡng bức khi họ đồng ý hoặc đã rời dự án. Công việc của họ có thể xung đột với bạn. Cần quyền admin/maintainer trên máy chủ.",
+    "lockedOk": "Đã khóa {{path}}. Người khác sẽ thấy file này do bạn giữ",
     "unlockedOk": "Đã mở khóa {{path}}",
     "forceUnlockedOk": "Đã gỡ khóa của {{path}}",
     "markedLockable": "{{pattern}} đã thành lockable (file chỉ-đọc cho tới khi được khóa)",
     "unmarkedLockable": "{{pattern}} không còn lockable",
-    "lockableHint": "Pattern lockable giữ các file khớp ở chế độ chỉ-đọc cho tới khi có người khóa — hữu ích cho file nhị phân không merge được (.psd, .fbx…). Nhớ commit .gitattributes sau khi đổi.",
+    "lockableHint": "Pattern lockable giữ các file khớp ở chế độ chỉ-đọc cho tới khi có người khóa. Hữu ích cho file nhị phân không merge được (.psd, .fbx…). Nhớ commit .gitattributes sau khi đổi.",
     "loading": "Đang tải danh sách khóa…",
     "none": "Không có file nào bị khóa",
     "unverified": "Máy chủ không xác nhận khóa nào là của bạn; app đoán theo tên người dùng của tài khoản.",
@@ -2195,9 +2220,9 @@
       "untrusted": "Chữ ký hợp lệ, nhưng khóa GPG chưa được đánh dấu tin cậy trên máy này.",
       "expired": "Chữ ký hợp lệ nhưng đã hết hạn.",
       "expiredKey": "Được ký bằng khóa mà sau đó đã hết hạn.",
-      "revoked": "Được ký bằng khóa đã bị thu hồi — đừng tin.",
+      "revoked": "Được ký bằng khóa đã bị thu hồi. Đừng tin.",
       "unknownKey": "Có chữ ký nhưng máy này không biết khóa (nhập khóa GPG của người ký; khóa SSH chỉ xác minh được với identity của bạn).",
-      "bad": "Chữ ký không khớp với commit — có thể commit đã bị sửa.",
+      "bad": "Chữ ký không khớp với commit. Có thể commit đã bị sửa.",
       "unsigned": "Commit này không được ký."
     },
     "kind": {
@@ -2209,7 +2234,7 @@
     "pickGpg": "Chọn khóa GPG…",
     "pickSsh": "Chọn khóa SSH của tài khoản này…",
     "noGpgKeys": "Chưa có khóa bí mật GPG (tạo bằng gpg --full-generate-key)",
-    "noSshKeys": "Tài khoản này chưa có khóa SSH — tạo ở mục SSH keys, hoặc chọn file .pub",
+    "noSshKeys": "Tài khoản này chưa có khóa SSH. Tạo ở mục SSH keys, hoặc chọn file .pub",
     "cannotSign": "không ký được",
     "gpgMissing": "Không chạy được gpg ({{program}}). Cài GnuPG (Gpg4win) hoặc đặt gpg.program.",
     "loading": "Đang tải…",
@@ -2277,8 +2302,8 @@
       "recheck": "Kiểm tra lại",
       "install": "Cài giúp tôi",
       "download": "Mở trang tải chính thức",
-      "gitRequired": "Chưa có Git — app cần Git để làm mọi việc. Bấm \"Cài giúp tôi\" hoặc tải từ trang chính thức, cài xong bấm \"Kiểm tra lại\".",
-      "gitTooOld": "Git trên máy đã cũ. Cần bản {{min}} trở lên — bấm \"Cài giúp tôi\" để cập nhật, xong bấm \"Kiểm tra lại\".",
+      "gitRequired": "Chưa có Git. App cần Git để làm mọi việc. Bấm \"Cài giúp tôi\" hoặc tải từ trang chính thức, cài xong bấm \"Kiểm tra lại\".",
+      "gitTooOld": "Git trên máy đã cũ. Cần bản {{min}} trở lên. Bấm \"Cài giúp tôi\" để cập nhật, xong bấm \"Kiểm tra lại\".",
       "restartNeeded": "Đã tìm thấy công cụ vừa cài nhưng app chưa dùng được (app phải khởi động lại để nhận đường dẫn mới).",
       "restart": "Khởi động lại app",
       "managerMissing": {
@@ -2327,8 +2352,8 @@
     },
     "state": {
       "ok": "Đã cài, dùng được.",
-      "outdated": "Phiên bản quá cũ — cần {{min}} trở lên.",
-      "outsidePath": "Đã cài nhưng app chưa nhận ra — khởi động lại app để dùng.",
+      "outdated": "Phiên bản quá cũ. Cần {{min}} trở lên.",
+      "outsidePath": "Đã cài nhưng app chưa nhận ra. Khởi động lại app để dùng.",
       "missing": {
         "required": "Chưa cài. Bắt buộc phải có.",
         "recommended": "Chưa cài. App vẫn chạy nhưng thiếu một số tính năng.",
@@ -2364,7 +2389,7 @@
         "userCancelled": "Cài đặt bị hủy (có thể bạn đã bấm \"Không\" ở hộp thoại xin quyền). Bấm \"Cài giúp tôi\" lần nữa và chọn \"Có\".",
         "needsAdmin": "Cần quyền quản trị để cài. Hãy nhờ người quản trị máy, hoặc tải bản cài từ trang chính thức.",
         "managerMissing": "Không chạy được {{manager}} trên máy này. Hãy dùng nút \"Mở trang tải chính thức\".",
-        "network": "Không tải được bản cài — kiểm tra kết nối mạng rồi thử lại.",
+        "network": "Không tải được bản cài. Kiểm tra kết nối mạng rồi thử lại.",
         "packageNotFound": "{{manager}} không tìm thấy gói cài đặt. Hãy dùng nút \"Mở trang tải chính thức\".",
         "timedOut": "Cài đặt chạy quá lâu nên đã dừng. Thử lại hoặc tải từ trang chính thức.",
         "failed": "Cài đặt không thành công. Xem \"Chi tiết kỹ thuật\" bên dưới, hoặc tải bản cài từ trang chính thức."
@@ -2407,14 +2432,14 @@
     },
     "upToDate": "Bạn đang dùng phiên bản mới nhất ({{version}}).",
     "notConfigured": "Bản build này chưa bật tự cập nhật.",
-    "notConfiguredHint": "Bạn vẫn có thể tải bản mới thủ công trên trang Releases của dự án rồi cài đè lên bản cũ — dữ liệu và tài khoản được giữ nguyên.",
+    "notConfiguredHint": "Bạn vẫn có thể tải bản mới thủ công trên trang Releases của dự án rồi cài đè lên bản cũ. Dữ liệu và tài khoản được giữ nguyên.",
     "notConfiguredNoRepo": "Bản build này không kèm địa chỉ trang phát hành (thường gặp khi tự build từ mã nguồn). Hãy cập nhật bằng cách build lại hoặc tải bộ cài mới.",
     "action": {
       "openReleases": "Mở trang Releases"
     },
     "channel": {
       "stable": "Ổn định (khuyến nghị)",
-      "beta": "Beta — thử tính năng mới",
+      "beta": "Beta: thử tính năng mới",
       "stableHint": "Chỉ nhận các bản đã phát hành chính thức.",
       "betaHint": "Nhận cả bản beta: có tính năng mới sớm hơn nhưng có thể còn lỗi."
     },
@@ -2452,7 +2477,7 @@
       "noRelease": "Chưa có bản phát hành nào hỗ trợ tự cập nhật",
       "noBuildForPlatform": "Bản mới chưa có gói cập nhật cho máy của bạn",
       "badManifest": "Thông tin bản cập nhật trên GitHub bị lỗi",
-      "badSignature": "Gói cập nhật không có chữ ký hợp lệ — đã dừng để bảo vệ máy bạn",
+      "badSignature": "Gói cập nhật không có chữ ký hợp lệ. Đã dừng để bảo vệ máy bạn",
       "downloadFailed": "Tải bản cập nhật không thành công",
       "notConfigured": "Bản build này chưa bật tự cập nhật",
       "noPendingUpdate": "Không tìm thấy bản cập nhật đã chọn",
@@ -2462,16 +2487,16 @@
     },
     "errorHelp": {
       "offline": "Kiểm tra kết nối Internet (hoặc proxy/VPN của công ty) rồi bấm “Kiểm tra cập nhật” lại.",
-      "noRelease": "Không cần làm gì cả — app sẽ tự báo khi có bản mới. Bạn cũng có thể xem trang Releases.",
+      "noRelease": "Không cần làm gì cả. App sẽ tự báo khi có bản mới. Bạn cũng có thể xem trang Releases.",
       "noBuildForPlatform": "Thường là do bản mới vừa phát hành, gói cho hệ điều hành của bạn chưa tải lên xong. Hãy thử lại sau ít phút, hoặc tải bộ cài trên trang Releases.",
       "badManifest": "Lỗi này nằm ở phía người phát hành, không phải máy bạn. Hãy thử lại sau, hoặc tải bộ cài trên trang Releases.",
       "badSignature": "File tải về không khớp với chữ ký của dự án nên app không cài. Hãy thử lại sau; nếu vẫn lỗi, tải bộ cài trên trang Releases và báo cho nhóm phát triển.",
       "downloadFailed": "Kết nối có thể bị ngắt giữa chừng. Bấm “Thử lại” để tải lại từ đầu.",
       "notConfigured": "Hãy tải bộ cài mới trên trang Releases của dự án và cài đè lên bản đang dùng.",
       "noPendingUpdate": "Bấm “Kiểm tra cập nhật” để tìm lại bản mới nhất.",
-      "busy": "Đợi bản cập nhật đang cài xong — app sẽ tự khởi động lại.",
+      "busy": "Đợi bản cập nhật đang cài xong. App sẽ tự khởi động lại.",
       "cancelled": "Bấm “Thử lại” và nhập mật khẩu máy tính khi được hỏi để cài bản mới.",
-      "failed": "Hãy thử lại. Nếu vẫn lỗi, tải bộ cài mới trên trang Releases và cài đè lên bản đang dùng — dữ liệu được giữ nguyên."
+      "failed": "Hãy thử lại. Nếu vẫn lỗi, tải bộ cài mới trên trang Releases và cài đè lên bản đang dùng. Dữ liệu được giữ nguyên."
     }
   },
   "storage": {
@@ -2515,8 +2540,8 @@
     "moveNow": "Chuyển ngay",
     "schedule": "Chuyển khi khởi động lại",
     "moved": "Đã chuyển {{kind}} sang {{path}}.",
-    "oldFilesLeft_one": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác) — bạn có thể xóa tay.",
-    "oldFilesLeft_other": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác) — bạn có thể xóa tay.",
+    "oldFilesLeft_one": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác). Bạn có thể xóa tay.",
+    "oldFilesLeft_other": "Còn {{count}} file cũ không xóa được (có thể đang mở trong chương trình khác). Bạn có thể xóa tay.",
     "moveFailed": "Không chuyển được. Dữ liệu cũ vẫn ở chỗ cũ, không có gì bị mất.",
     "dataScheduled": "Đã hẹn chuyển dữ liệu app sang {{path}}. Hãy khởi động lại app để hoàn tất.",
     "phase": {
@@ -2531,7 +2556,7 @@
     "pendingCancelled": "Đã hủy việc chuyển dữ liệu app.",
     "pendingRow": "Sẽ chuyển tới {{path}} ở lần khởi động sau",
     "restartTitle": "Khởi động lại app?",
-    "restartBody": "App sẽ đóng rồi mở lại và chuyển dữ liệu trước khi mở. Việc đang chạy (clone, push, pull, terminal) sẽ bị dừng — hãy đợi chúng xong trước.",
+    "restartBody": "App sẽ đóng rồi mở lại và chuyển dữ liệu trước khi mở. Việc đang chạy (clone, push, pull, terminal) sẽ bị dừng. Hãy đợi chúng xong trước.",
     "clearCacheTitle": "Xóa toàn bộ cache?",
     "clearCacheBody": "Không mất dữ liệu nào: tài khoản, cài đặt và code của bạn vẫn giữ nguyên. Lần mở sau sẽ chậm hơn một chút vì app phải tải lại danh sách repo, ảnh đại diện, graph.",
     "pruneLogsTitle": "Xóa log cũ?",
@@ -2545,7 +2570,7 @@
     "cleanError": "Không dọn được",
     "openFailed": "Không mở được thư mục",
     "cloneTitle": "Thư mục clone mặc định: theo từng tài khoản",
-    "cloneHint": "Đó là code của bạn — app không bao giờ xóa. Đổi trong Quản lý tài khoản.",
+    "cloneHint": "Đó là code của bạn. App không bao giờ xóa. Đổi trong Quản lý tài khoản.",
     "openAccounts": "Quản lý tài khoản",
     "lowSpace": "Ổ chứa dữ liệu app chỉ còn {{free}} trống",
     "lowSpaceHint": "Khi ổ đầy, app có thể không lưu được tài khoản, cài đặt hay log. Hãy dọn bớt ổ đĩa, hoặc chuyển dữ liệu app sang ổ khác trong Cài đặt → Lưu trữ. (Đang dùng: {{path}})",
@@ -2560,20 +2585,20 @@
       "notEnoughSpace": "Ổ đích không đủ chỗ: cần khoảng {{needed}} nhưng chỉ còn {{free}}. Hãy dọn bớt hoặc chọn ổ khác."
     },
     "warning": {
-      "pointerUnreadable": "Không đọc được file cấu hình vị trí lưu trữ — app tạm dùng thư mục mặc định",
+      "pointerUnreadable": "Không đọc được file cấu hình vị trí lưu trữ. App tạm dùng thư mục mặc định",
       "pointerUnreadableHint": "Mở Cài đặt → Lưu trữ để chọn lại thư mục; file cấu hình sẽ được ghi lại khi bạn đổi.",
       "missingFolder": "Không tìm thấy thư mục {{kind}}: {{path}}",
       "missingFolderHint": "Có thể ổ đĩa rời chưa được cắm. App tạm dùng {{fallback}}. Cắm lại ổ rồi khởi động lại app, hoặc chọn thư mục khác trong Cài đặt → Lưu trữ.",
       "dataMoved": "Đã chuyển dữ liệu app sang {{to}}.",
       "dataMoveFailed": "Không chuyển được dữ liệu app sang {{to}}",
       "dataMoveFailedHint": "Không có gì bị mất: app vẫn dùng dữ liệu ở {{from}}. Bạn có thể thử lại trong Cài đặt → Lưu trữ.",
-      "oldFilesLeft_one": "Còn {{count}} file cũ trong {{path}} không xóa được — bạn có thể xóa tay.",
-      "oldFilesLeft_other": "Còn {{count}} file cũ trong {{path}} không xóa được — bạn có thể xóa tay."
+      "oldFilesLeft_one": "Còn {{count}} file cũ trong {{path}} không xóa được. Bạn có thể xóa tay.",
+      "oldFilesLeft_other": "Còn {{count}} file cũ trong {{path}} không xóa được. Bạn có thể xóa tay."
     }
   },
   "cliSync": {
-    "title": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI — thêm vào app",
-    "title_one": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI — thêm vào app",
+    "title": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI. Thêm vào app",
+    "title_one": "Tìm thấy {{count}} tài khoản đã đăng nhập bằng CLI. Thêm vào app",
     "titleDone": "Tài khoản từ gh / glab CLI",
     "description": "Các tài khoản này đã đăng nhập bằng GitHub CLI (gh) hoặc GitLab CLI (glab) trên máy. Thêm vào app để dùng ngay, không cần đăng nhập lại.",
     "consent": "App chỉ hỏi gh / glab lấy token khi bạn bấm Thêm, kiểm tra token với GitHub/GitLab rồi lưu vào kho mật khẩu của hệ điều hành. Cấu hình của gh / glab không bị thay đổi.",
@@ -2595,10 +2620,10 @@
     "updateToken": "Lấy lại token từ {{tool}}",
     "source": "Nhập từ {{tool}} CLI",
     "status": {
-      "added": "Đã thêm — dùng được ngay ở thanh tài khoản và Ctrl+Alt+1..9.",
+      "added": "Đã thêm: dùng được ngay ở thanh tài khoản và Ctrl+Alt+1..9.",
       "missingScopes": "Đã thêm, nhưng token thiếu quyền: {{scopes}}",
       "invalidToken": "Token trong {{tool}} không còn dùng được (đã hết hạn hoặc bị thu hồi).",
-      "wrongUser": "Token {{tool}} trả về thuộc tài khoản {{actual}}, không phải {{user}} — chưa thêm.",
+      "wrongUser": "Token {{tool}} trả về thuộc tài khoản {{actual}}, không phải {{user}}. Chưa thêm.",
       "noToken": "{{tool}} không đưa token cho tài khoản này.",
       "cliMissing": "Chưa cài {{tool}} nên không lấy được token.",
       "alreadyExists": "Tài khoản này đã có trong app.",
@@ -2713,7 +2738,7 @@
       "addHelp": "origin giữ nguyên; push lên fork bằng remote mới.",
       "swapHelp": "Remote gốc đổi tên thành upstream (nhánh vẫn theo dõi repo gốc); git push mặc định sẽ đi tới fork."
     },
-    "ownRepoWarning": "Repo này đã thuộc tài khoản đang chọn — thường không cần fork.",
+    "ownRepoWarning": "Repo này đã thuộc tài khoản đang chọn. Thường không cần fork.",
     "submit": "Fork",
     "submitAs": "Fork với tư cách {{account}}",
     "submitClone": "Fork rồi clone",
@@ -2721,7 +2746,7 @@
     "close": "Đóng",
     "cancelled": "Đã dừng. Fork (nếu đã tạo) vẫn còn trên máy chủ.",
     "done": "Đã fork thành {{name}} và thêm remote.",
-    "doneExisting": "Bạn đã có fork {{name}} — dùng fork đó, không tạo mới.",
+    "doneExisting": "Bạn đã có fork {{name}}. Dùng fork đó, không tạo mới.",
     "openOnWeb": "Mở trên web",
     "attached": "Đã thêm fork {{name}} thành remote {{remote}}.",
     "fetched": "Đã tải dữ liệu từ {{remote}}.",
@@ -2811,8 +2836,8 @@
     "useExisting": "Dùng repo có sẵn",
     "done": "Xong! Đã publish {{name}}: remote {{remote}}, nhánh {{branch}} đã được push.",
     "doneNoPush": "Đã nối {{name}} thành remote {{remote}}. Commit rồi bấm Push để đưa code lên.",
-    "donePushFailed": "Đã nối remote {{remote}} nhưng push chưa thành công — xem thông báo phía trên, sửa rồi bấm Push trên thanh công cụ để thử lại.",
-    "pushed": "Đã push {{branch}} lên {{remote}} — project đã có trên máy chủ.",
+    "donePushFailed": "Đã nối remote {{remote}} nhưng push chưa thành công. Xem thông báo phía trên, sửa rồi bấm Push trên thanh công cụ để thử lại.",
+    "pushed": "Đã push {{branch}} lên {{remote}}. Project đã có trên máy chủ.",
     "openOnWeb": "Mở trên web",
     "close": "Đóng",
     "submitNew": "Tạo repo",
@@ -2913,7 +2938,7 @@
       "loadingComments": "Đang tải bình luận…",
       "comments_one": "{{count}} bình luận",
       "comments_other": "{{count}} bình luận",
-      "moreComments": "Còn bình luận cũ hơn — mở trên trình duyệt để xem hết.",
+      "moreComments": "Còn bình luận cũ hơn. Mở trên trình duyệt để xem hết.",
       "commentPlaceholder": "Viết bình luận… (Ctrl+Enter để gửi)",
       "lockedPlaceholder": "Issue đã khóa: chỉ thành viên dự án bình luận được.",
       "comment": "Bình luận",
@@ -2924,7 +2949,7 @@
     "branch": {
       "open": "Tạo nhánh từ issue này",
       "name": "Tên nhánh",
-      "hint": "Nhánh mới được tạo từ commit hiện tại (HEAD), chỉ ở máy bạn — chưa đẩy lên remote.",
+      "hint": "Nhánh mới được tạo từ commit hiện tại (HEAD), chỉ ở máy bạn. Chưa đẩy lên remote.",
       "checkout": "Chuyển sang nhánh mới ngay",
       "create": "Tạo nhánh",
       "created": "Đã tạo nhánh {{branch}}",
@@ -2950,7 +2975,7 @@
     "button": "Việc của tôi",
     "buttonCount": "Việc ({{count}})",
     "tooltip": "Việc của tôi: PR/MR cần review, PR/MR của tôi, issue giao cho tôi (mọi tài khoản)",
-    "tooltipCount": "{{count}} PR/MR đang chờ bạn review — bấm để xem",
+    "tooltipCount": "{{count}} PR/MR đang chờ bạn review. Bấm để xem",
     "title": "Việc của tôi",
     "description": "Gộp từ mọi tài khoản đã đăng nhập. Tự làm mới 5 phút một lần khi app đang mở.",
     "allAccounts": "Mọi tài khoản",
@@ -3058,14 +3083,14 @@
       "openRepoToJump": "Mở repo của PR/MR này (tab đang chọn) để bấm vào commit và tới graph."
     },
     "files": {
-      "truncated": "Danh sách file bị cắt bớt (quá nhiều file) — xem đủ trên trình duyệt.",
+      "truncated": "Danh sách file bị cắt bớt (quá nhiều file). Xem đủ trên trình duyệt.",
       "truncatedRows": "Diff quá dài, chỉ hiện {{count}} dòng đầu.",
       "none": "Không có file nào thay đổi.",
       "noPatch": "Nhà cung cấp không gửi diff của file này (file lớn hoặc nhị phân). Có thể tính diff bằng git trên máy (sẽ fetch nhánh của PR/MR về).",
       "noPatchNoRepo": "Nhà cung cấp không gửi diff của file này. Mở repo này trong app để xem diff bằng git, hoặc xem trên trình duyệt.",
       "localDiff": "Xem diff bằng git trên máy",
       "localDiffLoading": "Đang fetch và tính diff…",
-      "binary": "File nhị phân — không hiển thị được diff.",
+      "binary": "File nhị phân. Không hiển thị được diff.",
       "tooLarge": "Diff quá lớn để hiển thị.",
       "noChanges": "Không có thay đổi nội dung.",
       "outdated": "{{count}} luồng bình luận đã cũ (dòng không còn trong diff hiện tại)",
@@ -3102,11 +3127,11 @@
     },
     "mergeState": {
       "clean": "Có thể merge.",
-      "conflicts": "Có xung đột với {{target}} — chưa merge được.",
+      "conflicts": "Có xung đột với {{target}}. Chưa merge được.",
       "blocked": "Đang bị chặn (thiếu lượt duyệt, check bắt buộc chưa qua hoặc luật bảo vệ nhánh).",
-      "behind": "Nhánh nguồn đang cũ hơn {{target}} — cần cập nhật (merge/rebase) trước.",
+      "behind": "Nhánh nguồn đang cũ hơn {{target}}. Cần cập nhật (merge/rebase) trước.",
       "unstable": "Merge được, nhưng có check đang thất bại.",
-      "draft": "Đang là bản nháp — đánh dấu sẵn sàng trên trình duyệt để merge.",
+      "draft": "Đang là bản nháp. Đánh dấu sẵn sàng trên trình duyệt để merge.",
       "checking": "Máy chủ đang kiểm tra khả năng merge… bấm Tải lại sau giây lát.",
       "unknown": "Chưa rõ trạng thái merge."
     },
@@ -3161,12 +3186,12 @@
       "removeSource": "Xóa nhánh nguồn khi merge",
       "submit": "Tạo {{term}}",
       "notPushed": "Nhánh {{branch}} chưa có trên remote {{remote}}. Cần Push trước khi tạo.",
-      "ahead": "Còn {{count}} commit chưa push — Push trước để PR/MR có đủ thay đổi.",
-      "ahead_one": "Còn {{count}} commit chưa push — Push trước để PR/MR có đủ thay đổi.",
+      "ahead": "Còn {{count}} commit chưa push. Push trước để PR/MR có đủ thay đổi.",
+      "ahead_one": "Còn {{count}} commit chưa push. Push trước để PR/MR có đủ thay đổi.",
       "pushFirst": "Push trước",
       "checkoutToPush": "Checkout nhánh {{branch}} rồi Push để tiếp tục.",
-      "crossRepoGitlab": "Chưa hỗ trợ tạo MR từ fork sang project gốc trên GitLab — hãy tạo trên trình duyệt.",
-      "noAccount": "Remote đích chưa gắn tài khoản đã đăng nhập — gắn tài khoản trước.",
+      "crossRepoGitlab": "Chưa hỗ trợ tạo MR từ fork sang project gốc trên GitLab. Hãy tạo trên trình duyệt.",
+      "noAccount": "Remote đích chưa gắn tài khoản đã đăng nhập. Gắn tài khoản trước.",
       "done": "Đã tạo {{term}} {{number}}.",
       "warnings": "Một vài bước phụ chưa xong: {{warnings}}",
       "afterPush": "Đã push nhánh mới {{branch}}. Tạo {{term}} từ nhánh này?"
@@ -3222,12 +3247,12 @@
     },
     "problem": {
       "wrongPassword": "Mật khẩu không đúng hoặc file đã bị sửa.",
-      "wrongPasswordHint": "Kiểm tra lại mật khẩu (có phân biệt chữ hoa, chữ thường). Nếu chắc chắn mật khẩu đúng, có thể file đã hỏng khi sao chép — hãy lấy lại file gốc.",
+      "wrongPasswordHint": "Kiểm tra lại mật khẩu (có phân biệt chữ hoa, chữ thường). Nếu chắc chắn mật khẩu đúng, có thể file đã hỏng khi sao chép. Hãy lấy lại file gốc.",
       "notABackup": "File này không phải file sao lưu của NANOMultipleGitGUI. Hãy chọn đúng file đã tạo bằng app.",
       "wrongKindAccounts": "Đây là bản sao lưu toàn bộ app, không phải file cấu hình tài khoản. Hãy mở nó ở Cài đặt → Sao lưu & khôi phục.",
       "wrongKindFull": "Đây là file cấu hình tài khoản, không phải bản sao lưu toàn bộ app. Hãy mở nó ở Quản lý tài khoản → Nhập cấu hình…",
       "newerVersion": "File được tạo bởi phiên bản app mới hơn. Hãy cập nhật app rồi thử lại.",
-      "tooLarge": "File quá lớn (tối đa 50 MB) — có lẽ bạn chọn nhầm file.",
+      "tooLarge": "File quá lớn (tối đa 50 MB). Có lẽ bạn chọn nhầm file.",
       "corrupt": "File bị hỏng, không đọc được nội dung. Hãy thử file khác hoặc tạo lại file ở máy cũ.",
       "weakPassword": "Mật khẩu cần ít nhất 8 ký tự."
     },
@@ -3239,7 +3264,7 @@
       "filterAll": "Mọi file"
     },
     "secrets": {
-      "keepSafe": "File sẽ chứa thông tin đăng nhập. Ai có cả file và mật khẩu đều dùng được tài khoản của bạn — hãy giữ cả hai cẩn thận.",
+      "keepSafe": "File sẽ chứa thông tin đăng nhập. Ai có cả file và mật khẩu đều dùng được tài khoản của bạn. Hãy giữ cả hai cẩn thận.",
       "oauthWarning": "Lưu ý: tài khoản GitHub/GitLab đăng nhập qua trình duyệt (OAuth) dùng mã làm mới chỉ dùng được một lần. Khi một máy tự làm mới đăng nhập, máy kia có thể phải đăng nhập lại. Token cá nhân (PAT) thì dùng được trên cả hai máy."
     },
     "accountsExport": {
@@ -3296,7 +3321,7 @@
       "notes": "{{count}} ghi chú",
       "themes": "{{count}} theme tùy chỉnh",
       "withSecrets": "Có thông tin đăng nhập ({{count}} mục) và {{keys}} SSH key",
-      "withoutSecrets": "Không có thông tin đăng nhập — sau khi khôi phục cần đăng nhập lại các tài khoản",
+      "withoutSecrets": "Không có thông tin đăng nhập. Sau khi khôi phục cần đăng nhập lại các tài khoản",
       "reposNote": "Repo được lưu theo đường dẫn; nếu máy mới khác đường dẫn, hãy clone lại hoặc mở lại.",
       "replaceWarning": "Dữ liệu hiện tại trong app sẽ được thay bằng bản sao lưu; app sẽ khởi động lại. Dữ liệu cũ vẫn được giữ một bản trong thư mục \"backups\" của thư mục dữ liệu app.",
       "confirmTitle": "Thay dữ liệu hiện tại bằng bản sao lưu?",
@@ -3304,7 +3329,7 @@
       "restoring": "Đang khôi phục…",
       "restoredNotice": "Đã khôi phục dữ liệu từ bản sao lưu tạo lúc {{date}}.",
       "restoredHint": "Dữ liệu trước khi khôi phục được giữ ở: {{path}}",
-      "failedNotice": "Không khôi phục được bản sao lưu — dữ liệu hiện tại vẫn giữ nguyên.",
+      "failedNotice": "Không khôi phục được bản sao lưu. Dữ liệu hiện tại vẫn giữ nguyên.",
       "failedHint": "Hãy thử lại với file khác, hoặc tạo lại bản sao lưu ở máy cũ."
     },
     "cmd": {
@@ -3321,8 +3346,8 @@
     "presets": "Có sẵn",
     "yourThemes": "Theme của bạn",
     "preset": {
-      "hc-dark": "Tương phản cao — Tối",
-      "hc-light": "Tương phản cao — Sáng"
+      "hc-dark": "Tương phản cao (Tối)",
+      "hc-light": "Tương phản cao (Sáng)"
     },
     "title": "Quản lý theme",
     "description": "Tạo bảng màu của riêng bạn. Khi đang sửa, cả app đổi màu ngay để bạn xem trước; bấm Lưu để giữ lại.",
@@ -3384,8 +3409,8 @@
     "contrastOk": "Các màu chữ đều dễ đọc trên nền.",
     "contrastIssues": "Có {{count}} chỗ khó đọc:",
     "contrastIssues_one": "Có {{count}} chỗ khó đọc:",
-    "contrastText": "“{{fg}}” khó đọc trên “{{bg}}” — {{ratio}}:1, nên ≥ {{min}}:1.",
-    "contrastGraphic": "“{{fg}}” khó thấy trên “{{bg}}” — {{ratio}}:1, nên ≥ {{min}}:1.",
+    "contrastText": "“{{fg}}” khó đọc trên “{{bg}}” ({{ratio}}:1, nên ≥ {{min}}:1).",
+    "contrastGraphic": "“{{fg}}” khó thấy trên “{{bg}}” ({{ratio}}:1, nên ≥ {{min}}:1).",
     "created": "Đã tạo theme “{{name}}”.",
     "saved": "Đã lưu.",
     "saveFailed": "Không lưu được theme.",
@@ -3483,7 +3508,7 @@
     "saving": "Đang lưu…",
     "saved": "Đã lưu",
     "unsaved": "Chưa lưu…",
-    "emptyNote": "Ghi chú cần có tiêu đề hoặc nội dung — chưa lưu.",
+    "emptyNote": "Ghi chú cần có tiêu đề hoặc nội dung. Chưa lưu.",
     "saveFailed": "Không lưu được: {{error}}",
     "saveFailedShort": "Không lưu được ghi chú.",
     "delete": "Xóa",
@@ -3550,10 +3575,10 @@
     "deleteFailed": "Không xóa được: {{error}}",
     "fileProblem": {
       "unreadable": "Không đọc được file (file đã bị chuyển/xóa hoặc không có quyền).",
-      "tooLarge": "File quá lớn — có thể không phải file do app này xuất.",
-      "notJson": "File không phải dạng JSON — hãy chọn file .json do app này xuất.",
+      "tooLarge": "File quá lớn. Có thể không phải file do app này xuất.",
+      "notJson": "File không phải dạng JSON. Hãy chọn file .json do app này xuất.",
       "wrongFormat": "Đây không phải file đúng loại (ví dụ: chọn file ghi chú ở chỗ nhập theme).",
-      "newerVersion": "File được tạo bởi phiên bản app mới hơn — hãy cập nhật app rồi thử lại.",
+      "newerVersion": "File được tạo bởi phiên bản app mới hơn. Hãy cập nhật app rồi thử lại.",
       "invalid": "File bị hỏng hoặc thiếu dữ liệu."
     }
   },
@@ -3563,7 +3588,7 @@
     "transferRunningHint": "Đợi xong (xem hàng đợi truyền tải ở thanh trạng thái), rồi chuyển nhánh lại.",
     "failed": "Không chuyển sang {{branch}} được.",
     "nothingChanged": "Chưa có gì thay đổi: các file của bạn vẫn như cũ.",
-    "stashKept": "Thay đổi chưa commit của bạn vẫn an toàn trong stash mới nhất (“nanomgg-autostash: …”) — mở mục Stashes ở panel trái và Pop để lấy lại.",
+    "stashKept": "Thay đổi chưa commit của bạn vẫn an toàn trong stash mới nhất (“nanomgg-autostash: …”). Mở mục Stashes ở panel trái và Pop để lấy lại.",
     "openConflicts": "Mở file xung đột",
     "tip": {
       "local": "Nhấp đúp (hoặc Enter) để chuyển sang nhánh này",
@@ -3572,10 +3597,10 @@
     },
     "op": {
       "inProgress": "Chưa chuyển nhánh được: thao tác {{op}} còn đang dở.",
-      "inProgressHint": "Hoàn tất trước (giải quyết xung đột rồi bấm Tiếp tục ở thanh vàng) hoặc hủy {{op}} để quay về như cũ — rồi chuyển nhánh lại.",
+      "inProgressHint": "Hoàn tất trước (giải quyết xung đột rồi bấm Tiếp tục ở thanh vàng) hoặc hủy {{op}} để quay về như cũ. Rồi chuyển nhánh lại.",
       "conflicts": "Chưa chuyển nhánh được: còn {{count}} file đang xung đột.",
       "conflicts_one": "Chưa chuyển nhánh được: còn {{count}} file đang xung đột.",
-      "conflictsHint": "Mở từng file xung đột, chọn giữ phần nào rồi lưu — hoặc dùng thanh vàng để hủy — rồi chuyển nhánh lại.",
+      "conflictsHint": "Mở từng file xung đột, chọn giữ phần nào rồi lưu. Hoặc dùng thanh vàng để hủy. Rồi chuyển nhánh lại.",
       "unfinished": "Chưa chuyển nhánh được: một thao tác (merge, rebase…) còn đang dở.",
       "abort": "Hủy {{op}}"
     },
@@ -3661,7 +3686,7 @@
     "search": "Tìm trong hướng dẫn…",
     "results": "Tìm thấy {{count}} chủ đề",
     "results_one": "Tìm thấy {{count}} chủ đề",
-    "noResults": "Không tìm thấy — thử từ khác xem.",
+    "noResults": "Không tìm thấy. Thử từ khác xem.",
     "prev": "Trước",
     "next": "Tiếp",
     "termSeparator": ": ",
@@ -3678,7 +3703,7 @@
     "replaceBody": "Ô commit đã có chữ. Thay bằng gợi ý dưới đây? Sau khi thay, bạn vẫn bấm được nút Hoàn tác để lấy lại bản cũ.",
     "replace": "Thay bằng gợi ý",
     "unstagedUsed": "Gợi ý được viết từ các thay đổi CHƯA stage. Nhớ stage các file đó trước khi bấm Commit.",
-    "unstagedHint": "Bạn có thay đổi chưa stage — có thể nhờ AI viết dựa trên các thay đổi đó.",
+    "unstagedHint": "Bạn có thay đổi chưa stage. Có thể nhờ AI viết dựa trên các thay đổi đó.",
     "openSettings": "Mở cài đặt AI",
     "useUnstaged": "Dùng thay đổi chưa stage",
     "retry": "Thử lại",
@@ -3695,7 +3720,7 @@
       "missingKey": "Chưa có API key cho dịch vụ này. Nhập key trong Cài đặt AI.",
       "missingModel": "Chưa chọn model. Chọn hoặc nhập tên model trong Cài đặt AI.",
       "missingBaseUrl": "Chưa nhập địa chỉ (base URL) của dịch vụ. Nhập trong Cài đặt AI.",
-      "nothingStaged": "Hãy stage thay đổi trước — AI viết commit message dựa trên các file đã stage.",
+      "nothingStaged": "Hãy stage thay đổi trước. AI viết commit message dựa trên các file đã stage.",
       "invalidKey": "API key không đúng hoặc đã bị thu hồi. Kiểm tra lại key trong Cài đặt AI.",
       "accessDenied": "Key này không được dùng model đã chọn (hoặc dịch vụ chặn khu vực của bạn). Thử model khác trong Cài đặt AI.",
       "quotaExceeded": "Tài khoản dịch vụ AI đã hết hạn mức hoặc hết tiền. Nạp thêm trên trang của dịch vụ, hoặc chuyển sang Ollama (miễn phí).",
@@ -3704,7 +3729,7 @@
       "ollamaNotRunning": "Ollama chưa chạy. Mở Cài đặt AI và bấm \"Khởi động Ollama\".",
       "ollamaNotInstalled": "Máy chưa cài Ollama. Mở Cài đặt AI và bấm \"Cài Ollama giúp tôi\".",
       "network": "Không kết nối được tới dịch vụ AI. Kiểm tra mạng (hoặc proxy) rồi thử lại.",
-      "timeout": "AI trả lời quá lâu nên đã dừng. Lần đầu dùng Ollama có thể chậm vì phải nạp model — hãy thử lại.",
+      "timeout": "AI trả lời quá lâu nên đã dừng. Lần đầu dùng Ollama có thể chậm vì phải nạp model. Hãy thử lại.",
       "cancelled": "Đã hủy.",
       "service": "Dịch vụ AI báo lỗi (mã {{status}}). Thử lại sau.",
       "emptyAnswer": "AI không trả về commit message dùng được. Thử lại, hoặc chọn model khác.",
@@ -3764,7 +3789,7 @@
     "baseUrl": {
       "label": "Địa chỉ dịch vụ (base URL)",
       "hint": "Thường kết thúc bằng /v1. Bấm một mẫu ở trên để điền nhanh.",
-      "insecure": "Địa chỉ http:// tới máy khác không mã hóa — app sẽ không gửi API key qua đó. Hãy dùng https://."
+      "insecure": "Địa chỉ http:// tới máy khác không mã hóa. App sẽ không gửi API key qua đó. Hãy dùng https://."
     },
     "model": {
       "label": "Model"
@@ -3799,7 +3824,7 @@
       },
       "body": "Viết cả phần mô tả (body)",
       "bodyHint": "Tắt thì AI chỉ viết một dòng tiêu đề.",
-      "localHint": "Model nhỏ chạy trên máy đôi khi viết chưa hay — hãy đọc lại trước khi commit."
+      "localHint": "Model nhỏ chạy trên máy đôi khi viết chưa hay. Hãy đọc lại trước khi commit."
     },
     "ollama": {
       "privacy": "Ollama chạy ngay trên máy bạn: miễn phí, không cần tài khoản, code không bị gửi lên mạng.",
@@ -3826,7 +3851,7 @@
       "note": {
         "qwenSmall": "Hiểu code tốt, nhanh. Phù hợp đa số máy.",
         "llamaSmall": "Nhỏ, viết tiếng Anh tốt.",
-        "gemma": "Nhẹ nhất — cho máy yếu.",
+        "gemma": "Nhẹ nhất: cho máy yếu.",
         "qwenLarge": "Chính xác hơn, cần máy mạnh hơn.",
         "llamaLarge": "Chính xác hơn, viết tự nhiên."
       },

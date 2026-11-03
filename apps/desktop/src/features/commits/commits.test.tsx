@@ -90,7 +90,7 @@ describe("outcome helpers", () => {
 
   it("explains rejections with git's message", () => {
     expect(failureText("notFullyMerged", "error: not fully merged")).toBe(
-      "Nhánh chưa được merge — error: not fully merged",
+      "Nhánh chưa được merge: error: not fully merged",
     );
     expect(failureText("notFound", "")).toBe("Không tìm thấy");
     expect(conflictText({ conflicts: [] })).toBe("");

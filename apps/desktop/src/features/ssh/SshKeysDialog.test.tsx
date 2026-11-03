@@ -65,7 +65,7 @@ describe("SshKeysDialog", () => {
       key({ id: "key_b", hasPassphrase: true, comment: "work", fileExists: false }),
     ]);
     renderDialog();
-    expect(screen.getByRole("dialog", { name: /Khóa SSH — an-dev/ })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /Khóa SSH: an-dev/ })).toBeInTheDocument();
     expect(screen.getByText(/GIT_SSH_COMMAND/)).toBeInTheDocument();
     const a = within(screen.getByTestId("ssh-key-key_a"));
     expect(a.getByText("Mặc định")).toBeInTheDocument();

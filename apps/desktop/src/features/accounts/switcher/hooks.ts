@@ -9,10 +9,13 @@ import {
   useProviders,
   useRepoAccountContext,
 } from "../queries";
+import type { SignInTarget } from "../dialogs";
 import {
   describeRepoAccount,
+  missingSignIn,
   providerNameOf,
   ruleSummary,
+  signInName,
   sortAccounts,
   toAccountSummary,
   type AccountSummary,
@@ -94,6 +97,20 @@ export function cachedRepoAccount(repoId: number): RepoAccount {
     queryClient.getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId)),
     queryClient.getQueryData<Provider[]>(accountKeys.providers),
   );
+}
+
+/**
+ * "Sign in to GitLab" for a repo with a remote nobody is signed in to (query cache, non-hook):
+ * the wizard target and its display name, else `null`.
+ */
+export function cachedMissingSignIn(repoId: number): { target: SignInTarget; name: string } | null {
+  const providers = queryClient.getQueryData<Provider[]>(accountKeys.providers) ?? [];
+  const target = missingSignIn(
+    queryClient.getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId)),
+    queryClient.getQueryData<Account[]>(accountKeys.list) ?? [],
+    providers,
+  );
+  return target ? { target, name: signInName(target, providers) } : null;
 }
 
 /** Accounts (switcher order) and identities from the query cache (non-hook). */

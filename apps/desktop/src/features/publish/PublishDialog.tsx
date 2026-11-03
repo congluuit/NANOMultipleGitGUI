@@ -21,6 +21,7 @@ import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { openExternal } from "@/features/accounts/manager/openExternal";
 import { useAccounts, useProviders } from "@/features/accounts/queries";
 import { accountLabel } from "@/features/accounts/switcher/model";
+import { useRepoAccount } from "@/features/accounts/switcher/hooks";
 import type { DescribedProblem } from "@/features/ci/errors";
 import {
   accountsOnHost,
@@ -106,8 +107,13 @@ export function PublishDialog({
 
   const [mode, setMode] = useState<PublishMode>(initialMode);
   const [accountChoice, setAccountChoice] = useState<string | null>(null);
+  // The account chosen for the repo comes first: publishing a GitLab-bound repo to GitHub
+  // only because GitHub is first in the list surprises everyone.
+  const repoAccountId = useRepoAccount(repoId).account?.id;
   const account: Account | undefined =
-    withToken.find((a) => a.id === accountChoice) ?? withToken[0];
+    withToken.find((a) => a.id === accountChoice) ??
+    withToken.find((a) => a.id === repoAccountId) ??
+    withToken[0];
   const provider = providers?.find((p) => p.id === account?.providerId);
   const [namespace, setNamespace] = useState<string | null>(null);
   const [name, setName] = useState(() => suggestRepoName(tab?.path ?? tab?.name ?? ""));
@@ -125,7 +131,10 @@ export function PublishDialog({
   const urlAccountId =
     urlAccountChoice === AUTO
       ? null
-      : (urlAccounts.find((a) => a.id === urlAccountChoice)?.id ?? urlAccounts[0]?.id ?? null);
+      : (urlAccounts.find((a) => a.id === urlAccountChoice)?.id ??
+        urlAccounts.find((a) => a.id === repoAccountId)?.id ??
+        urlAccounts[0]?.id ??
+        null);
 
   const existingRemotes = useMemo(() => refs?.remotes.map((r) => r.name) ?? [], [refs]);
   const [remoteEdit, setRemoteEdit] = useState<string | null>(null);

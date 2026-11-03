@@ -179,7 +179,7 @@ export function FinishStep({
           <li>
             {t("setup.finish.tools", { ok: okTools, total: tools.tools.length })}
             {missing.length > 0 &&
-              ` — ${t("setup.finish.toolsMissing", {
+              `, ${t("setup.finish.toolsMissing", {
                 names: missing.map((x) => t(`setup.tool.${x.id}.name`)).join(", "),
               })}`}
           </li>

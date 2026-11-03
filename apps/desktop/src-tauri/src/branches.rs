@@ -629,6 +629,23 @@ pub async fn branch_set_upstream(
     .await
 }
 
+/// Makes `name` pull from / push to `remote` (same branch name there, created by the next
+/// push when missing). Used when the repo's account lives on another remote than the one the
+/// branch tracks.
+#[tauri::command]
+#[specta::specta]
+pub async fn branch_track_remote(
+    app: AppHandle,
+    repo_id: i64,
+    name: String,
+    remote: String,
+) -> AppResult<Outcome<()>> {
+    run_op(app, repo_id, move |git, repo, ctx| {
+        branch::track_remote(git, repo, ctx, &name, &remote)
+    })
+    .await
+}
+
 // ---------------------------------------------------------------------------------------------
 // Commit menu.
 

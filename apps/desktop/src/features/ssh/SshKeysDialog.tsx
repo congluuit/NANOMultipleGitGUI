@@ -479,7 +479,7 @@ function KeyRow({
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="font-mono text-[11px] font-semibold uppercase">{k.keyType}</span>
         <span className="min-w-0 truncate font-medium" title={k.comment ?? undefined}>
-          {k.comment || "—"}
+          {k.comment || "-"}
         </span>
         {k.isDefault && (
           <Badge tone="ok">

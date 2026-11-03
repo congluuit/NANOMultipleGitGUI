@@ -190,6 +190,12 @@ export const commands = {
 	branchDelete: (repoId: number, name: string, force: boolean) => __TAURI_INVOKE<Outcome<null>>("branch_delete", { repoId, name, force }),
 	/**  Sets (`origin/main`, or a local branch) or removes (`null`) the upstream of `name`. */
 	branchSetUpstream: (repoId: number, name: string, upstream: string | null) => __TAURI_INVOKE<Outcome<null>>("branch_set_upstream", { repoId, name, upstream }),
+	/**
+	 *  Makes `name` pull from / push to `remote` (same branch name there, created by the next
+	 *  push when missing). Used when the repo's account lives on another remote than the one the
+	 *  branch tracks.
+	 */
+	branchTrackRemote: (repoId: number, name: string, remote: string) => __TAURI_INVOKE<Outcome<null>>("branch_track_remote", { repoId, name, remote }),
 	/**  Creates a tag at `oid`: annotated when `message` is set, lightweight otherwise. */
 	tagCreate: (repoId: number, name: string, oid: string, message: string | null) => __TAURI_INVOKE<Outcome<null>>("tag_create", { repoId, name, oid, message }),
 	tagDelete: (repoId: number, name: string) => __TAURI_INVOKE<Outcome<null>>("tag_delete", { repoId, name }),
@@ -345,7 +351,7 @@ export const commands = {
 	accountSettingsUpdate: (patch: AccountSettingsPatch) => __TAURI_INVOKE<AccountSettings>("account_settings_update", { patch }),
 	/**
 	 *  Starts a device flow (GitHub, GitHub Enterprise, GitLab where enabled). `scopes = None` →
-	 *  the defaults (`repo workflow read:user user:email` / `read_user read_api read_repository
+	 *  the defaults (`repo workflow read:user user:email` / `read_user api read_repository
 	 *  write_repository`).
 	 */
 	authDeviceStart: (providerId: string, scopes: string[] | null) => __TAURI_INVOKE<DeviceStart>("auth_device_start", { providerId, scopes }),
@@ -1998,7 +2004,7 @@ export type ConflictStage = {
 };
 
 /**  Where a resolved account came from, for the account pill and banner. */
-export type ContextSource = "locked" | "manual" | "clone" | "rule" | "none";
+export type ContextSource = "locked" | "manual" | "clone" | "rule" | "host" | "none";
 
 /**  A theme the user made: a light or dark base plus overridden color tokens. */
 export type CustomTheme = {
@@ -5297,7 +5303,6 @@ export type Worktree = {
 	prunableReason: string | null,
 };
 
-/**  Which branch a new worktree checks out. */
 /**  A working-tree file as the editor needs it. */
 export type WorktreeFile = {
 	/**  Contents, `None` unless the file exists and is editable text. */
@@ -5312,6 +5317,7 @@ export type WorktreeFile = {
 	version: string,
 };
 
+/**  Which branch a new worktree checks out. */
 export type WorktreeTarget = 
 /**  An existing local branch (must not be checked out elsewhere). */
 { kind: "branch"; name: string } | 

@@ -5,7 +5,9 @@
 //! 2. an unlocked **manual** or **clone** binding for that remote, then at repo level;
 //! 3. the **rule engine** (priority order) on the remote URL + repo folder;
 //! 4. a remembered `auto_rule` binding (remote, then repo level);
-//! 5. nothing: the repo is "unbound" — the UI shows a banner and git uses its own config.
+//! 5. the **only account** whose provider host is the remote's host (adding one GitLab account
+//!    is enough for every gitlab.com remote; with two accounts on that host the user picks);
+//! 6. nothing: the repo is "unbound" — the UI shows a banner and git uses its own config.
 //!
 //! Repo-level bindings and rules *without* a host condition are generic: they are skipped for a
 //! remote whose host differs from the account's provider host (an `upstream` on github.com must
@@ -31,6 +33,8 @@ pub enum ContextSource {
     Manual,
     Clone,
     Rule,
+    // The only account on the remote's host (step 5).
+    Host,
     None,
 }
 
@@ -195,6 +199,31 @@ impl Ctx<'_> {
             })
     }
 
+    /// The account of the remote's host when it is the only one there.
+    fn host_match(&self, url: Option<&RemoteUrl>) -> Option<Resolved> {
+        let url = url.filter(|u| !u.is_local())?;
+        let mut on_host = self.dir.accounts.iter().filter(|a| {
+            self.dir
+                .account_host(&a.id)
+                .is_some_and(|h| hostname_of(&h) == url.host)
+        });
+        let account = on_host.next()?;
+        if on_host.next().is_some() {
+            return None;
+        }
+        Some(Resolved {
+            account_id: account.id.clone(),
+            identity_id: self
+                .dir
+                .identity_for(&account.id, None)
+                .map(|i| i.id.clone()),
+            source: ContextSource::Host,
+            rule_id: None,
+            binding_remote: None,
+            from_binding: false,
+        })
+    }
+
     fn remote(&self, remote: &RemoteInfo) -> Option<Resolved> {
         let url = RemoteUrl::parse(&remote.url);
         let url = url.as_ref();
@@ -221,6 +250,7 @@ impl Ctx<'_> {
                     .or_else(|| self.binding(None, generic_ok))
                     .map(|b| self.resolved_from(b))
             })
+            .or_else(|| self.host_match(url))
     }
 }
 
@@ -402,7 +432,7 @@ mod tests {
         let w = world();
         let res = resolve(
             "D:/x",
-            &remotes(&[ORIGIN]),
+            &remotes(&[("origin", "https://gitea.example.org/a/b.git")]),
             &[],
             &RuleSet::default(),
             &w.dir(),
@@ -410,6 +440,53 @@ mod tests {
         assert_eq!(res.default, None);
         assert_eq!(res.remotes[0].resolved, None);
         assert_eq!(res.for_remote(Some("origin")), None);
+    }
+
+    #[test]
+    fn the_only_account_on_a_host_serves_its_unbound_remotes() {
+        let w = world();
+        // A repo bound to a GitHub account with an extra remote on the company GitLab.
+        let manual = binding(None, "personal", BindingSource::Manual, false);
+        let res = resolve(
+            "D:/a",
+            &remotes(&[UPSTREAM, ORIGIN]),
+            &[manual],
+            &RuleSet::default(),
+            &w.dir(),
+        );
+        let origin = res.for_remote(Some("origin")).unwrap();
+        assert_eq!(
+            (origin.account_id.as_str(), origin.source),
+            ("work", ContextSource::Host)
+        );
+        assert_eq!(origin.identity_id.as_deref(), Some("work-main"));
+        assert!(!origin.from_binding);
+        // The explicit repo binding still wins where it applies.
+        assert_eq!(
+            res.for_remote(Some("upstream")).unwrap().source,
+            ContextSource::Manual
+        );
+
+        // github.com has two accounts: no guess.
+        let res = resolve(
+            "D:/a",
+            &remotes(&[UPSTREAM]),
+            &[],
+            &RuleSet::default(),
+            &w.dir(),
+        );
+        assert_eq!(res.for_remote(Some("upstream")), None);
+        assert_eq!(res.default, None);
+
+        // A lone remote on the GitLab host makes that account the repo default too.
+        let res = resolve(
+            "D:/a",
+            &remotes(&[ORIGIN]),
+            &[],
+            &RuleSet::default(),
+            &w.dir(),
+        );
+        assert_eq!(res.default.unwrap().source, ContextSource::Host);
     }
 
     #[test]

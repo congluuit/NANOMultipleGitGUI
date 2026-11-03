@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -23,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AccountAvatar } from "../AccountAvatar";
 import { authMethodText } from "../cli-sync/labels";
+import type { SignInTarget } from "../dialogs";
 import { useIdentities } from "../queries";
 import { describeAuthError, type DescribedError } from "./errors";
 import { copyText, openExternal } from "./openExternal";
@@ -48,6 +49,11 @@ interface Props {
   providers: readonly Provider[];
   /** Re-authenticate this account: the provider is fixed, PAT replaces its token. */
   reauth?: Account | null;
+  /**
+   * "Sign in to GitLab" from a repo: start on this provider and open the recommended sign-in
+   * (browser for GitLab, device code for GitHub) right away when it has an OAuth client id.
+   */
+  preset?: SignInTarget | null;
   onDone: (account: Account) => void;
   onCancel: () => void;
   /** Jump to the Providers tab (to enter an OAuth client id). */
@@ -57,16 +63,26 @@ interface Props {
 const METHOD_ICONS = { device: MonitorSmartphone, pkce: Globe, pat: KeyRound } as const;
 
 /** Add-account wizard: provider → method → device code / browser / PAT → done. */
-export function AddAccountWizard({ providers, reauth, onDone, onCancel, onEditProvider }: Props) {
+export function AddAccountWizard({
+  providers,
+  reauth,
+  preset,
+  onDone,
+  onCancel,
+  onEditProvider,
+}: Props) {
   const { t } = useTranslation();
   const reauthProvider = reauth
     ? (providers.find((p) => p.id === reauth.providerId) ?? null)
     : null;
-  const [step, setStep] = useState<WizardStep>(reauthProvider ? "method" : "provider");
-  const [kind, setKind] = useState<ProviderKind>(reauthProvider?.kind ?? "github");
-  const [baseUrl, setBaseUrl] = useState("");
+  const presetProvider =
+    !reauth && preset ? findProvider(providers, preset.kind, preset.baseUrl) : null;
+  const startProvider = reauthProvider ?? presetProvider;
+  const [step, setStep] = useState<WizardStep>(startProvider ? "method" : "provider");
+  const [kind, setKind] = useState<ProviderKind>(startProvider?.kind ?? preset?.kind ?? "github");
+  const [baseUrl, setBaseUrl] = useState(preset && isSelfHosted(preset.kind) ? preset.baseUrl : "");
   const [urlError, setUrlError] = useState<UrlProblem | null>(null);
-  const [provider, setProvider] = useState<Provider | null>(reauthProvider);
+  const [provider, setProvider] = useState<Provider | null>(startProvider);
   const [error, setError] = useState<DescribedError | null>(null);
   const [busy, setBusy] = useState(false);
   const [device, setDevice] = useState<DeviceStart | null>(null);
@@ -86,6 +102,9 @@ export function AddAccountWizard({ providers, reauth, onDone, onCancel, onEditPr
     },
     [],
   );
+  // Opened for a repo's host: the first method starts as soon as the wizard reaches the method
+  // step (at once when the provider is known, else after "Next").
+  const autoStart = useRef(Boolean(preset) && !reauth);
 
   const cancelFlow = () => {
     generation.current += 1;
@@ -190,6 +209,19 @@ export function AddAccountWizard({ providers, reauth, onDone, onCancel, onEditPr
     else if (method === "pkce") void startPkce(provider);
     else setStep("pat");
   };
+
+  // Without an OAuth client id the only way in is a token: go straight to it.
+  const startPreset = useEffectEvent((p: Provider, hasClientId: boolean) => {
+    autoStart.current = false;
+    chooseMethod((hasClientId && methodsFor(p.kind)[0]) || "pat");
+  });
+  useEffect(() => {
+    if (!autoStart.current || step !== "method" || !provider || !config.data) return;
+    const p = provider;
+    const hasClientId = config.data.hasClientId;
+    const id = window.setTimeout(() => startPreset(p, hasClientId), 0);
+    return () => window.clearTimeout(id);
+  }, [step, provider, config.data]);
 
   const submitPat = async () => {
     if (!provider) return;
@@ -402,12 +434,15 @@ export function AddAccountWizard({ providers, reauth, onDone, onCancel, onEditPr
                   {t("auth.pkce.openAgain")}
                 </Button>
               </div>
-              <Callout>
-                <p>{t("auth.pkce.redirectHint")}</p>
-                <code className="mt-1 block font-mono text-[11px] select-all">
-                  {pkce.redirectUri}
-                </code>
-              </Callout>
+              {/* Only who registered their own GitLab application needs the redirect URI. */}
+              {!config.data?.builtinClientId && (
+                <Callout>
+                  <p>{t("auth.pkce.redirectHint")}</p>
+                  <code className="mt-1 block font-mono text-[11px] select-all">
+                    {pkce.redirectUri}
+                  </code>
+                </Callout>
+              )}
               <Waiting text={t("auth.pkce.waiting")} />
             </div>
           )}

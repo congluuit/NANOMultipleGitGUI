@@ -147,6 +147,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             branches::branch_rename,
             branches::branch_delete,
             branches::branch_set_upstream,
+            branches::branch_track_remote,
             branches::tag_create,
             branches::tag_delete,
             branches::commit_cherry_pick,

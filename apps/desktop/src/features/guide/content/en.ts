@@ -38,17 +38,17 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "list",
             items: [
-              "**Top bar**: the account pill (which account this repo uses — the thin line at the very top of the window takes that account's color), one tab per open repository, the **+** button (open, create or clone a repository) and **Search / commands** (Ctrl+K).",
+              "**Top bar**: the account pill (which account this repo uses, the thin line at the very top of the window takes that account's color), one tab per open repository, the **+** button (open, create or clone a repository) and **Search / commands** (Ctrl+K).",
               "**Toolbar**: Fetch, Pull, Push, Branch, Stash, Pop, Undo, Redo; on the right **My work**, Sidebar, Panel, Terminal and **Settings**. When the window is narrow, extra buttons move into the **⋯** menu.",
               "**Left panel**: your branches (**Local** = on this computer, **Remote** = on the server), Tags, Stashes, PRs / MRs, Issues, LFS, Submodules, Worktrees. The box at the top filters branches by name.",
               "**Graph** (middle): every commit as a row, newest at the top, with lines showing how branches split and join. Columns: Branch / Tag, Graph, Commit message, Author, Date. A **WIP** row at the top means you have changes that are not committed yet.",
-              "**Right panel**: **Changes** (files you edited, the commit box) — or **Commit details** when you click a commit in the graph.",
+              "**Right panel**: **Changes** (files you edited, the commit box). Or **Commit details** when you click a commit in the graph.",
               "**Status bar** (bottom): the current branch, how many commits are ahead (↑) / behind (↓) the server, and the transfer queue (running fetch / pull / push / downloads).",
             ],
           },
           {
             kind: "p",
-            text: "Messages appear in a bar under the top bar. Many of them have buttons that fix the problem for you — read them before closing. A **yellow bar** means an operation (merge, rebase…) is paused and waiting for you.",
+            text: "Messages appear in a bar under the top bar. Many of them have buttons that fix the problem for you. Read them before closing. A **yellow bar** means an operation (merge, rebase…) is paused and waiting for you.",
           },
           {
             kind: "tip",
@@ -159,7 +159,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Already signed in with the GitHub CLI (gh) or GitLab CLI (glab)? The top of the account manager lists those accounts — click **Add** and they are ready without signing in again. Tokens are stored in your system's password store (keychain), never in plain files.",
+            text: "Already signed in with the GitHub CLI (gh) or GitLab CLI (glab)? The top of the account manager lists those accounts. Click **Add** and they are ready without signing in again. Tokens are stored in your system's password store (keychain), never in plain files.",
           },
           {
             kind: "term",
@@ -180,7 +180,7 @@ export const guideEn: GuideTopic[] = [
             kind: "list",
             items: [
               "**Rules** (account manager → tab **Rules**) pick the account automatically, for example “everything from github.com/my-company uses the Work account”. They are checked from top to bottom.",
-              "Each account can have several **commit identities** (name + email written into commits) — e.g. a work email and a personal one.",
+              "Each account can have several **commit identities** (name + email written into commits). E.g. a work email and a personal one.",
               "A repository can use a different account per remote (shown under **Per remote** in the pill).",
             ],
           },
@@ -222,7 +222,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "The app uses the right key for each account by itself — you do not need host aliases in ~/.ssh/config.",
+            text: "The app uses the right key for each account by itself. You do not need host aliases in ~/.ssh/config.",
           },
         ],
       },
@@ -321,8 +321,8 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "steps",
             items: [
-              "Turn it on once: **Settings → AI commit messages → AI settings…**, switch on **Turn on AI commit messages** and choose where the AI runs (your computer with Ollama — free and private — or a service such as OpenAI with your own API key).",
-              "Stage your files, then click **✨** next to the summary box. The suggestion fills the message — read it and change it before committing.",
+              "Turn it on once: **Settings → AI commit messages → AI settings…**, switch on **Turn on AI commit messages** and choose where the AI runs (your computer with Ollama, free and private, or a service such as OpenAI with your own API key).",
+              "Stage your files, then click **✨** next to the summary box. The suggestion fills the message. Read it and change it before committing.",
             ],
           },
           {
@@ -350,7 +350,7 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "term",
             term: "Checkout / switch",
-            text: "move to another branch — the files in your folder change to that branch's version.",
+            text: "move to another branch. The files in your folder change to that branch's version.",
           },
         ],
       },
@@ -425,7 +425,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "If both sides changed the same lines, Git stops with a conflict — see “Conflicts”.",
+            text: "If both sides changed the same lines, Git stops with a conflict. See “Conflicts”.",
           },
         ],
       },
@@ -435,7 +435,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Right-click the branch → **Rename…** or **Delete…**. You cannot delete the branch you are on — switch to another one first. Deleting a branch whose commits are not merged anywhere asks again (**Delete anyway**). The branch menu can also delete the copy on the server, or both.",
+            text: "Right-click the branch → **Rename…** or **Delete…**. You cannot delete the branch you are on. Switch to another one first. Deleting a branch whose commits are not merged anywhere asks again (**Delete anyway**). The branch menu can also delete the copy on the server, or both.",
           },
         ],
       },
@@ -460,7 +460,7 @@ export const guideEn: GuideTopic[] = [
             items: [
               "**Fetch**: check the server for news, without changing your files.",
               "**Pull**: fetch and bring the new commits into your current branch. The ▾ arrow offers merge (default), rebase or fast-forward only.",
-              "**Push**: send your new commits to the server. The ▾ arrow has a safe **Force push** — use it only if you know why.",
+              "**Push**: send your new commits to the server. The ▾ arrow has a safe **Force push**. Use it only if you know why.",
             ],
           },
         ],
@@ -471,7 +471,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "↑3 on Push = 3 of your commits are not on the server yet. ↓2 on Pull = the server has 2 commits you do not have. Yellow means both — pull first. If you press Push while behind, the app offers **Pull, then push**.",
+            text: "↑3 on Push = 3 of your commits are not on the server yet. ↓2 on Pull = the server has 2 commits you do not have. Yellow means both. Pull first. If you press Push while behind, the app offers **Pull, then push**.",
           },
           {
             kind: "p",
@@ -485,7 +485,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Before pushing, **Before you push** may appear: the account cannot write to this repository, commits have another author than your identity (it can fix the author of unpushed commits), or files are too big for the server (it can move them to LFS — **Move to LFS** — with a backup you can undo).",
+            text: "Before pushing, **Before you push** may appear: the account cannot write to this repository, commits have another author than your identity (it can fix the author of unpushed commits), or files are too big for the server (it can move them to LFS, **Move to LFS**, with a backup you can undo).",
           },
           {
             kind: "p",
@@ -530,7 +530,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "warn",
-            text: "During a rebase Git swaps “ours” and “theirs”. The editor's labels say which is which — click **What are ours / theirs?** if unsure.",
+            text: "During a rebase Git swaps “ours” and “theirs”. The editor's labels say which is which. Click **What are ours / theirs?** if unsure.",
           },
           {
             kind: "p",
@@ -556,7 +556,7 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "term",
             term: "HEAD",
-            text: "where you are now — usually the tip of the branch you are on.",
+            text: "where you are now. Usually the tip of the branch you are on.",
           },
           {
             kind: "term",
@@ -637,7 +637,7 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "list",
             items: [
-              "Undoing a commit puts its changes back as staged — nothing is lost.",
+              "Undoing a commit puts its changes back as staged. Nothing is lost.",
               "Undo never overwrites uncommitted changes; if the repository changed since, it says so instead.",
               "If the commits were already pushed, the app asks first: undo only changes your computer.",
             ],
@@ -726,7 +726,7 @@ export const guideEn: GuideTopic[] = [
     id: "mywork",
     title: "My work & My notes",
     summary:
-      "PRs waiting for you, your PRs, your issues — from every account — plus your own notes.",
+      "PRs waiting for you, your PRs, your issues (from every account), plus your own notes.",
     sections: [
       {
         id: "mywork",
@@ -841,7 +841,7 @@ export const guideEn: GuideTopic[] = [
             kind: "steps",
             items: [
               "**Settings** → **Theme**: Light / Dark / System / **Custom**.",
-              "**Manage themes…** opens the theme editor: start from **High contrast — Dark** or **High contrast — Light**, or make your own colors.",
+              "**Manage themes…** opens the theme editor: start from **High contrast (Dark)** or **High contrast (Light)**, or make your own colors.",
               "**Language**: English or Tiếng Việt (changes at once).",
             ],
           },
@@ -871,7 +871,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "warn",
-            text: "Keep the password somewhere safe: without it the backup cannot be opened. Your code is not in the backup — it lives in your repositories (push it, or copy the folders).",
+            text: "Keep the password somewhere safe: without it the backup cannot be opened. Your code is not in the backup. It lives in your repositories (push it, or copy the folders).",
           },
         ],
       },
@@ -927,7 +927,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "If this build cannot update itself, it says so and links to the Releases page: download the new installer and install it over this one — your data and accounts are kept.",
+            text: "If this build cannot update itself, it says so and links to the Releases page: download the new installer and install it over this one. Your data and accounts are kept.",
           },
         ],
       },
@@ -987,7 +987,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Someone pushed before you. Click **Pull** (resolve conflicts if any), then **Push** again — or use **Pull, then push**. Avoid force push unless you are sure.",
+            text: "Someone pushed before you. Click **Pull** (resolve conflicts if any), then **Push** again. Or use **Pull, then push**. Avoid force push unless you are sure.",
           },
         ],
       },
@@ -997,7 +997,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Check the account pill: is this the account that has access to the repository? Switch it, or click **Sign in again** in the message. Pushing files under .github/workflows needs the “workflow” permission on GitHub — the message has a button to grant it.",
+            text: "Check the account pill: is this the account that has access to the repository? Switch it, or click **Sign in again** in the message. Pushing files under .github/workflows needs the “workflow” permission on GitHub. The message has a button to grant it.",
           },
         ],
       },
@@ -1052,7 +1052,7 @@ export const guideEn: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Open **Technical details** in the message to see Git's own words. The logs are in **Settings → Storage → Manage storage… → Logs → Open folder** — attach today's file when reporting a bug.",
+            text: "Open **Technical details** in the message to see Git's own words. The logs are in **Settings → Storage → Manage storage… → Logs → Open folder**. Attach today's file when reporting a bug.",
           },
         ],
       },

@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import type { Account } from "@/ipc";
 import { cn } from "@/lib/utils";
-import { useAccountDialogs } from "../dialogs";
+import { useUi } from "@/stores/ui";
+import { useAccountDialogs, type SignInTarget } from "../dialogs";
+import { accountLabel } from "../switcher/model";
 import { useAccounts, useIdentities, useProviders, useRules } from "../queries";
 import { AccountsTab } from "./AccountsTab";
 import { AddAccountWizard } from "./AddAccountWizard";
@@ -36,10 +38,11 @@ export function AccountManagerHost() {
         {state && (
           <AccountManager
             // A fresh view (and wizard) each time the dialog is opened.
-            key={`${state.accountId ?? ""}:${state.add}:${state.reauth}`}
+            key={`${state.accountId ?? ""}:${state.add}:${state.reauth}:${state.signIn?.baseUrl ?? ""}`}
             focusAccountId={state.accountId}
             startWithAdd={state.add}
             startWithReauth={state.reauth}
+            signIn={state.signIn}
           />
         )}
       </DialogContent>
@@ -53,10 +56,13 @@ export function AccountManager({
   focusAccountId,
   startWithAdd,
   startWithReauth = false,
+  signIn = null,
 }: {
   focusAccountId: string | null;
   startWithAdd: boolean;
   startWithReauth?: boolean;
+  /** Opened from "Sign in to GitLab": the wizard starts on that provider. */
+  signIn?: SignInTarget | null;
 }) {
   const { t } = useTranslation();
   const accounts = useAccounts();
@@ -65,15 +71,16 @@ export function AccountManager({
   const identities = useIdentities(null);
   const health = useAccountHealth();
   const [tab, setTab] = useState<Tab>("accounts");
-  const [wizardState, setWizard] = useState<{ reauth: Account | null } | null>(
-    startWithAdd ? { reauth: null } : null,
-  );
+  const [wizardState, setWizard] = useState<{
+    reauth: Account | null;
+    preset?: SignInTarget | null;
+  } | null>(startWithAdd ? { reauth: null, preset: signIn } : null);
   const [reauthPending, setReauthPending] = useState(startWithReauth);
   const reauthTarget = reauthPending
     ? (accounts.data?.find((a) => a.id === focusAccountId) ?? null)
     : null;
   // Opened from an error ("sign in again"): show that account's wizard once the list loads.
-  const wizard = wizardState ?? (reauthTarget ? { reauth: reauthTarget } : null);
+  const wizard = wizardState ?? (reauthTarget ? { reauth: reauthTarget, preset: null } : null);
   const closeWizard = () => {
     setReauthPending(false);
     setWizard(null);
@@ -107,8 +114,20 @@ export function AccountManager({
             <AddAccountWizard
               providers={providers.data ?? []}
               reauth={wizard.reauth}
+              preset={wizard.preset ?? null}
               onCancel={closeWizard}
               onDone={(account) => {
+                // Signed in from a repo ("Sign in to GitLab"): back to that repo, which now
+                // uses the account by itself.
+                if (wizard.preset) {
+                  useAccountDialogs.getState().close("manager");
+                  useUi.getState().showNotice({
+                    kind: "success",
+                    message: t("switcher.signedIn", { label: accountLabel(account) }),
+                    hint: t("switcher.signedInHint"),
+                  });
+                  return;
+                }
                 closeWizard();
                 setFocus(account.id);
               }}

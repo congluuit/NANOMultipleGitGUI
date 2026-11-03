@@ -3,9 +3,14 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { accountLabel, cachedAccounts, settleOneShot } from "@/features/accounts/switcher";
 import { repoAccount } from "@/features/transfers/actions";
 import { formatBytes } from "@/features/transfers/format";
-import { confirmLfsPush, push, usePaletteConfirm } from "./actions";
+import { TrackingDialog } from "@/features/accounts/switcher/TrackingDialog";
+import { followAccountRemote, keepTracking } from "@/features/accounts/switcher/tracking";
+import { confirmLfsPush, pullNow, push, pushTo, usePaletteConfirm } from "./actions";
 
-/** Force-push and LFS-upload confirmations for pushes started from the palette. */
+/**
+ * Force-push, LFS-upload and "other account's remote" confirmations for pushes and pulls
+ * started from the palette.
+ */
 export function PaletteConfirmHost() {
   const { t } = useTranslation();
   const confirm = usePaletteConfirm((s) => s.confirm);
@@ -84,6 +89,33 @@ export function PaletteConfirmHost() {
           <p>{t("transfers.confirmNote")}</p>
         </div>
       </ConfirmDialog>
+    );
+  }
+
+  if (confirm?.kind === "tracking") {
+    const ask = confirm;
+    const run = () => {
+      if (ask.op === "pull") void pullNow(ask.repoId, ask.mode);
+      else void push(ask.repoId, ask.refs, ask.force, false);
+    };
+    return (
+      <TrackingDialog
+        ask={ask}
+        onSwitch={() => {
+          close();
+          void followAccountRemote(ask.repoId, ask.m, false).then((ok) => {
+            if (!ok) return;
+            if (ask.op === "pull") void pullNow(ask.repoId, ask.mode);
+            else void pushTo(ask.repoId, ask.m.branch, ask.m.target.remote, ask.force);
+          });
+        }}
+        onKeep={() => {
+          close();
+          keepTracking(ask.repoId, ask.m);
+          run();
+        }}
+        onCancel={close}
+      />
     );
   }
 

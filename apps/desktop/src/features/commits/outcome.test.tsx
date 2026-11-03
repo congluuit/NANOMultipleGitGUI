@@ -80,6 +80,7 @@ describe("failureNotice", () => {
       accountId: null,
       add: false,
       reauth: false,
+      signIn: null,
     });
   });
 });

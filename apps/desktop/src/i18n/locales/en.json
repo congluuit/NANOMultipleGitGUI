@@ -8,7 +8,7 @@
     "useForRepo": "Use for this repo",
     "onlyThisAction": "Only for this action",
     "manage": "Manage accounts…",
-    "unbound": "This repo is not bound to an account — choose one",
+    "unbound": "This repo is not bound to an account. Choose one",
     "commitAs": "Commit as"
   },
   "tabs": {
@@ -59,7 +59,7 @@
     "detached": "Detached HEAD @ {{oid}}",
     "upstreamGone": "Upstream branch was deleted on the remote",
     "tracking": "Tracking {{upstream}}",
-    "noRemotes": "No remote yet — this project only lives on this computer.",
+    "noRemotes": "No remote yet. This project only lives on this computer.",
     "noTags": "No tags",
     "noStashes": "No stashes",
     "comingSoon": "Coming in a later step",
@@ -192,9 +192,9 @@
   },
   "tools": {
     "gitMissing": "Git was not found. Install Git {{min}} or later (https://git-scm.com/downloads), then click Check again.",
-    "gitOld": "Git {{version}} is too old — {{min}} or later is required. Please update Git.",
-    "lfsMissing": "Git LFS is not installed — large files in LFS repositories cannot be downloaded. Install git-lfs {{min}} or later (https://git-lfs.com).",
-    "lfsOld": "Git LFS {{version}} is too old — {{min}} or later is required.",
+    "gitOld": "Git {{version}} is too old. {{min}} or later is required. Please update Git.",
+    "lfsMissing": "Git LFS is not installed. Large files in LFS repositories cannot be downloaded. Install git-lfs {{min}} or later (https://git-lfs.com).",
+    "lfsOld": "Git LFS {{version}} is too old. {{min}} or later is required.",
     "recheck": "Check again",
     "dismiss": "Dismiss"
   },
@@ -209,7 +209,7 @@
     "author": "Author",
     "committer": "Committer",
     "files": "{{count}} changed files",
-    "comparedTo": "Merge commit — compared with first parent {{oid}}",
+    "comparedTo": "Merge commit: compared with first parent {{oid}}",
     "binary": "binary",
     "renamedFrom": "renamed from {{path}}",
     "noFiles": "This commit changes no files.",
@@ -237,14 +237,14 @@
     "copyPath": "Copy path",
     "selected": "{{count}} files selected",
     "more": "and {{count}} more files",
-    "clean": "No changes — the working tree is clean.",
+    "clean": "No changes: the working tree is clean.",
     "large": "Large",
-    "largeTitle": "{{size}} file — consider Git LFS",
+    "largeTitle": "{{size}} file: consider Git LFS",
     "discardTitle": "Discard changes?",
     "discardBody": "Unstaged changes in {{count}} files will be lost and new untracked files deleted. This cannot be undone.",
     "discardConfirm": "Discard",
     "row": "WIP",
-    "rowTitle": "Uncommitted changes — click to stage and commit",
+    "rowTitle": "Uncommitted changes: click to stage and commit",
     "stagedCount": "{{count}} staged",
     "conflictCount": "{{count}} conflicts",
     "kind": {
@@ -279,7 +279,7 @@
     "ignoreWs": "Ignore whitespace",
     "loading": "Reading diff…",
     "error": "Could not read the diff: {{message}}",
-    "binary": "Binary file — content not shown.",
+    "binary": "Binary file: content not shown.",
     "tooLarge": "This diff is too large to show.",
     "noChanges": "No changes left on this side.",
     "newFile": "New file",
@@ -301,7 +301,7 @@
     "wholeFileOnly": "This change can only be staged as a whole file (new, deleted, renamed or binary).",
     "discardLinesTitle": "Discard the selected changes?",
     "discardLinesBody": "The selected lines go back to their indexed version and the changes are lost. This cannot be undone.",
-    "truncated": "Long diff — only the first {{count}} lines are shown. Use Inline or Side by side to see everything.",
+    "truncated": "Long diff: only the first {{count}} lines are shown. Use Inline or Side by side to see everything.",
     "noNewline": "No newline at end of file",
     "linesSelected_one": "{{count}} line selected",
     "stageLines_one": "Stage {{count}} line",
@@ -321,9 +321,9 @@
     "revert": "Revert commit",
     "resetBranch": "Reset {{branch}} to here",
     "resetHead": "Reset HEAD to here",
-    "resetSoft": "Soft — keep changes staged",
-    "resetMixed": "Mixed — keep changes, unstaged",
-    "resetHard": "Hard — discard all changes…",
+    "resetSoft": "Soft: keep changes staged",
+    "resetMixed": "Mixed: keep changes, unstaged",
+    "resetHard": "Hard: discard all changes…",
     "amend": "Amend this commit…",
     "checkout": "Checkout",
     "checkoutRemote": "Checkout as local branch",
@@ -377,7 +377,7 @@
   },
   "ops": {
     "cancelled": "Operation cancelled.",
-    "conflicts": "Stopped on conflicts in {{count}} files — resolve, stage, then Continue (or Abort).",
+    "conflicts": "Stopped on conflicts in {{count}} files. Resolve, stage, then Continue (or Abort).",
     "cherryPicked": "Cherry-picked {{oid}}.",
     "reverted": "Reverted {{oid}}.",
     "resetDone": "Reset ({{mode}}) to {{oid}}.",
@@ -394,7 +394,7 @@
       "fastForward": "Fast-forwarded to {{rev}}.",
       "merged": "Merged {{rev}}.",
       "rebased": "Rebased onto {{rev}}.",
-      "squashStaged": "Staged the changes of {{rev}} — commit them.",
+      "squashStaged": "Staged the changes of {{rev}}. Commit them.",
       "conflicts": "Merging {{rev}} has conflicts."
     },
     "inProgress": "{{op}} in progress",
@@ -413,7 +413,7 @@
       "bisect": "bisect",
       "applyMailbox": "patch application"
     },
-    "conflicts_one": "Stopped on conflicts in {{count}} file — resolve, stage, then Continue (or Abort).",
+    "conflicts_one": "Stopped on conflicts in {{count}} file. Resolve, stage, then Continue (or Abort).",
     "conflictsLeft_one": "{{count}} conflicted file left"
   },
   "failure": {
@@ -423,20 +423,20 @@
     "alreadyExists": "This name already exists",
     "currentBranch": "Not possible on the checked-out branch",
     "notFullyMerged": "The branch is not fully merged",
-    "localChanges": "Uncommitted changes would be overwritten — commit or stash first",
+    "localChanges": "Uncommitted changes would be overwritten. Commit or stash first",
     "untrackedFiles": "Untracked files would be overwritten",
     "unmergedFiles": "There are unresolved conflicts",
     "operationInProgress": "Another operation (merge/rebase/cherry-pick) is in progress",
     "noOperation": "No operation in progress",
     "nothingToCommit": "Nothing to commit",
-    "nonFastForward": "The remote has newer commits — pull first",
+    "nonFastForward": "The remote has newer commits. Pull first",
     "staleLease": "The remote branch changed since the last fetch",
     "remoteRejected": "Rejected by the remote",
     "authFailed": "Authentication failed",
     "connectionFailed": "Could not reach the remote",
     "noUpstream": "The branch has no upstream",
     "detachedHead": "HEAD is detached",
-    "permissionDenied": "This account has no access to the repository — switch accounts or request access",
+    "permissionDenied": "This account has no access to the repository. Switch accounts or request access",
     "workflowScope": "The account may not change GitHub Actions (workflow scope)",
     "protectedBranch": "This branch is protected on the server",
     "emailPrivacy": "GitHub blocked the push because a commit exposes your private email",
@@ -481,15 +481,15 @@
     "error": "Could not read the stash: {{message}}",
     "binary": "binary",
     "popSingle": "Pop {{name}}: {{message}}\n{{meta}}\nClick to bring the changes back and drop this stash from the list.",
-    "popOtherBranch": "The only stash was made on {{branch}} — you are on {{current}}.\nClick to review it before popping. Use ▾ to pop right away: {{message}}",
-    "popMany": "{{count}} stashes — click to choose which one to bring back (▾ for a quick pop).",
+    "popOtherBranch": "The only stash was made on {{branch}}. You are on {{current}}.\nClick to review it before popping. Use ▾ to pop right away: {{message}}",
+    "popMany": "{{count}} stashes: click to choose which one to bring back (▾ for a quick pop).",
     "menuLabel": "Choose a stash to pop",
-    "menuTitle": "Stashes ({{count}}) — pick one to pop",
+    "menuTitle": "Stashes ({{count}}): pick one to pop",
     "menuAll": "See all stashes ({{count}})…",
     "picker": {
       "title": "Choose a stash to bring back ({{count}})",
       "desc": "Pop = bring the changes back and drop the stash. Apply = bring them back but keep the stash for later.",
-      "dirty": "You have uncommitted changes. Pop may be refused if the stash touches the same files — commit or stash your current changes first.",
+      "dirty": "You have uncommitted changes. Pop may be refused if the stash touches the same files. Commit or stash your current changes first.",
       "otherBranchWarn": "This stash was made on {{branch}}, but you are on {{current}}. Pop applies those changes to {{current}}.",
       "thisBranch": "Made on the current branch",
       "thisBranchShort": "{{branch}} (current)",
@@ -509,7 +509,7 @@
     "noPatterns": "No tracked patterns",
     "lockable": "lockable",
     "declaredIn": "{{file}}, line {{line}}",
-    "nestedOnly": "Declared in {{file}} — edit that file to untrack",
+    "nestedOnly": "Declared in {{file}}. Edit that file to untrack",
     "track": "Track pattern…",
     "trackTitle": "Track with Git LFS",
     "trackDesc": "Adds the pattern to the root .gitattributes. Matching files are stored with LFS from the next time they are staged.",
@@ -526,9 +526,9 @@
     "untracked": "Stopped tracking {{pattern}}",
     "needsInstall": "LFS hooks are not installed for this repo",
     "install": "Install LFS hooks for this repo",
-    "installHint": "Runs git lfs install --local — this repo only, global config is untouched",
+    "installHint": "Runs git lfs install --local. This repo only, global config is untouched",
     "installed": "LFS hooks installed for this repo",
-    "missingTool": "This repo uses LFS but git-lfs is not installed — LFS files will stay pointers",
+    "missingTool": "This repo uses LFS but git-lfs is not installed. LFS files will stay pointers",
     "loading": "Loading…",
     "error": "Could not read the LFS status: {{message}}",
     "managerTitle": "Git LFS",
@@ -549,7 +549,7 @@
     "storage_one": "{{count}} object · {{size}}",
     "storage_other": "{{count}} objects · {{size}}",
     "fetchAll": "Download all LFS objects (fetch --all)",
-    "fetchAllHint": "Gets every version of every LFS file from the server — needs a lot of space; rarely needed.",
+    "fetchAllHint": "Gets every version of every LFS file from the server. Needs a lot of space; rarely needed.",
     "pruneTitle": "Free disk space (prune)",
     "pruneHint": "Deletes old local copies of LFS files that are already on the server and not used by the current checkout. They can be downloaded again later.",
     "verifyRemote": "Ask the server first that each object exists there (slower, safer)",
@@ -603,7 +603,7 @@
     "titleOver": "{{count}} files exceed {{size}}",
     "titleSuggest": "{{count}} files should be stored with Git LFS",
     "desc": "Large files committed directly bloat the repository forever. Track them with LFS so git only stores a small pointer.",
-    "blockNote": "{{count}} files exceed the hard limit of {{size}} — the push would be rejected, so they cannot be committed as is.",
+    "blockNote": "{{count}} files exceed the hard limit of {{size}}. The push would be rejected, so they cannot be committed as is.",
     "levelBlock": "Over limit",
     "levelWarn": "Over threshold",
     "levelSuggest": "LFS suggested",
@@ -616,7 +616,7 @@
     "byExtension": "File extension",
     "byPath": "Path",
     "willAdd": "Will add to .gitattributes: {{patterns}}",
-    "restageOnly": "No new pattern needed — already-tracked files are re-staged",
+    "restageOnly": "No new pattern needed. Already-tracked files are re-staged",
     "track": "Track with LFS (recommended)",
     "gitignore": "Add to .gitignore",
     "comingSoon": "Coming in a later step",
@@ -633,8 +633,8 @@
       "removed": "− {{name}} (deleted on the remote)",
       "behind": "Your branch {{branch}} is {{count}} commits behind",
       "behind_one": "Your branch {{branch}} is {{count}} commit behind",
-      "behindHead": "Your current branch {{branch}} is {{count}} commits behind — pull to get them",
-      "behindHead_one": "Your current branch {{branch}} is {{count}} commit behind — pull to get it",
+      "behindHead": "Your current branch {{branch}} is {{count}} commits behind. Pull to get them",
+      "behindHead_one": "Your current branch {{branch}} is {{count}} commit behind. Pull to get it",
       "more": "… and {{count}} more",
       "pull": "Pull {{branch}}"
     },
@@ -662,7 +662,7 @@
       "fastForward": "Pulled (fast-forward).",
       "merged": "Pulled with a merge commit.",
       "rebased": "Pulled and rebased local commits on top.",
-      "squashStaged": "Pulled (squash) — the changes are staged.",
+      "squashStaged": "Pulled (squash): the changes are staged.",
       "conflicts": "Pull stopped on conflicts."
     },
     "pushTip": "Push {{branch}} to {{remote}}",
@@ -682,19 +682,20 @@
     "notCheckedYet": "The remote has not been checked yet in this session.",
     "pushedCount": "Pushed {{count}} commits from {{branch}} to {{target}}.",
     "pushedCount_one": "Pushed 1 commit from {{branch}} to {{target}}.",
+    "viaAccount": "As {{account}}",
     "pushedAs": "Sent as {{account}}.",
     "pushedHint": "If the project has CI, its build / test result appears in the status bar after a few minutes.",
-    "behindTip": "Pull — {{upstream}} has {{count}} new commits you do not have yet.",
-    "behindTip_one": "Pull — {{upstream}} has 1 new commit you do not have yet.",
+    "behindTip": "Pull: {{upstream}} has {{count}} new commits you do not have yet.",
+    "behindTip_one": "Pull: {{upstream}} has 1 new commit you do not have yet.",
     "behindTitle": "Pull first: {{branch}} is missing {{count}} commits",
     "behindTitle_one": "Pull first: {{branch}} is missing 1 commit",
-    "behindBody": "Someone pushed {{count}} commits to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull them first (merge), then push — the app can do both for you.",
-    "behindBody_one": "Someone pushed 1 commit to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull it first (merge), then push — the app can do both for you.",
+    "behindBody": "Someone pushed {{count}} commits to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull them first (merge), then push. The app can do both for you.",
+    "behindBody_one": "Someone pushed 1 commit to {{upstream}} that you do not have yet. Pushing now would be rejected. Pull it first (merge), then push. The app can do both for you.",
     "pullThenPush": "Pull, then push",
     "publishTip": "This project is not on a server yet: create a repository on GitHub / GitLab with your account and push it for the first time",
     "publishNew": "Create a new repository on GitHub / GitLab…",
     "addRemoteUrl": "Add remote by URL…",
-    "pushNoCommit": "No commits to push yet — commit first",
+    "pushNoCommit": "No commits to push yet. Commit first",
     "publishBranchItem": "Publish {{branch}} to {{remote}}"
   },
   "terminal": {
@@ -709,7 +710,7 @@
     "exitedUnknown": "Process exited. Press Enter to restart.",
     "openFailed": "Could not start the terminal: {{message}}",
     "account": "Git commands in this terminal run as this account",
-    "noAccount": "No account bound — git uses your global config",
+    "noAccount": "No account bound. Git uses your global config",
     "copyPasteHint": "Ctrl+Shift+C / Ctrl+Shift+V to copy / paste"
   },
   "transfers": {
@@ -913,6 +914,7 @@
       "manual": "chosen manually",
       "clone": "since clone",
       "rule": "by rule {{rule}}",
+      "host": "only account on this host",
       "none": "not bound"
     },
     "remember": "Remember (lock, wins over rules)",
@@ -926,6 +928,28 @@
     "clearRemote": "Unbind remote {{remote}}",
     "unbind": "Unbind",
     "add": "Add account…",
+    "signedIn": "Signed in as {{label}}",
+    "signedInHint": "Repositories on this server now use this account by themselves.",
+    "signIn": "Sign in to {{name}}",
+    "tracking": {
+      "warn": "Pull/Push of {{branch}} go through {{from}} as {{account}}, not {{targetAccount}}.",
+      "hint": "{{branch}} still pulls/pushes through {{from}} as {{account}}. Switch to {{to}} to use {{targetAccount}}.",
+      "use": "Pull/Push through {{target}} ({{targetAccount}})",
+      "done": "{{branch}} now pulls/pushes through {{target}} as {{targetAccount}}",
+      "title": {
+        "push": "Push to {{from}} as {{account}}?",
+        "pull": "Pull from {{from}} as {{account}}?"
+      },
+      "body": "You chose {{targetAccount}} for this repo, but {{branch}} is linked to {{from}}, so this runs as {{account}}. Pick {{to}} to use {{targetAccount}}; the app remembers it next time.",
+      "switch": {
+        "push": "Push to {{target}}",
+        "pull": "Pull from {{target}}"
+      },
+      "keep": {
+        "push": "Push to {{remote}} anyway",
+        "pull": "Pull from {{remote}} anyway"
+      }
+    },
     "op": {
       "commit": "commit",
       "push": "push",
@@ -946,8 +970,8 @@
     "commitAs": {
       "once": "this commit only",
       "cancel": "Use the repository's account again",
-      "configDiffers": "The repo's git config uses {{email}} — git outside the app will commit with this email",
-      "unbound": "No account bound — using the repo's git config"
+      "configDiffers": "The repo's git config uses {{email}}. Git outside the app will commit with this email",
+      "unbound": "No account bound. Using the repo's git config"
     },
     "cmd": {
       "manage": "Manage accounts…",
@@ -956,7 +980,7 @@
       "unbind": "Unbind account from repository",
       "noAccounts": "no accounts yet",
       "current": "current",
-      "pushLater": "Account chosen for the next push — press Push when ready"
+      "pushLater": "Account chosen for the next push. Press Push when ready"
     }
   },
   "accounts": {
@@ -1019,7 +1043,7 @@
       "sshKeys": "SSH keys…",
       "delete": "Delete account",
       "deleteTitle": "Delete account {{name}}?",
-      "deleteBody": "Its token and refresh token are removed from the OS keychain, and its identities, rules and repository bindings are deleted. SSH keys are kept. The token is not revoked on GitHub/GitLab — revoke it there if needed."
+      "deleteBody": "Its token and refresh token are removed from the OS keychain, and its identities, rules and repository bindings are deleted. SSH keys are kept. The token is not revoked on GitHub/GitLab. Revoke it there if needed."
     },
     "identities": {
       "title": "Commit identities",
@@ -1117,7 +1141,7 @@
       "testPath": "Repository folder",
       "testRun": "Test",
       "testMatch": "Uses {{account}} · {{identity}} ({{matches}} matching rules)",
-      "testNone": "No rule matches — the repository stays unbound."
+      "testNone": "No rule matches. The repository stays unbound."
     },
     "settings": {
       "writeIdentity": "Write the identity to the repository's .git/config",
@@ -1170,7 +1194,7 @@
     },
     "device": {
       "requesting": "Getting a code…",
-      "instructions": "{{url}} is open in your browser and the code below is on your clipboard — paste it there and click Authorize:",
+      "instructions": "{{url}} is open in your browser and the code below is on your clipboard. Paste it there and click Authorize:",
       "code": "Verification code",
       "copy": "Copy code",
       "open": "Copy code and open browser",
@@ -1222,7 +1246,7 @@
     }
   },
   "ssh": {
-    "title": "SSH keys — {{account}}",
+    "title": "SSH keys: {{account}}",
     "description": "SSH keys are used for repositories bound to this account with the SSH transport. The app injects the default key through GIT_SSH_COMMAND, so no host alias is needed in ~/.ssh/config and remotes keep the plain git@host:org/repo.git form.",
     "empty": "This account has no SSH key yet. Generate a new key or import an existing one.",
     "loading": "Loading…",
@@ -1264,11 +1288,11 @@
       "pick": "Choose a private key file",
       "file": "File",
       "passphrase": "Passphrase",
-      "passphraseRequired": "This key is protected by a passphrase — enter it and try again.",
+      "passphraseRequired": "This key is protected by a passphrase. Enter it and try again.",
       "wrongPassphrase": "Wrong passphrase.",
       "alreadyKnown": "This key is already in the account.",
       "alreadyOther": "This key is attached to another account.",
-      "publicMismatch": "The .pub file next to the key does not match the private key — the public key from the private key was used.",
+      "publicMismatch": "The .pub file next to the key does not match the private key. The public key from the private key was used.",
       "note": "Your file is not modified: the app stores a copy in its data folder, readable by the current user only.",
       "submit": "Import",
       "done": "Key imported."
@@ -1281,13 +1305,13 @@
     },
     "uploadResult": {
       "uploaded": "Public key uploaded to the provider.",
-      "alreadyRegistered": "The key is already on this account — marked as uploaded.",
-      "usedByAnotherAccount": "The provider says this key is registered to another account. A key can belong to one user only — generate a new key for this account.",
+      "alreadyRegistered": "The key is already on this account. Marked as uploaded.",
+      "usedByAnotherAccount": "The provider says this key is registered to another account. A key can belong to one user only. Generate a new key for this account.",
       "missingScope": "The token cannot add SSH keys (needs {{scopes}}). Sign in again granting it, or copy the public key and paste it in the provider's SSH settings.",
       "missingScopeUnknown": "The provider refused to add the key: the token lacks permission. Sign in again with SSH key management access, or paste the public key on the provider manually.",
       "tokenPermissionMissing": "The fine-grained token lacks the \"Git SSH keys\" (write) permission. Update the token or paste the public key on the provider manually.",
-      "noToken": "The account has no token — sign in again to upload the key.",
-      "unauthorized": "The token expired or was revoked — sign in again.",
+      "noToken": "The account has no token. Sign in again to upload the key.",
+      "unauthorized": "The token expired or was revoked. Sign in again.",
       "signIn": "Sign in again"
     },
     "testResult": {
@@ -1298,12 +1322,12 @@
       "hostKeyFailed": "The host key of {{host}} could not be verified.",
       "network": "Could not reach {{host}} over SSH (port 22).",
       "passphraseNeeded": "The key needs a passphrase that is not saved.",
-      "unknown": "Unclear result — see details.",
+      "unknown": "Unclear result: see details.",
       "details": "Details"
     },
     "deleteConfirm": {
       "title": "Delete SSH key?",
-      "body": "Removes key {{fingerprint}} from the app: the key file in the app data folder and its passphrase in the keychain. The key stays registered on the provider — remove it there if you no longer use it.",
+      "body": "Removes key {{fingerprint}} from the app: the key file in the app data folder and its passphrase in the keychain. The key stays registered on the provider. Remove it there if you no longer use it.",
       "confirm": "Delete key"
     },
     "error": "Operation failed: {{message}}",
@@ -1314,7 +1338,7 @@
   },
   "onboarding": {
     "title": "Import existing configuration",
-    "subtitle": "Finds identities, rules and SSH keys in ~/.gitconfig, ~/.ssh/config, gh and glab. Read-only — no file is changed.",
+    "subtitle": "Finds identities, rules and SSH keys in ~/.gitconfig, ~/.ssh/config, gh and glab. Read-only: no file is changed.",
     "step": {
       "scan": "Scan",
       "choose": "Choose",
@@ -1354,7 +1378,7 @@
     "keyKnown": "Already in the app",
     "passphrase": "Passphrase (if the key has one)",
     "signInAgain": "Sign in again",
-    "signInNote": "The app does not reuse gh/glab tokens — sign in again to add the account.",
+    "signInNote": "The app does not reuse gh/glab tokens. Sign in again to add the account.",
     "plainToken": "The CLI stores this token in plain text in its config file.",
     "active": "active",
     "unknownUser": "(unknown user)",
@@ -1376,7 +1400,7 @@
       "failed": "Failed"
     },
     "code": {
-      "passphraseRequired": "The key has a passphrase — enter it and try again",
+      "passphraseRequired": "The key has a passphrase. Enter it and try again",
       "wrongPassphrase": "Wrong passphrase",
       "keyOfAnotherAccount": "The key belongs to another account",
       "identityNotFound": "The rule's identity was not found",
@@ -1395,7 +1419,7 @@
   "clone": {
     "open": "Clone repository…",
     "title": "Clone repository",
-    "description": "Pick a repository from any account, or paste a URL — the matching account is guessed.",
+    "description": "Pick a repository from any account, or paste a URL. The matching account is guessed.",
     "searchPlaceholder": "Search repositories in every account…",
     "accountFilter": "Account filter",
     "allAccounts": "Account: All",
@@ -1404,9 +1428,9 @@
     "count_one": "{{count}} of {{total}} repository",
     "refresh": "Refresh",
     "listLabel": "Repositories",
-    "emptyNoAccounts": "No repositories yet — sign in to an account, or paste a URL below.",
+    "emptyNoAccounts": "No repositories yet. Sign in to an account, or paste a URL below.",
     "noMatch": "No repository matches the search.",
-    "more": "{{count}} more — refine the search",
+    "more": "{{count}} more: refine the search",
     "listError": "Could not load {{account}}: {{reason}}",
     "listErrorCode": {
       "noToken": "no token, sign in again",
@@ -1428,7 +1452,7 @@
     "urlPlaceholder": "https://… or git@host:owner/repo.git",
     "guessOne": "→ account: {{account}}",
     "guessMany": "→ {{count}} accounts can clone this: choose one",
-    "guessNone": "No account for this host — git's own credentials will be used.",
+    "guessNone": "No account for this host. Git's own credentials will be used.",
     "account": "Account",
     "noAccount": "No account (git defaults)",
     "suggested": "suggested",
@@ -1486,9 +1510,9 @@
       "unboundTitle": "This repository is not bound to an account",
       "unboundDesc": "The commit will use the identity from your git configuration.",
       "unverifiedTitle": "Unverified email",
-      "unverified": "{{email}} is not verified on the account {{label}} — the commit will not be linked to your profile.",
+      "unverified": "{{email}} is not verified on the account {{label}}. The commit will not be linked to your profile.",
       "signingTitle": "Missing signing key",
-      "signing": "The repository enables commit.gpgsign but no user.signingkey is configured — the commit may fail or not be signed.",
+      "signing": "The repository enables commit.gpgsign but no user.signingkey is configured. The commit may fail or not be signed.",
       "switchTo": "Switch to {{label}}",
       "commitAnyway": "Commit anyway"
     },
@@ -1498,7 +1522,7 @@
       "summary_other": "{{count}} commits will be pushed to {{remote}}/{{branch}}",
       "newBranch": "(new branch on the remote)",
       "identity": "Current identity: {{email}}",
-      "permissionDenied": "The account {{label}} cannot push to this remote (access: {{level}}). The push will be rejected — switch accounts or ask for write access.",
+      "permissionDenied": "The account {{label}} cannot push to this remote (access: {{level}}). The push will be rejected. Switch accounts or ask for write access.",
       "permissionDeniedNoLabel": "The account in use cannot push to this remote. The push will be rejected.",
       "permissionUnknown": "Push permission could not be checked ({{reason}}).",
       "authorsTitle_one": "{{count}} commit has a different author than the current identity",
@@ -1508,7 +1532,7 @@
       "fixAll_one": "Fix author of {{count}} unpushed commit",
       "fixAll_other": "Fix author of {{count}} unpushed commits",
       "fixNotCurrent": "Check out {{branch}} before fixing",
-      "fixShared": "Some commits are already on another remote branch — shared history is never rewritten",
+      "fixShared": "Some commits are already on another remote branch. Shared history is never rewritten",
       "fixLastUnavailable": "The last commit already has the right author or is pushed",
       "sharedCommit": "pushed",
       "blobsTitle_one": "{{count}} file exceeds the provider's limits",
@@ -1539,34 +1563,35 @@
     "notFound": "The branch, tag, commit or repository no longer exists. Click Fetch to refresh from the server, or check the remote URL.",
     "alreadyExists": "A branch/tag with that name already exists. Choose another name, or delete the old one first if you are sure it is not needed.",
     "currentBranch": "You cannot delete/rename the checked-out branch. Switch to another branch (e.g. main) first.",
-    "notFullyMerged": "The branch has commits that are not merged anywhere — deleting it loses them. If you are sure, choose force delete.",
+    "notFullyMerged": "The branch has commits that are not merged anywhere. Deleting it loses them. If you are sure, choose force delete.",
     "localChanges": "Uncommitted changes would be overwritten. Safe options: Commit them, or click Stash to put them aside and Pop them back later.",
     "untrackedFiles": "New (never committed) files have the same names as files about to be created. Commit them, stash them (tick 'include new files') or move them elsewhere.",
     "unmergedFiles": "Some files are still in conflict. Open each one under Conflicts, choose what to keep, mark it resolved, then click Continue.",
     "operationInProgress": "A merge/rebase/cherry-pick is in progress. Use the banner above to Continue (after resolving conflicts) or Abort to go back.",
-    "noOperation": "Nothing is in progress — no action needed.",
+    "noOperation": "Nothing is in progress. No action needed.",
     "nothingToCommit": "Nothing is staged. Stage files under 'Unstaged' first, or the change is already in the history.",
     "nonFastForward": "The server has commits you do not have yet. Click Pull to get them (resolve conflicts if any), then Push again. Avoid force push unless you are sure.",
     "staleLease": "Someone pushed to this branch after your last Fetch, so force push was stopped to avoid deleting their commits. Fetch, review the history, then decide.",
     "remoteRejected": "The server refused the change (usually a hook or a repository rule). Open 'Technical details' below to see the reason the server gave.",
     "authFailed": "The sign-in of {{account}} is no longer valid (token expired or revoked). Sign in again to get a new token.",
     "connectionFailed": "Could not reach the server. Check your network/VPN/proxy and the remote URL, then try again.",
-    "noUpstream": "This branch is not linked to a branch on the server yet. Click Push — the app creates the remote branch and sets the upstream.",
+    "noUpstream": "This branch is not linked to a branch on the server yet. Click Push: the app creates the remote branch and sets the upstream.",
     "detachedHead": "You are on a single commit, not on a branch (detached HEAD). Create a branch here or check out an existing branch first.",
     "permissionDenied": "{{account}} is signed in but cannot write to this repository. Switch to an account that can (account pill at the top), or ask the owner to add you as a collaborator.",
-    "workflowScope": "You are pushing files under .github/workflows/ (GitHub Actions). GitHub requires the 'workflow' permission for that, and the current token of {{account}} does not have it. Click the button below to sign in again — GitHub asks you to grant the extra permission; click Authorize, then Push again. With a personal access token (PAT), create a new one with 'workflow' ticked.",
+    "workflowScope": "You are pushing files under .github/workflows/ (GitHub Actions). GitHub requires the 'workflow' permission for that, and the current token of {{account}} does not have it. Click the button below to sign in again. GitHub asks you to grant the extra permission; click Authorize, then Push again. With a personal access token (PAT), create a new one with 'workflow' ticked.",
     "protectedBranch": "The repository owner protects this branch (no direct push, no force push or reviews required). Create a new branch, push it and open a Pull Request / Merge Request.",
     "emailPrivacy": "You enabled 'Block command line pushes that expose my email' on GitHub. Change the identity's email to your …@users.noreply.github.com address (see GitHub Settings → Emails), fix the author of the unpushed commits, then Push again.",
     "secretDetected": "An unpushed commit contains a password, API key or token. Remove it from the file, rewrite the commit (Amend, or reset before that commit and commit again), revoke/rotate the leaked secret, then Push again.",
     "fileTooLarge": "GitHub does not accept files over 100 MB. Use Git LFS for that file: Push Guard offers 'Move to LFS' for unpushed commits.",
     "action": {
+      "signIn": "Sign in to {{name}}",
       "reauth": "Sign in to {{account}} again",
       "accounts": "Open account manager",
       "emailSettings": "Open GitHub email settings"
     },
     "pushedCommits": "Rewriting pushed commits only changes the history on your computer; updating the remote afterwards needs a force push, which can cause trouble for anyone using those commits. If you are sure (e.g. only you use this branch), open the dialog again and tick “I understand, rewrite anyway”. Otherwise, pick only commits that are not pushed yet.",
     "checkedOutElsewhere": "Git allows a branch in only one worktree at a time. Open that worktree (sidebar → Worktrees) and work there, switch it to another branch, or remove it.",
-    "dirtyWorktree": "It contains modified or new files. Open it, commit or stash them, then try again — or choose the force option to discard them.",
+    "dirtyWorktree": "It contains modified or new files. Open it, commit or stash them, then try again. Or choose the force option to discard them.",
     "worktreeLocked": "Unlock it first (sidebar → Worktrees → right-click → Unlock), then try again.",
     "signingFailed": "The identity of {{account}} signs commits, but the key did not work. Open Accounts → the identity → Test signing: check the key exists (GPG: gpg --list-secret-keys; SSH: the .pub file), or turn signing off for that identity."
   },
@@ -1626,11 +1651,11 @@
     },
     "noCommits": {
       "title": "The branch has no commit to push yet",
-      "hint": "Commit first: pick files in the Changes panel, write a message and click Commit — then push.",
+      "hint": "Commit first: pick files in the Changes panel, write a message and click Commit. Then push.",
       "fix": "Write a commit"
     },
     "fileBusy": {
-      "title": "Could not write a file — it is open in another program",
+      "title": "Could not write a file. It is open in another program",
       "hint": "A file is open (editor, game engine, image viewer…) or read-only, so git cannot write or delete it. Close that program, then click Try again."
     }
   },
@@ -1645,7 +1670,7 @@
     "push": "Push",
     "setUpstream": "Set upstream",
     "unsetUpstream": "Remove upstream",
-    "noRemoteBranches": "No remote branches — fetch first.",
+    "noRemoteBranches": "No remote branches. Fetch first.",
     "checkout": "Checkout {{name}}",
     "worktree": "Create worktree from {{name}}…",
     "createBranchHere": "Create branch here…",
@@ -1686,13 +1711,13 @@
       "title": "Rebase {{branch}} onto {{onto}}",
       "hint": "The commits of {{branch}} that {{onto}} does not have are replayed on top of {{onto}} (as new commits). A backup is made first, so you can always undo.",
       "loading": "Checking…",
-      "checkoutFirst": "{{branch}} is not checked out — the app checks it out first.",
+      "checkoutFirst": "{{branch}} is not checked out. The app checks it out first.",
       "commits_one": "{{count}} commit will be rewritten:",
       "commits_other": "{{count}} commits will be rewritten:",
       "more": "… and {{count}} more",
-      "upToDate": "{{branch}} already contains {{onto}} — nothing to rebase.",
+      "upToDate": "{{branch}} already contains {{onto}}. Nothing to rebase.",
       "fastForward": "{{branch}} is only behind {{onto}}: the rebase just fast-forwards, no commit is rewritten.",
-      "merges": "There are {{count}} merge commits in this range — a plain rebase flattens them (drops the merge commits, keeps the changes).",
+      "merges": "There are {{count}} merge commits in this range. A plain rebase flattens them (drops the merge commits, keeps the changes).",
       "pushedWarn": "{{count}} of these commits are already on a remote. Rewriting them only changes the history on your computer; updating the remote needs a force push, and anyone using these commits may run into trouble.",
       "pushedConfirm": "I understand, rewrite the pushed commits anyway",
       "dirtyWarn": "You have uncommitted changes. Commit or stash them first, or turn on the option below.",
@@ -1712,12 +1737,12 @@
       "dragHandle": "Drag to reorder {{oid}}",
       "row": "{{oid}} {{subject}}",
       "action": {
-        "pick": "pick — keep as is",
-        "reword": "reword — change the message",
-        "squash": "squash — meld into the commit above, combine messages",
-        "fixup": "fixup — meld into the commit above, drop this message",
-        "drop": "drop — remove the commit",
-        "edit": "edit — stop here to amend it"
+        "pick": "pick: keep as is",
+        "reword": "reword: change the message",
+        "squash": "squash: meld into the commit above, combine messages",
+        "fixup": "fixup: meld into the commit above, drop this message",
+        "drop": "drop: remove the commit",
+        "edit": "edit: stop here to amend it"
       },
       "messageLabel": "New message for {{oid}}",
       "squashLabel": "Message of the combined commit",
@@ -1733,24 +1758,24 @@
       "previewDropped_one": "{{count}} commit dropped",
       "previewDropped_other": "{{count}} commits dropped",
       "unchanged": "Nothing changed yet.",
-      "errorSquashFirst": "The first kept commit cannot be squashed / fixed up — there is no commit above it to meld into.",
+      "errorSquashFirst": "The first kept commit cannot be squashed / fixed up. There is no commit above it to meld into.",
       "errorEmptyMessage": "The message of {{oid}} is empty.",
-      "mergesBlocked": "This range contains merge commits — drag-and-drop interactive rebase does not support that yet. Pick a commit newer than the last merge commit.",
-      "tooMany": "There are {{count}} commits — too many to edit here (at most {{max}}). Pick a commit closer to HEAD.",
+      "mergesBlocked": "This range contains merge commits. Drag-and-drop interactive rebase does not support that yet. Pick a commit newer than the last merge commit.",
+      "tooMany": "There are {{count}} commits. Too many to edit here (at most {{max}}). Pick a commit closer to HEAD.",
       "pushedBadge": "This commit is already on a remote",
       "start": "Start rebase"
     },
     "done": "Rebased {{branch}}.",
-    "doneAutostashConflict": "Rebased {{branch}}, but the stashed changes did not apply cleanly — they are safe in the stash.",
+    "doneAutostashConflict": "Rebased {{branch}}, but the stashed changes did not apply cleanly. They are safe in the stash.",
     "upToDate": "{{branch}} is up to date, nothing to rebase.",
     "stopped": "The rebase stopped at step {{step}}/{{total}} so you can edit the commit. When done (you may amend), press Continue in the yellow bar.",
-    "stoppedOther": "The rebase is paused — use the yellow bar above to Continue, Skip or Abort.",
-    "conflicts_one": "The rebase stopped on conflicts in {{count}} file — resolve, stage, then Continue, or Skip this commit / Abort.",
-    "conflicts_other": "The rebase stopped on conflicts in {{count}} files — resolve, stage, then Continue, or Skip this commit / Abort.",
+    "stoppedOther": "The rebase is paused. Use the yellow bar above to Continue, Skip or Abort.",
+    "conflicts_one": "The rebase stopped on conflicts in {{count}} file. Resolve, stage, then Continue, or Skip this commit / Abort.",
+    "conflicts_other": "The rebase stopped on conflicts in {{count}} files. Resolve, stage, then Continue, or Skip this commit / Abort.",
     "banner": {
       "title": "Rebase step {{step}}/{{total}}",
       "titleNoStep": "Rebase in progress",
-      "stoppedEdit": "no conflicts left — amend the commit if you like, then press Continue",
+      "stoppedEdit": "no conflicts left, amend the commit if you like, then press Continue",
       "skip": "Skip this commit",
       "skipTip": "Drop the commit being applied (git rebase --skip) and go on"
     },
@@ -1768,10 +1793,10 @@
     "nothingRedo": "Nothing to redo",
     "blocked": {
       "stateChanged": "The repository changed since this operation, so it cannot be undone automatically.",
-      "operationInProgress": "An operation (merge, rebase…) is in progress — finish or abort it first.",
+      "operationInProgress": "An operation (merge, rebase…) is in progress. Finish or abort it first.",
       "unsupported": "This operation cannot be undone."
     },
-    "pushedNote": "These commits are already on a remote — undo only changes your computer.",
+    "pushedNote": "These commits are already on a remote. Undo only changes your computer.",
     "op": {
       "commit": "commit “{{subject}}”",
       "amend": "amend “{{subject}}”",
@@ -1834,56 +1859,56 @@
     },
     "origin": {
       "merge": {
-        "ours": "Mine — current branch {{branch}}",
-        "theirs": "Theirs — branch {{name}} being merged in",
+        "ours": "Mine: current branch {{branch}}",
+        "theirs": "Theirs: branch {{name}} being merged in",
         "oursShort": "mine ({{branch}})",
         "theirsShort": "theirs ({{name}})",
         "explain": "You are merging {{name}} into {{branch}}. “Mine” (git calls it ours) is the content on your current branch {{branch}}; “theirs” is the content from {{name}}."
       },
       "mergeSquash": {
-        "ours": "Mine — current branch {{branch}}",
-        "theirs": "Theirs — the changes being squashed in",
+        "ours": "Mine: current branch {{branch}}",
+        "theirs": "Theirs: the changes being squashed in",
         "oursShort": "mine ({{branch}})",
         "theirsShort": "theirs",
         "explain": "You are squashing (merge --squash) another branch's changes into {{branch}}. “Mine” (ours) is the current {{branch}}; “theirs” is the incoming changes."
       },
       "rebase": {
-        "ours": "Target — {{onto}} (what you are rebasing onto)",
-        "theirs": "Your commit being replayed — {{commit}} from {{mine}}",
+        "ours": "Target: {{onto}} (what you are rebasing onto)",
+        "theirs": "Your commit being replayed: {{commit}} from {{mine}}",
         "oursShort": "{{onto}}'s version",
         "theirsShort": "your commit",
-        "explain": "Careful during a rebase: git SWAPS the sides compared to a merge. “ours” is {{onto}} — the branch you are rebasing onto (plus the commits already replayed); “theirs” is your own commit {{commit}} from {{mine}}. To keep your code, pick “your commit”."
+        "explain": "Careful during a rebase: git SWAPS the sides compared to a merge. “ours” is {{onto}}, the branch you are rebasing onto (plus the commits already replayed); “theirs” is your own commit {{commit}} from {{mine}}. To keep your code, pick “your commit”."
       },
       "cherryPick": {
-        "ours": "Mine — current branch {{branch}}",
-        "theirs": "Commit being cherry-picked — {{commit}}",
+        "ours": "Mine: current branch {{branch}}",
+        "theirs": "Commit being cherry-picked: {{commit}}",
         "oursShort": "mine ({{branch}})",
         "theirsShort": "commit {{commit}}",
         "explain": "You are cherry-picking commit {{commit}} onto {{branch}}. “Mine” (ours) is the current {{branch}}; “theirs” is the change brought by commit {{commit}}."
       },
       "revert": {
-        "ours": "Current version — {{branch}}",
+        "ours": "Current version: {{branch}}",
         "theirs": "Version with {{commit}} undone",
         "oursShort": "current version",
         "theirsShort": "{{commit}} undone",
         "explain": "You are reverting (undoing) commit {{commit}}. “Ours” is the current code on {{branch}}; “theirs” is the code with the changes of {{commit}} taken out."
       },
       "stash": {
-        "ours": "Current version — {{branch}}",
+        "ours": "Current version: {{branch}}",
         "theirs": "Changes from the stash",
         "oursShort": "current version",
         "theirsShort": "stashed version",
-        "explain": "You are bringing back stashed changes. “Ours” is the current code on {{branch}}; “theirs” is what you stashed. On conflicts git keeps the stash — drop it once everything is resolved if you no longer need it."
+        "explain": "You are bringing back stashed changes. “Ours” is the current code on {{branch}}; “theirs” is what you stashed. On conflicts git keeps the stash. Drop it once everything is resolved if you no longer need it."
       },
       "applyMailbox": {
-        "ours": "Current version — {{branch}}",
+        "ours": "Current version: {{branch}}",
         "theirs": "Patch being applied",
         "oursShort": "current version",
         "theirsShort": "the patch",
         "explain": "You are applying a patch (git am) onto {{branch}}. “Ours” is the current code; “theirs” is the content of the patch."
       },
       "unknown": {
-        "ours": "Mine (HEAD — {{branch}})",
+        "ours": "Mine (HEAD, {{branch}})",
         "theirs": "Theirs (incoming)",
         "oursShort": "mine",
         "theirsShort": "theirs",
@@ -1891,12 +1916,12 @@
       }
     },
     "result": "Result",
-    "resultHint": "what will be saved — pick per block or edit it directly",
+    "resultHint": "what will be saved. Pick per block or edit it directly",
     "blockToolbar": "Conflict blocks",
     "block": "Block {{index}}/{{total}}",
     "blocksLeft_one": "{{count}} block left",
     "blocksLeft_other": "{{count}} blocks left",
-    "noBlocks": "No conflict blocks left — check the result, then Save.",
+    "noBlocks": "No conflict blocks left. Check the result, then Save.",
     "noBlockHere": "Put the cursor in a block, or use ‹ › to go to the next one.",
     "prev": "Previous block",
     "next": "Next block",
@@ -1917,14 +1942,14 @@
     "sideDeleted": "{{side}} deleted this file.",
     "sideSize": "Size: {{size}}",
     "paneBinary": "Content cannot be shown (binary or too large).",
-    "binaryHint": "Binary files (images, archives, LFS…) cannot be merged line by line — look at both versions and keep one.",
-    "notEditable": "The file is not UTF-8 text or is too large to edit here — keep one side as a whole.",
-    "wholeFileHint": "One side deleted this file or only one side has it — keep the file (from the side that has it) or accept the deletion.",
+    "binaryHint": "Binary files (images, archives, LFS…) cannot be merged line by line. Look at both versions and keep one.",
+    "notEditable": "The file is not UTF-8 text or is too large to edit here. Keep one side as a whole.",
+    "wholeFileHint": "One side deleted this file or only one side has it. Keep the file (from the side that has it) or accept the deletion.",
     "alreadyResolved": "This file has no conflict any more (already resolved).",
-    "resolvedNext_one": "Resolved {{path}}. {{count}} conflicted file left — opened the next one.",
-    "resolvedNext_other": "Resolved {{path}}. {{count}} conflicted files left — opened the next one.",
+    "resolvedNext_one": "Resolved {{path}}. {{count}} conflicted file left. Opened the next one.",
+    "resolvedNext_other": "Resolved {{path}}. {{count}} conflicted files left. Opened the next one.",
     "allResolved": "All conflicts are resolved. Click “Continue” in the yellow bar above to finish the {{op}} (or “Abort” to go back to how things were).",
-    "allResolvedNoOp": "All conflicts are resolved. The files are staged — you can commit as usual now.",
+    "allResolvedNoOp": "All conflicts are resolved. The files are staged. You can commit as usual now.",
     "cmdResolve": "Resolve conflicts…"
   },
   "fileHistory": {
@@ -1949,9 +1974,9 @@
     "cmdPlaceholder": "Path of a file in the repository, e.g. src/main.rs",
     "cmdInvalid": "Enter a relative path inside the repository",
     "fileMissing": "The file does not exist in this commit.",
-    "fileBinary": "Binary file — content not shown.",
+    "fileBinary": "Binary file: content not shown.",
     "fileTooLarge": "The file is too large to show ({{size}}).",
-    "lfsPointerNote": "This file is stored with Git LFS — this is the pointer file (oid {{oid}}…, real content {{size}})."
+    "lfsPointerNote": "This file is stored with Git LFS. This is the pointer file (oid {{oid}}…, real content {{size}})."
   },
   "blame": {
     "title": "Blame {{path}}",
@@ -1962,7 +1987,7 @@
     "atWorktree": "Working tree",
     "uncommitted": "Not committed yet",
     "tooLarge": "The file is too large to blame (over 5 MB).",
-    "binary": "Binary file — cannot blame.",
+    "binary": "Binary file: cannot blame.",
     "empty": "Empty file.",
     "parent": "Blame at parent commit",
     "parentTitle": "Blame at the parent commit: these lines before {{oid}} changed them",
@@ -2007,7 +2032,7 @@
       "host": "Network access as {{account}} (account on this server)",
       "fallback": "Network access as {{account}} (no account matches this server)",
       "none": "Network access with git's own credentials ({{account}})",
-      "mismatch": "No account for this server: {{account}} is used but cannot sign in there — private submodules will fail. Add an account for that server."
+      "mismatch": "No account for this server: {{account}} is used but cannot sign in there. Private submodules will fail. Add an account for that server."
     },
     "state": {
       "uninitialized": "not downloaded",
@@ -2032,14 +2057,14 @@
     "updated_one": "{{count}} submodule updated",
     "updated_other": "{{count}} submodules updated",
     "nothingToUpdate": "Submodules are already up to date",
-    "added": "Submodule {{path}} added — commit .gitmodules and the new folder to share it",
+    "added": "Submodule {{path}} added. Commit .gitmodules and the new folder to share it",
     "synced": "Submodule URLs synced",
     "deinited": "{{path}} was emptied (deinit). Use Download to get it back.",
-    "removed": "{{path}} was removed — commit the change to share it",
+    "removed": "{{path}} was removed. Commit the change to share it",
     "deinitTitle": "Deinit {{path}}?",
     "deinitBody": "The submodule's folder is emptied and its URL forgotten in this clone. .gitmodules does not change; you can download it again any time.",
     "removeTitle": "Remove submodule {{path}}?",
-    "removeBody": "The submodule is removed from the repository (.gitmodules and the folder). The change is staged — commit it to share it.",
+    "removeBody": "The submodule is removed from the repository (.gitmodules and the folder). The change is staged. Commit it to share it.",
     "forceTitle": "{{path}} has uncommitted changes",
     "forceBody": "The submodule contains modified or new files. Continuing discards them for good. To keep them, open the submodule as a tab and commit or stash first.",
     "forceConfirm": "Discard and continue",
@@ -2060,7 +2085,7 @@
     "main": "Main worktree (holds the .git folder)",
     "lockedTitle": "Locked: {{reason}}",
     "noReason": "no reason given",
-    "prunableTitle": "The folder is gone — Prune removes this entry",
+    "prunableTitle": "The folder is gone. Prune removes this entry",
     "detached": "detached @ {{oid}}",
     "open": "Open as a tab",
     "copyPath": "Copy path",
@@ -2073,7 +2098,7 @@
     "prune": "Prune",
     "pruneHint": "Removes entries whose folder was deleted by hand",
     "addTitle": "Add worktree",
-    "addDesc": "A worktree is a second folder of the same repository with another branch checked out — work on two branches at once without stashing.",
+    "addDesc": "A worktree is a second folder of the same repository with another branch checked out. Work on two branches at once without stashing.",
     "mode": {
       "newBranch": "New branch",
       "branch": "Existing branch"
@@ -2111,18 +2136,18 @@
     "you": "you",
     "byYou": "Locked by you",
     "byOther": "Locked by {{owner}}",
-    "editingLocked": "Locked by {{owner}} — you changed this file but cannot push it until they unlock it. Ask them, or discard your change.",
+    "editingLocked": "Locked by {{owner}}. You changed this file but cannot push it until they unlock it. Ask them, or discard your change.",
     "lock": "Lock",
     "unlock": "Unlock",
     "forceUnlock": "Force unlock…",
     "forceTitle": "Force unlock {{path}}?",
-    "forceBody": "{{owner}} holds this lock and may be editing the file. Force unlock only if they agree or left the project — their work may conflict with yours. Needs admin/maintainer rights on the server.",
-    "lockedOk": "{{path}} locked — others now see it as yours",
+    "forceBody": "{{owner}} holds this lock and may be editing the file. Force unlock only if they agree or left the project. Their work may conflict with yours. Needs admin/maintainer rights on the server.",
+    "lockedOk": "{{path}} locked: others now see it as yours",
     "unlockedOk": "{{path}} unlocked",
     "forceUnlockedOk": "Lock on {{path}} removed",
     "markedLockable": "{{pattern}} is now lockable (files are read-only until locked)",
     "unmarkedLockable": "{{pattern}} is no longer lockable",
-    "lockableHint": "Lockable patterns keep matching files read-only until someone locks them — useful for binary files that cannot be merged (.psd, .fbx…). Commit .gitattributes after changing it.",
+    "lockableHint": "Lockable patterns keep matching files read-only until someone locks them. Useful for binary files that cannot be merged (.psd, .fbx…). Commit .gitattributes after changing it.",
     "loading": "Loading locks…",
     "none": "No file is locked",
     "unverified": "The server did not confirm which locks are yours; ownership was guessed from the account's user name.",
@@ -2195,9 +2220,9 @@
       "untrusted": "Good signature, but the GPG key is not marked as trusted on this machine.",
       "expired": "The signature is valid but has expired.",
       "expiredKey": "Signed with a key that has expired since.",
-      "revoked": "Signed with a key that was revoked — do not trust it.",
+      "revoked": "Signed with a key that was revoked. Do not trust it.",
       "unknownKey": "Signed, but this machine does not know the key (import the signer's GPG key, or SSH keys only verify for your identities).",
-      "bad": "The signature does not match the commit — it may have been tampered with.",
+      "bad": "The signature does not match the commit. It may have been tampered with.",
       "unsigned": "This commit is not signed."
     },
     "kind": {
@@ -2209,7 +2234,7 @@
     "pickGpg": "Choose a GPG key…",
     "pickSsh": "Choose an SSH key of this account…",
     "noGpgKeys": "No GPG secret key found (create one with gpg --full-generate-key)",
-    "noSshKeys": "This account has no SSH key — create one in SSH keys, or choose a .pub file",
+    "noSshKeys": "This account has no SSH key. Create one in SSH keys, or choose a .pub file",
     "cannotSign": "cannot sign",
     "gpgMissing": "gpg could not be started ({{program}}). Install GnuPG (Gpg4win) or set gpg.program.",
     "loading": "Loading…",
@@ -2277,8 +2302,8 @@
       "recheck": "Check again",
       "install": "Install it for me",
       "download": "Open official download page",
-      "gitRequired": "Git is missing — the app needs it for everything. Click \"Install it for me\" or download it from the official page, then click \"Check again\".",
-      "gitTooOld": "Your Git is too old. Version {{min}} or newer is needed — click \"Install it for me\" to update, then \"Check again\".",
+      "gitRequired": "Git is missing. The app needs it for everything. Click \"Install it for me\" or download it from the official page, then click \"Check again\".",
+      "gitTooOld": "Your Git is too old. Version {{min}} or newer is needed. Click \"Install it for me\" to update, then \"Check again\".",
       "restartNeeded": "The tool you just installed was found, but the app cannot use it yet (it must restart to pick up the new path).",
       "restart": "Restart the app",
       "managerMissing": {
@@ -2327,8 +2352,8 @@
     },
     "state": {
       "ok": "Installed and working.",
-      "outdated": "Too old — version {{min}} or newer is needed.",
-      "outsidePath": "Installed, but the app does not see it yet — restart the app to use it.",
+      "outdated": "Too old: version {{min}} or newer is needed.",
+      "outsidePath": "Installed, but the app does not see it yet. Restart the app to use it.",
       "missing": {
         "required": "Not installed. This is required.",
         "recommended": "Not installed. The app works, but some features are unavailable.",
@@ -2364,7 +2389,7 @@
         "userCancelled": "The installation was cancelled (perhaps \"No\" was clicked on the permission prompt). Click \"Install it for me\" again and choose \"Yes\".",
         "needsAdmin": "Administrator rights are needed to install. Ask the computer's administrator, or download the installer from the official page.",
         "managerMissing": "{{manager}} could not be run on this computer. Use \"Open official download page\".",
-        "network": "Could not download the installer — check your network connection and try again.",
+        "network": "Could not download the installer. Check your network connection and try again.",
         "packageNotFound": "{{manager}} could not find the package. Use \"Open official download page\".",
         "timedOut": "The installation took too long and was stopped. Try again or download it from the official page.",
         "failed": "The installation did not succeed. See \"Technical details\" below, or download the installer from the official page."
@@ -2407,14 +2432,14 @@
     },
     "upToDate": "You're on the latest version ({{version}}).",
     "notConfigured": "Automatic updates are not enabled in this build.",
-    "notConfiguredHint": "You can still download the new version from the project's Releases page and install it over this one — your data and accounts are kept.",
+    "notConfiguredHint": "You can still download the new version from the project's Releases page and install it over this one. Your data and accounts are kept.",
     "notConfiguredNoRepo": "This build does not know where its releases are published (common for builds made from source). Update by rebuilding or by installing a newer installer.",
     "action": {
       "openReleases": "Open Releases page"
     },
     "channel": {
       "stable": "Stable (recommended)",
-      "beta": "Beta — try new features",
+      "beta": "Beta: try new features",
       "stableHint": "Only official releases.",
       "betaHint": "Also beta versions: new features earlier, but they may still have bugs."
     },
@@ -2452,7 +2477,7 @@
       "noRelease": "No release supports automatic updates yet",
       "noBuildForPlatform": "The new version has no update package for your computer yet",
       "badManifest": "The update information on GitHub is broken",
-      "badSignature": "The update package is not properly signed — stopped to protect your computer",
+      "badSignature": "The update package is not properly signed. Stopped to protect your computer",
       "downloadFailed": "Downloading the update failed",
       "notConfigured": "Automatic updates are not enabled in this build",
       "noPendingUpdate": "The selected update could not be found",
@@ -2462,16 +2487,16 @@
     },
     "errorHelp": {
       "offline": "Check your Internet connection (or your company proxy/VPN), then click “Check for updates” again.",
-      "noRelease": "Nothing to do — the app tells you when a new version is out. You can also look at the Releases page.",
+      "noRelease": "Nothing to do. The app tells you when a new version is out. You can also look at the Releases page.",
       "noBuildForPlatform": "Usually the release was just published and the package for your OS is still uploading. Try again in a few minutes, or download the installer from the Releases page.",
       "badManifest": "This is a problem on the publisher's side, not your computer. Try again later, or download the installer from the Releases page.",
       "badSignature": "The downloaded file does not match the project's signature, so it was not installed. Try again later; if it keeps failing, download the installer from the Releases page and tell the developers.",
       "downloadFailed": "The connection may have dropped. Click “Try again” to download it again.",
       "notConfigured": "Download the new installer from the project's Releases page and install it over this version.",
       "noPendingUpdate": "Click “Check for updates” to look for the latest version again.",
-      "busy": "Wait for the running update to finish — the app restarts by itself.",
+      "busy": "Wait for the running update to finish. The app restarts by itself.",
       "cancelled": "Click “Try again” and enter your computer password when asked to install the update.",
-      "failed": "Try again. If it keeps failing, download the new installer from the Releases page and install it over this version — your data is kept."
+      "failed": "Try again. If it keeps failing, download the new installer from the Releases page and install it over this version. Your data is kept."
     }
   },
   "storage": {
@@ -2515,8 +2540,8 @@
     "moveNow": "Move now",
     "schedule": "Move on restart",
     "moved": "Moved {{kind}} to {{path}}.",
-    "oldFilesLeft_one": "{{count}} old file could not be deleted (open in another program?) — you can delete it by hand.",
-    "oldFilesLeft_other": "{{count}} old files could not be deleted (open in another program?) — you can delete them by hand.",
+    "oldFilesLeft_one": "{{count}} old file could not be deleted (open in another program?). You can delete it by hand.",
+    "oldFilesLeft_other": "{{count}} old files could not be deleted (open in another program?). You can delete them by hand.",
     "moveFailed": "The move failed. The old data is still where it was; nothing was lost.",
     "dataScheduled": "App data will be moved to {{path}}. Restart the app to finish.",
     "phase": {
@@ -2531,7 +2556,7 @@
     "pendingCancelled": "The app data move was cancelled.",
     "pendingRow": "Will move to {{path}} on the next start",
     "restartTitle": "Restart the app?",
-    "restartBody": "The app closes, moves the data and opens again. Anything running (clone, push, pull, terminals) is stopped — wait for it to finish first.",
+    "restartBody": "The app closes, moves the data and opens again. Anything running (clone, push, pull, terminals) is stopped. Wait for it to finish first.",
     "clearCacheTitle": "Clear all cache?",
     "clearCacheBody": "No data is lost: your accounts, settings and code stay as they are. The next start is a bit slower while repository lists, avatars and the graph are loaded again.",
     "pruneLogsTitle": "Delete old logs?",
@@ -2545,7 +2570,7 @@
     "cleanError": "Could not clean up",
     "openFailed": "Could not open the folder",
     "cloneTitle": "Default clone folder: per account",
-    "cloneHint": "That is your code — the app never deletes it. Change it in Manage accounts.",
+    "cloneHint": "That is your code. The app never deletes it. Change it in Manage accounts.",
     "openAccounts": "Manage accounts",
     "lowSpace": "Only {{free}} free on the drive holding the app data",
     "lowSpaceHint": "When the drive is full the app may fail to save accounts, settings or logs. Free up some space, or move the app data to another drive in Settings → Storage. (In use: {{path}})",
@@ -2560,20 +2585,20 @@
       "notEnoughSpace": "Not enough space on the target drive: about {{needed}} needed but only {{free}} free. Free up space or choose another drive."
     },
     "warning": {
-      "pointerUnreadable": "Could not read the storage location settings — using the default folders for now",
+      "pointerUnreadable": "Could not read the storage location settings. Using the default folders for now",
       "pointerUnreadableHint": "Open Settings → Storage to choose the folders again; the settings file is rewritten when you change one.",
       "missingFolder": "{{kind}} folder not found: {{path}}",
       "missingFolderHint": "A removable drive may be unplugged. The app uses {{fallback}} for now. Plug the drive back in and restart the app, or choose another folder in Settings → Storage.",
       "dataMoved": "App data moved to {{to}}.",
       "dataMoveFailed": "Could not move the app data to {{to}}",
       "dataMoveFailedHint": "Nothing was lost: the app still uses the data in {{from}}. You can try again in Settings → Storage.",
-      "oldFilesLeft_one": "{{count}} old file in {{path}} could not be deleted — you can delete it by hand.",
-      "oldFilesLeft_other": "{{count}} old files in {{path}} could not be deleted — you can delete them by hand."
+      "oldFilesLeft_one": "{{count}} old file in {{path}} could not be deleted. You can delete it by hand.",
+      "oldFilesLeft_other": "{{count}} old files in {{path}} could not be deleted. You can delete them by hand."
     }
   },
   "cliSync": {
-    "title": "Found {{count}} accounts signed in with a CLI — add them to the app",
-    "title_one": "Found {{count}} account signed in with a CLI — add it to the app",
+    "title": "Found {{count}} accounts signed in with a CLI. Add them to the app",
+    "title_one": "Found {{count}} account signed in with a CLI. Add it to the app",
     "titleDone": "Accounts from the gh / glab CLI",
     "description": "These accounts are signed in with GitHub CLI (gh) or GitLab CLI (glab) on this computer. Add them to use them right away, without signing in again.",
     "consent": "The app asks gh / glab for the token only when you click Add, checks it with GitHub/GitLab and stores it in your system's password store. The gh / glab configuration is not changed.",
@@ -2595,10 +2620,10 @@
     "updateToken": "Get the token again from {{tool}}",
     "source": "Imported from {{tool}} CLI",
     "status": {
-      "added": "Added — ready in the account pill and with Ctrl+Alt+1..9.",
+      "added": "Added: ready in the account pill and with Ctrl+Alt+1..9.",
       "missingScopes": "Added, but the token lacks scopes: {{scopes}}",
       "invalidToken": "The token in {{tool}} no longer works (expired or revoked).",
-      "wrongUser": "The token from {{tool}} belongs to {{actual}}, not {{user}} — not added.",
+      "wrongUser": "The token from {{tool}} belongs to {{actual}}, not {{user}}. Not added.",
       "noToken": "{{tool}} did not give a token for this account.",
       "cliMissing": "{{tool}} is not installed, so the token cannot be read.",
       "alreadyExists": "This account is already in the app.",
@@ -2606,11 +2631,11 @@
       "failed": "Could not add it: {{message}}"
     },
     "hint": {
-      "missingScopes": "Without these scopes some actions are refused (e.g. without workflow you cannot push files under .github/workflows). Run the command below in a terminal, then click “Get the token again” — or click “Sign in again in the app” so the app asks for every scope.",
-      "missingScopesManual": "Without these scopes some actions are refused. Give {{tool}} a token with enough scopes (or sign in to {{tool}} again), then click “Get the token again” — or click “Sign in again in the app”.",
-      "invalidToken": "Sign in to {{tool}} again with the command below, then click Scan again — or sign in directly in the app.",
-      "wrongUser": "{{tool}} may have switched accounts. Check with the command below, then click Scan again — or sign in directly in the app.",
-      "noToken": "{{tool}} may have signed this account out. Sign in again with the command below, then click Scan again — or sign in directly in the app. With several gh accounts on one server, update gh to 2.40 or newer.",
+      "missingScopes": "Without these scopes some actions are refused (e.g. without workflow you cannot push files under .github/workflows). Run the command below in a terminal, then click “Get the token again”. Or click “Sign in again in the app” so the app asks for every scope.",
+      "missingScopesManual": "Without these scopes some actions are refused. Give {{tool}} a token with enough scopes (or sign in to {{tool}} again), then click “Get the token again”. Or click “Sign in again in the app”.",
+      "invalidToken": "Sign in to {{tool}} again with the command below, then click Scan again. Or sign in directly in the app.",
+      "wrongUser": "{{tool}} may have switched accounts. Check with the command below, then click Scan again. Or sign in directly in the app.",
+      "noToken": "{{tool}} may have signed this account out. Sign in again with the command below, then click Scan again. Or sign in directly in the app. With several gh accounts on one server, update gh to 2.40 or newer.",
       "cliMissing": "Install {{tool}} and click Scan again, or sign in directly in the app.",
       "alreadyExists": "Nothing else to do.",
       "notFound": "Click Scan again to refresh the list.",
@@ -2713,7 +2738,7 @@
       "addHelp": "origin stays as it is; push to the fork through the new remote.",
       "swapHelp": "The original remote is renamed to upstream (branches keep tracking it); a plain git push goes to the fork."
     },
-    "ownRepoWarning": "This repository already belongs to the selected account — forking is usually not needed.",
+    "ownRepoWarning": "This repository already belongs to the selected account. Forking is usually not needed.",
     "submit": "Fork",
     "submitAs": "Fork as {{account}}",
     "submitClone": "Fork & clone",
@@ -2721,7 +2746,7 @@
     "close": "Close",
     "cancelled": "Stopped. The fork (if created) stays on the server.",
     "done": "Forked as {{name}} and added the remote.",
-    "doneExisting": "You already have the fork {{name}} — using it instead of creating one.",
+    "doneExisting": "You already have the fork {{name}}. Using it instead of creating one.",
     "openOnWeb": "Open on the web",
     "attached": "Added the fork {{name}} as remote {{remote}}.",
     "fetched": "Fetched {{remote}}.",
@@ -2811,8 +2836,8 @@
     "useExisting": "Use the existing repository",
     "done": "Done! Published {{name}}: remote {{remote}}, branch {{branch}} is pushed.",
     "doneNoPush": "Linked {{name}} as remote {{remote}}. Commit, then click Push to upload your code.",
-    "donePushFailed": "Remote {{remote}} is linked but the push did not succeed — see the message above, fix it, then click Push in the toolbar to retry.",
-    "pushed": "Pushed {{branch}} to {{remote}} — the project is now on the server.",
+    "donePushFailed": "Remote {{remote}} is linked but the push did not succeed. See the message above, fix it, then click Push in the toolbar to retry.",
+    "pushed": "Pushed {{branch}} to {{remote}}. The project is now on the server.",
     "openOnWeb": "Open on the web",
     "close": "Close",
     "submitNew": "Create repository",
@@ -2913,7 +2938,7 @@
       "loadingComments": "Loading comments…",
       "comments_one": "{{count}} comment",
       "comments_other": "{{count}} comments",
-      "moreComments": "There are older comments — open in the browser to see them all.",
+      "moreComments": "There are older comments. Open in the browser to see them all.",
       "commentPlaceholder": "Write a comment… (Ctrl+Enter to send)",
       "lockedPlaceholder": "The issue is locked: only project members can comment.",
       "comment": "Comment",
@@ -2924,7 +2949,7 @@
     "branch": {
       "open": "Create a branch for this issue",
       "name": "Branch name",
-      "hint": "The new branch starts at the current commit (HEAD) and only exists on your computer — it is not pushed.",
+      "hint": "The new branch starts at the current commit (HEAD) and only exists on your computer. It is not pushed.",
       "checkout": "Switch to the new branch now",
       "create": "Create branch",
       "created": "Created branch {{branch}}",
@@ -2950,7 +2975,7 @@
     "button": "My work",
     "buttonCount": "Work ({{count}})",
     "tooltip": "My work: PR/MRs to review, my PR/MRs, issues assigned to me (all accounts)",
-    "tooltipCount": "{{count}} PR/MRs are waiting for your review — click to see them",
+    "tooltipCount": "{{count}} PR/MRs are waiting for your review. Click to see them",
     "title": "My work",
     "description": "Gathered from every signed-in account. Refreshes every 5 minutes while the app is open.",
     "allAccounts": "All accounts",
@@ -3058,14 +3083,14 @@
       "openRepoToJump": "Open this PR/MR's repository (active tab) to jump from a commit to the graph."
     },
     "files": {
-      "truncated": "The file list was cut (too many files) — see all of them in the browser.",
+      "truncated": "The file list was cut (too many files). See all of them in the browser.",
       "truncatedRows": "The diff is too long; only the first {{count}} lines are shown.",
       "none": "No files changed.",
       "noPatch": "The provider did not send this file's diff (large or binary file). It can be computed with git on this computer (the PR/MR branch is fetched first).",
       "noPatchNoRepo": "The provider did not send this file's diff. Open this repository in the app to diff it with git, or view it in the browser.",
       "localDiff": "Diff with local git",
       "localDiffLoading": "Fetching and computing the diff…",
-      "binary": "Binary file — no diff to show.",
+      "binary": "Binary file: no diff to show.",
       "tooLarge": "The diff is too large to show.",
       "noChanges": "No content changes.",
       "outdated": "{{count}} outdated comment threads (lines no longer in the current diff)",
@@ -3102,11 +3127,11 @@
     },
     "mergeState": {
       "clean": "Ready to merge.",
-      "conflicts": "Conflicts with {{target}} — cannot be merged yet.",
+      "conflicts": "Conflicts with {{target}}. Cannot be merged yet.",
       "blocked": "Blocked (missing approvals, required checks not passing or branch protection rules).",
-      "behind": "The source branch is behind {{target}} — update it (merge/rebase) first.",
+      "behind": "The source branch is behind {{target}}. Update it (merge/rebase) first.",
       "unstable": "Can be merged, but some checks are failing.",
-      "draft": "Draft — mark it ready for review in the browser to merge it.",
+      "draft": "Draft: mark it ready for review in the browser to merge it.",
       "checking": "The server is checking mergeability… refresh in a moment.",
       "unknown": "Merge state unknown."
     },
@@ -3161,12 +3186,12 @@
       "removeSource": "Delete the source branch when merged",
       "submit": "Create {{term}}",
       "notPushed": "Branch {{branch}} is not on remote {{remote}} yet. Push it before creating.",
-      "ahead": "{{count}} commits are not pushed — push first so the PR/MR has every change.",
-      "ahead_one": "{{count}} commit is not pushed — push first so the PR/MR has every change.",
+      "ahead": "{{count}} commits are not pushed. Push first so the PR/MR has every change.",
+      "ahead_one": "{{count}} commit is not pushed. Push first so the PR/MR has every change.",
       "pushFirst": "Push first",
       "checkoutToPush": "Check out branch {{branch}} and push it to continue.",
-      "crossRepoGitlab": "Creating an MR from a fork into the upstream project is not supported for GitLab yet — create it in the browser.",
-      "noAccount": "The target remote is not bound to a signed-in account — bind one first.",
+      "crossRepoGitlab": "Creating an MR from a fork into the upstream project is not supported for GitLab yet. Create it in the browser.",
+      "noAccount": "The target remote is not bound to a signed-in account. Bind one first.",
       "done": "Created {{term}} {{number}}.",
       "warnings": "Some follow-up steps did not complete: {{warnings}}",
       "afterPush": "Pushed new branch {{branch}}. Create a {{term}} from it?"
@@ -3222,12 +3247,12 @@
     },
     "problem": {
       "wrongPassword": "Wrong password, or the file was modified.",
-      "wrongPasswordHint": "Check the password (upper and lower case matter). If you are sure it is right, the file may have been damaged while copying — get the original file again.",
+      "wrongPasswordHint": "Check the password (upper and lower case matter). If you are sure it is right, the file may have been damaged while copying. Get the original file again.",
       "notABackup": "This file is not a NANOMultipleGitGUI backup. Choose a file created by the app.",
       "wrongKindAccounts": "This is a full app backup, not an account configuration file. Open it from Settings → Backup & restore.",
       "wrongKindFull": "This is an account configuration file, not a full app backup. Open it from Account manager → Import configuration…",
       "newerVersion": "The file was made by a newer version of the app. Update the app and try again.",
-      "tooLarge": "The file is too large (50 MB at most) — maybe the wrong file was chosen.",
+      "tooLarge": "The file is too large (50 MB at most). Maybe the wrong file was chosen.",
       "corrupt": "The file is damaged and cannot be read. Try another file or create it again on the old computer.",
       "weakPassword": "The password needs at least 8 characters."
     },
@@ -3239,7 +3264,7 @@
       "filterAll": "All files"
     },
     "secrets": {
-      "keepSafe": "The file will contain sign-in data. Anyone with both the file and the password can use your accounts — keep both safe.",
+      "keepSafe": "The file will contain sign-in data. Anyone with both the file and the password can use your accounts. Keep both safe.",
       "oauthWarning": "Note: GitHub/GitLab accounts signed in through the browser (OAuth) use a refresh code that works only once. When one computer refreshes its sign-in, the other may have to sign in again. Personal access tokens (PAT) work on both computers."
     },
     "accountsExport": {
@@ -3296,7 +3321,7 @@
       "notes": "{{count}} note(s)",
       "themes": "{{count}} custom theme(s)",
       "withSecrets": "Sign-in data included ({{count}} items) and {{keys}} SSH key(s)",
-      "withoutSecrets": "No sign-in data — accounts must sign in again after restoring",
+      "withoutSecrets": "No sign-in data. Accounts must sign in again after restoring",
       "reposNote": "Repositories are saved by path; if the new computer uses different paths, clone or open them again.",
       "replaceWarning": "The current data in the app will be replaced by the backup; the app will restart. A copy of the current data is kept in the \"backups\" folder of the app data folder.",
       "confirmTitle": "Replace the current data with the backup?",
@@ -3304,7 +3329,7 @@
       "restoring": "Restoring…",
       "restoredNotice": "App data restored from the backup created {{date}}.",
       "restoredHint": "The data from before the restore is kept at: {{path}}",
-      "failedNotice": "The backup could not be restored — your current data is unchanged.",
+      "failedNotice": "The backup could not be restored. Your current data is unchanged.",
       "failedHint": "Try again with another file, or create the backup again on the old computer."
     },
     "cmd": {
@@ -3321,8 +3346,8 @@
     "presets": "Built-in",
     "yourThemes": "Your themes",
     "preset": {
-      "hc-dark": "High contrast — Dark",
-      "hc-light": "High contrast — Light"
+      "hc-dark": "High contrast (Dark)",
+      "hc-light": "High contrast (Light)"
     },
     "title": "Manage themes",
     "description": "Make your own color scheme. While you edit, the whole app changes so you can preview it; click Save to keep it.",
@@ -3384,8 +3409,8 @@
     "contrastOk": "All text colors are easy to read on their backgrounds.",
     "contrastIssues": "{{count}} places are hard to read:",
     "contrastIssues_one": "{{count}} place is hard to read:",
-    "contrastText": "“{{fg}}” is hard to read on “{{bg}}” — {{ratio}}:1, should be ≥ {{min}}:1.",
-    "contrastGraphic": "“{{fg}}” is hard to see on “{{bg}}” — {{ratio}}:1, should be ≥ {{min}}:1.",
+    "contrastText": "“{{fg}}” is hard to read on “{{bg}}” ({{ratio}}:1, should be ≥ {{min}}:1).",
+    "contrastGraphic": "“{{fg}}” is hard to see on “{{bg}}” ({{ratio}}:1, should be ≥ {{min}}:1).",
     "created": "Created theme “{{name}}”.",
     "saved": "Saved.",
     "saveFailed": "Could not save the theme.",
@@ -3483,7 +3508,7 @@
     "saving": "Saving…",
     "saved": "Saved",
     "unsaved": "Not saved yet…",
-    "emptyNote": "A note needs a title or some text — not saved.",
+    "emptyNote": "A note needs a title or some text. Not saved.",
     "saveFailed": "Could not save: {{error}}",
     "saveFailedShort": "Could not save the note.",
     "delete": "Delete",
@@ -3550,10 +3575,10 @@
     "deleteFailed": "Could not delete: {{error}}",
     "fileProblem": {
       "unreadable": "Could not read the file (it was moved or deleted, or there is no permission).",
-      "tooLarge": "The file is too large — it is probably not a file exported by this app.",
-      "notJson": "The file is not JSON — choose a .json file exported by this app.",
+      "tooLarge": "The file is too large. It is probably not a file exported by this app.",
+      "notJson": "The file is not JSON. Choose a .json file exported by this app.",
       "wrongFormat": "This is not the right kind of file (for example, a notes file chosen when importing a theme).",
-      "newerVersion": "The file was made by a newer version of the app — update the app, then try again.",
+      "newerVersion": "The file was made by a newer version of the app. Update the app, then try again.",
       "invalid": "The file is damaged or incomplete."
     }
   },
@@ -3563,7 +3588,7 @@
     "transferRunningHint": "Wait until it finishes (see the transfer queue in the status bar), then switch branch again.",
     "failed": "Could not switch to {{branch}}.",
     "nothingChanged": "Nothing was changed: your files are as they were.",
-    "stashKept": "Your uncommitted changes are safe in the newest stash (“nanomgg-autostash: …”) — open Stashes in the left panel and Pop it to get them back.",
+    "stashKept": "Your uncommitted changes are safe in the newest stash (“nanomgg-autostash: …”). Open Stashes in the left panel and Pop it to get them back.",
     "openConflicts": "Open conflicted files",
     "tip": {
       "local": "Double-click (or Enter) to switch to this branch",
@@ -3572,10 +3597,10 @@
     },
     "op": {
       "inProgress": "Cannot switch branch: a {{op}} is not finished yet.",
-      "inProgressHint": "Finish it first (resolve the conflicts, then Continue in the yellow bar) or abort the {{op}} to go back to how things were — then switch again.",
+      "inProgressHint": "Finish it first (resolve the conflicts, then Continue in the yellow bar) or abort the {{op}} to go back to how things were. Then switch again.",
       "conflicts": "Cannot switch branch: {{count}} files are still in conflict.",
       "conflicts_one": "Cannot switch branch: {{count}} file is still in conflict.",
-      "conflictsHint": "Open each conflicted file, choose what to keep and save it — or use the yellow bar to abort — then switch again.",
+      "conflictsHint": "Open each conflicted file, choose what to keep and save it. Or use the yellow bar to abort. Then switch again.",
       "unfinished": "Cannot switch branch: an operation (merge, rebase…) is not finished yet.",
       "abort": "Abort the {{op}}"
     },
@@ -3661,7 +3686,7 @@
     "search": "Search the guide…",
     "results": "{{count}} topics found",
     "results_one": "{{count}} topic found",
-    "noResults": "Nothing found — try other words.",
+    "noResults": "Nothing found: try other words.",
     "prev": "Previous",
     "next": "Next",
     "termSeparator": ": ",
@@ -3678,7 +3703,7 @@
     "replaceBody": "The commit message already has text. Replace it with the suggestion below? You can still click Undo afterwards to get the old text back.",
     "replace": "Use the suggestion",
     "unstagedUsed": "This suggestion was written from changes that are NOT staged yet. Remember to stage those files before you commit.",
-    "unstagedHint": "You have unstaged changes — AI can write the message from those instead.",
+    "unstagedHint": "You have unstaged changes. AI can write the message from those instead.",
     "openSettings": "Open AI settings",
     "useUnstaged": "Use unstaged changes",
     "retry": "Try again",
@@ -3695,7 +3720,7 @@
       "missingKey": "No API key for this service yet. Enter one in the AI settings.",
       "missingModel": "No model chosen. Pick or type a model name in the AI settings.",
       "missingBaseUrl": "No service address (base URL) yet. Enter it in the AI settings.",
-      "nothingStaged": "Stage your changes first — AI writes the message from the staged files.",
+      "nothingStaged": "Stage your changes first. AI writes the message from the staged files.",
       "invalidKey": "The API key is wrong or was revoked. Check the key in the AI settings.",
       "accessDenied": "This key may not use the chosen model (or the service blocks your region). Try another model in the AI settings.",
       "quotaExceeded": "Your AI service account is out of quota or credit. Top up on the service's website, or switch to Ollama (free).",
@@ -3704,7 +3729,7 @@
       "ollamaNotRunning": "Ollama is not running. Open the AI settings and click \"Start Ollama\".",
       "ollamaNotInstalled": "Ollama is not installed. Open the AI settings and click \"Install Ollama for me\".",
       "network": "Could not reach the AI service. Check your network (or proxy) and try again.",
-      "timeout": "The AI took too long to answer. The first Ollama run can be slow while the model loads — try again.",
+      "timeout": "The AI took too long to answer. The first Ollama run can be slow while the model loads. Try again.",
       "cancelled": "Cancelled.",
       "service": "The AI service reported an error (code {{status}}). Try again later.",
       "emptyAnswer": "The AI did not return a usable commit message. Try again, or choose another model.",
@@ -3764,7 +3789,7 @@
     "baseUrl": {
       "label": "Service address (base URL)",
       "hint": "Usually ends with /v1. Click an example above to fill it in.",
-      "insecure": "An http:// address to another computer is not encrypted — the app will not send your API key there. Use https://."
+      "insecure": "An http:// address to another computer is not encrypted. The app will not send your API key there. Use https://."
     },
     "model": {
       "label": "Model"
@@ -3799,7 +3824,7 @@
       },
       "body": "Also write a description (body)",
       "bodyHint": "When off, AI writes only the one-line summary.",
-      "localHint": "Small local models are not always great writers — read the message before committing."
+      "localHint": "Small local models are not always great writers. Read the message before committing."
     },
     "ollama": {
       "privacy": "Ollama runs right on your computer: free, no account needed, your code is not sent over the internet.",
@@ -3826,7 +3851,7 @@
       "note": {
         "qwenSmall": "Understands code well, fast. Fits most computers.",
         "llamaSmall": "Small, writes English well.",
-        "gemma": "Lightest — for older computers.",
+        "gemma": "Lightest: for older computers.",
         "qwenLarge": "More accurate, needs a stronger computer.",
         "llamaLarge": "More accurate, natural writing."
       },

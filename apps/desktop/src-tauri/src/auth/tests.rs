@@ -549,7 +549,7 @@ async fn pkce_start_uses_the_configured_loopback_port() {
     );
     assert!(cfg.pkce && cfg.has_client_id);
     assert!(cfg.pat_url.contains(
-        "/-/user_settings/personal_access_tokens?name=NANOMultipleGitGUI&scopes=read_user,read_api,read_repository,write_repository"
+        "/-/user_settings/personal_access_tokens?name=NANOMultipleGitGUI&scopes=read_user,api,read_repository,write_repository"
     ));
 
     assert_eq!(start.redirect_uri, cfg.redirect_uri);

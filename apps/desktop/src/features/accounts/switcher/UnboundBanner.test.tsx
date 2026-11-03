@@ -12,7 +12,15 @@ import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 import { useAccountDialogs } from "../dialogs";
 import { useBannerDismissed } from "./bannerStore";
-import { makeContext, OSS, PERSONAL, seedAccounts, unboundContext, WORK } from "./testData";
+import {
+  makeContext,
+  makeRemote,
+  OSS,
+  PERSONAL,
+  seedAccounts,
+  unboundContext,
+  WORK,
+} from "./testData";
 import { UnboundBanner } from "./UnboundBanner";
 
 const wrap = (ui: React.ReactNode) =>
@@ -44,7 +52,7 @@ describe("UnboundBanner", () => {
     const set = vi.spyOn(commands, "repoBindingSet").mockResolvedValue(makeContext());
     wrap(<UnboundBanner repoId={1} />);
     const bar = banner()!;
-    expect(bar).toHaveTextContent("Repo này chưa gắn tài khoản — chọn tài khoản");
+    expect(bar).toHaveTextContent("Repo này chưa gắn tài khoản. Chọn tài khoản");
     const buttons = within(bar)
       .getAllByRole("button")
       .map((b) => b.textContent);
@@ -77,21 +85,41 @@ describe("UnboundBanner", () => {
     expect(banner()).toBeNull();
   });
 
-  it("opens the manager to add an account or create a rule", async () => {
+  it("signs in to the remote's host in one click when nobody is signed in there", async () => {
     const user = userEvent.setup();
     seedAccounts(queryClient, { accounts: [], identities: [], contexts: [unboundContext(1)] });
+    wrap(<UnboundBanner repoId={1} />);
+    expect(screen.queryByRole("button", { name: "Thêm tài khoản…" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Đăng nhập GitLab acme" }));
+    expect(useAccountDialogs.getState().manager).toEqual({
+      accountId: null,
+      add: true,
+      reauth: false,
+      signIn: { kind: "gitlabSelfHosted", baseUrl: "https://gitlab.acme.dev" },
+    });
+  });
+
+  it("opens the manager to add an account or create a rule", async () => {
+    const user = userEvent.setup();
+    const unknownHost = {
+      ...unboundContext(1),
+      perRemote: [makeRemote({ account: null, source: "none", host: "gitea.example.org" })],
+    };
+    seedAccounts(queryClient, { accounts: [], identities: [], contexts: [unknownHost] });
     wrap(<UnboundBanner repoId={1} />);
     await user.click(screen.getByRole("button", { name: "Thêm tài khoản…" }));
     expect(useAccountDialogs.getState().manager).toEqual({
       accountId: null,
       add: true,
       reauth: false,
+      signIn: null,
     });
     await user.click(screen.getByRole("button", { name: "Tạo rule cho thư mục/host này…" }));
     expect(useAccountDialogs.getState().manager).toEqual({
       accountId: null,
       add: false,
       reauth: false,
+      signIn: null,
     });
   });
 });

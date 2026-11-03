@@ -164,7 +164,7 @@ describe("CliAccountsPanel", () => {
       { tool: "gh", host: "github.com", username: "bob" },
       { tool: "gh", host: "ghe.acme.vn", username: "dave" },
     ]);
-    expect(await screen.findByText(/Đã thêm — dùng được ngay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Đã thêm: dùng được ngay/)).toBeInTheDocument();
     expect(onAdded).toHaveBeenCalledTimes(1);
 
     const bobRow = screen.getByRole("checkbox", { name: "bob @ github.com" }).closest("li")!;
@@ -177,6 +177,7 @@ describe("CliAccountsPanel", () => {
       accountId: "acc_bob",
       add: false,
       reauth: true,
+      signIn: null,
     });
 
     const daveRow = screen.getByRole("checkbox", { name: "dave @ ghe.acme.vn" }).closest("li")!;
@@ -212,7 +213,7 @@ describe("CliAccountsPanel", () => {
     expect(ipc.cliAccountsImport).toHaveBeenLastCalledWith([
       { tool: "gh", host: "github.com", username: "bob" },
     ]);
-    expect(await screen.findByText(/Đã thêm — dùng được ngay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Đã thêm: dùng được ngay/)).toBeInTheDocument();
 
     const scans = ipc.cliAccountsScan.mock.calls.length;
     ipc.cliAccountsScan.mockResolvedValue(makeScan([]));
@@ -269,6 +270,7 @@ describe("CliSyncNoticeHost", () => {
       accountId: null,
       add: false,
       reauth: false,
+      signIn: null,
     });
   });
 

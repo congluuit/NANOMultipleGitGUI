@@ -75,7 +75,7 @@ function Form({
   const doPush = async () => {
     if (!refs) return;
     setPushing(true);
-    await push(repoId, refs, false);
+    await push(repoId, refs, false, false);
     setPushing(false);
     onPushed();
   };
@@ -285,7 +285,7 @@ function CreatePullDialog({
             >
               {ctx.data.remotes.map((r) => (
                 <option key={r.remote} value={r.remote}>
-                  {r.remote} — {r.fullName}
+                  {r.remote} ({r.fullName})
                 </option>
               ))}
             </select>

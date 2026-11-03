@@ -48,7 +48,7 @@ describe("signing model", () => {
   it("lists usable GPG keys first", () => {
     const keys = usableGpgKeys([gpg("OLD", false), gpg("NEW", true)]);
     expect(keys.map((k) => k.keyId)).toEqual(["NEW", "OLD"]);
-    expect(gpgKeyLabel(keys[0]!)).toBe("NEW <a@b.dev> — NEW");
+    expect(gpgKeyLabel(keys[0]!)).toBe("NEW <a@b.dev> (NEW)");
   });
 
   it("refers to app SSH keys by their .pub path", () => {
@@ -61,7 +61,7 @@ describe("signing model", () => {
     } as SshKeyInfo;
     expect(sshKeyRef(key)).toBe("C:/data/ssh/k1.pub");
     expect(sshKeyRef({ ...key, privateKeyPath: null })).toBeNull();
-    expect(sshKeyLabel(key)).toBe("work — SHA256:abc");
+    expect(sshKeyLabel(key)).toBe("work (SHA256:abc)");
   });
 
   it("recognises signing failures of a commit", () => {

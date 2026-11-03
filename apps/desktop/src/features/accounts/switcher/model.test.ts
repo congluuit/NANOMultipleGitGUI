@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { LocalBranch, RepoRefs } from "@/ipc";
 import {
   accountLabel,
   accountShortcutHint,
@@ -10,10 +11,14 @@ import {
   hasSplitRemotes,
   identitiesOf,
   initialOf,
+  missingSignIn,
   providerNameOf,
   ruleSummary,
+  signInName,
+  signInTargetFor,
   sortAccounts,
   toAccountSummary,
+  trackingMismatch,
   type ShortcutKey,
 } from "./model";
 import {
@@ -193,5 +198,108 @@ describe("Ctrl/Cmd+Alt+1..9", () => {
     expect(accountShortcutHint(0, false)).toBe("Ctrl+Alt+1");
     expect(accountShortcutHint(8, true)).toBe("⌘+⌥+9");
     expect(accountShortcutHint(9, false)).toBeNull();
+  });
+});
+
+describe("tracking mismatch", () => {
+  const refs = (local: Partial<LocalBranch> = {}): RepoRefs => ({
+    head: { branch: "main", oid: "a".repeat(40), detached: false, unborn: false },
+    local: [
+      {
+        name: "main",
+        oid: "a".repeat(40),
+        upstream: "origin/main",
+        ahead: 1,
+        behind: 0,
+        upstreamGone: false,
+        isHead: true,
+        ...local,
+      },
+    ],
+    remotes: [
+      { name: "origin", url: "https://github.com/me/api.git", branches: [] },
+      { name: "gitlab", url: "https://gitlab.acme.dev/platform/api.git", branches: [] },
+    ],
+    tags: [],
+    stashes: [],
+  });
+  // Repo bound to Work (GitLab acme); `origin` is on GitHub and locked to Personal.
+  const ctx = makeContext({
+    perRemote: [
+      makeRemote({
+        remote: "origin",
+        url: "https://github.com/me/api.git",
+        host: "github.com",
+        account: PERSONAL,
+        identity: PERSONAL_MAIN,
+        source: "locked",
+        inherited: false,
+      }),
+      makeRemote({ remote: "gitlab" }),
+    ],
+  });
+
+  it("finds the remote of the repo's account when the branch tracks another one", () => {
+    const m = trackingMismatch(ctx, refs());
+    expect(m?.branch).toBe("main");
+    expect(m?.current.remote).toBe("origin");
+    expect(m?.target.remote).toBe("gitlab");
+  });
+
+  it("is quiet when the branch already uses the repo's account or nothing else would", () => {
+    expect(trackingMismatch(ctx, refs({ upstream: "gitlab/main" }))).toBeNull();
+    const onlyOrigin = makeContext({ perRemote: [ctx.perRemote[0]!] });
+    expect(trackingMismatch(onlyOrigin, refs())).toBeNull();
+    expect(trackingMismatch(unboundContext(), refs())).toBeNull();
+    expect(trackingMismatch(ctx, undefined)).toBeNull();
+  });
+});
+
+describe("sign in for a remote", () => {
+  it("maps a remote host to the provider to sign in to", () => {
+    expect(signInTargetFor({ host: "gitlab.com", transport: "https" }, PROVIDERS)).toEqual({
+      kind: "gitlab",
+      baseUrl: "https://gitlab.com",
+    });
+    expect(signInTargetFor({ host: "gitlab.acme.dev:2222", transport: "ssh" }, PROVIDERS)).toEqual({
+      kind: "gitlabSelfHosted",
+      baseUrl: "https://gitlab.acme.dev",
+    });
+    expect(signInTargetFor({ host: "gitlab.corp.vn", transport: "https" }, [])).toEqual({
+      kind: "gitlabSelfHosted",
+      baseUrl: "https://gitlab.corp.vn",
+    });
+    expect(signInTargetFor({ host: "gitea.example.org", transport: "https" }, [])).toBeNull();
+    expect(signInTargetFor({ host: null, transport: null }, [])).toBeNull();
+  });
+
+  it("names the provider", () => {
+    expect(signInName({ kind: "gitlab", baseUrl: "https://gitlab.com" }, PROVIDERS)).toBe("GitLab");
+    expect(
+      signInName({ kind: "gitlabSelfHosted", baseUrl: "https://gitlab.acme.dev" }, PROVIDERS),
+    ).toBe("GitLab acme");
+  });
+
+  it("asks to sign in only for a host nobody is signed in to", () => {
+    const ctx = makeContext({
+      perRemote: [
+        makeRemote({
+          account: null,
+          source: "none",
+          url: "https://gitlab.com/a/b.git",
+          host: "gitlab.com",
+        }),
+      ],
+    });
+    expect(missingSignIn(ctx, ACCOUNTS, PROVIDERS)).toEqual({
+      kind: "gitlab",
+      baseUrl: "https://gitlab.com",
+    });
+    // Two GitHub accounts and nothing chosen: a binding is missing, not a sign-in.
+    const github = makeContext({
+      perRemote: [makeRemote({ account: null, source: "none", host: "github.com" })],
+    });
+    expect(missingSignIn(github, ACCOUNTS, PROVIDERS)).toBeNull();
+    expect(missingSignIn(makeContext(), ACCOUNTS, PROVIDERS)).toBeNull();
   });
 });

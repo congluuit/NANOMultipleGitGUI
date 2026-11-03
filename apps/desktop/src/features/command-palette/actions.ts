@@ -11,9 +11,13 @@ import {
   takeOneShot,
   type OneShot,
 } from "@/features/accounts/switcher/oneShot";
+import { accountKeys } from "@/features/accounts/queries";
+import { trackingMismatch, type TrackingMismatch } from "@/features/accounts/switcher/model";
+import { isTrackingKept, remoteWithHost } from "@/features/accounts/switcher/tracking";
 import { runPushGuard } from "@/features/guards";
 import { conflictText } from "@/features/commits/outcome";
 import { lfsKeys } from "@/features/lfs/queries";
+import { repoKeys } from "@/features/repos/queries";
 import { offerCreatePull } from "@/features/pulls/actions";
 import { branchPushPlan, pushPlan } from "@/features/remote/plan";
 import { startTransfer } from "@/features/remote/transfers";
@@ -26,6 +30,7 @@ import {
   type PullMode,
   type PushEstimate,
   type PushRequest,
+  type RepoAccountContext,
   type RepoRefs,
 } from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
@@ -43,7 +48,17 @@ export type PaletteConfirm =
       estimate: PushEstimate;
       /** One-shot "Push as…" override taken for this push (given back on cancel). */
       shot: OneShot | null;
-    };
+    }
+  /** Push/Pull would go through a remote of another account than the repo's. */
+  | {
+      kind: "tracking";
+      repoId: number;
+      op: "push";
+      m: TrackingMismatch;
+      force: boolean;
+      refs: RepoRefs;
+    }
+  | { kind: "tracking"; repoId: number; op: "pull"; m: TrackingMismatch; mode: PullMode };
 
 interface ConfirmState {
   confirm: PaletteConfirm | null;
@@ -79,7 +94,37 @@ export function fetchAll(repoId: number) {
   );
 }
 
+/** `origin (github.com)` from the cached account context, else the bare remote name. */
+function remoteText(repoId: number, name: string) {
+  const r = queryClient
+    .getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId))
+    ?.perRemote.find((x) => x.remote === name);
+  return r ? remoteWithHost(r) : name;
+}
+
+/**
+ * Asked before Push/Pull like the toolbar does (`TrackingDialog`): the current branch uses a
+ * remote of another account than the repo's. `null` when there is nothing to ask.
+ */
+function trackingToAsk(repoId: number, op: "push" | "fetch", refs?: RepoRefs) {
+  const m = trackingMismatch(
+    queryClient.getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId)),
+    refs ?? queryClient.getQueryData<RepoRefs>(repoKeys.refs(repoId)),
+  );
+  return m && !peekOneShot(repoId, op) && !isTrackingKept(repoId, m) ? m : null;
+}
+
+/** Pull, after asking when the branch pulls through another account's remote. */
 export function pull(repoId: number, mode: PullMode) {
+  const m = trackingToAsk(repoId, "fetch");
+  if (m) {
+    usePaletteConfirm.getState().set({ kind: "tracking", repoId, op: "pull", m, mode });
+    return Promise.resolve(undefined);
+  }
+  return pullNow(repoId, mode);
+}
+
+export function pullNow(repoId: number, mode: PullMode) {
   const shot = takeOneShot(repoId, "fetch");
   return startTransfer(
     repoId,
@@ -99,7 +144,7 @@ async function gitPush(repoId: number, p: PushRequest, shot: OneShot | null) {
     (s) =>
       s.upToDate
         ? i18n.t("remote.pushUpToDate")
-        : i18n.t("remote.pushed", { branch: p.branch, remote: p.remote }),
+        : i18n.t("remote.pushed", { branch: p.branch, remote: remoteText(repoId, p.remote) }),
     `${p.remote}/${p.remoteBranch ?? p.branch}`,
     shot,
   );
@@ -123,9 +168,25 @@ async function usesLfs(repoId: number): Promise<boolean> {
  * Push like the toolbar: in an LFS repository estimate the upload first and, when there is
  * something to upload, ask for confirmation (then LFS upload with progress, then `git push`).
  */
-export async function push(repoId: number, refs: RepoRefs, force: boolean) {
+export async function push(repoId: number, refs: RepoRefs, force: boolean, ask = true) {
+  const m = ask ? trackingToAsk(repoId, "push", refs) : null;
+  if (m) {
+    usePaletteConfirm.getState().set({ kind: "tracking", repoId, op: "push", m, force, refs });
+    return;
+  }
   const p = pushPlan(refs, force);
   if (p) await pushWith(repoId, p);
+}
+
+/** Push to `remote` with `--set-upstream` (right after the branch was moved there). */
+export async function pushTo(repoId: number, branch: string, remote: string, force: boolean) {
+  await pushWith(repoId, {
+    remote,
+    branch,
+    remoteBranch: null,
+    setUpstream: true,
+    forceWithLease: force,
+  });
 }
 
 /** "Push" of a branch context menu: any local branch, checked out or not. */

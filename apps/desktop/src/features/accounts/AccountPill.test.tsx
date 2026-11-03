@@ -163,6 +163,7 @@ describe("AccountPill", () => {
       accountId: null,
       add: false,
       reauth: false,
+      signIn: null,
     });
 
     queryClient.setQueryData(["accounts", "repoContext", 1], makeContext());
@@ -176,6 +177,7 @@ describe("AccountPill", () => {
       accountId: null,
       add: true,
       reauth: false,
+      signIn: null,
     });
   });
 

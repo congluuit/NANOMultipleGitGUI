@@ -146,7 +146,7 @@ describe("Storage dialog", () => {
     expect(within(data).getByText("≥ 512 KB · 5 file")).toBeInTheDocument();
     expect(within(data).queryByRole("button", { name: /Xóa/ })).toBeNull();
     // Clone folders are the user's code.
-    expect(screen.getByText(/app không bao giờ xóa/)).toBeInTheDocument();
+    expect(screen.getByText(/App không bao giờ xóa/)).toBeInTheDocument();
 
     await userEvent.click(within(data).getByRole("button", { name: /Mở thư mục/ }));
     expect(ipc.storageOpen).toHaveBeenCalledWith("data");

@@ -54,10 +54,7 @@ async fn loopback_login_end_to_end() {
     assert_eq!(q["client_id"], "gl-app-id");
     assert_eq!(q["response_type"], "code");
     assert_eq!(q["code_challenge_method"], "S256");
-    assert_eq!(
-        q["scope"],
-        "read_user read_api read_repository write_repository"
-    );
+    assert_eq!(q["scope"], "read_user api read_repository write_repository");
     assert_eq!(q["redirect_uri"], login.redirect_uri());
     assert!(login.redirect_uri().starts_with("http://127.0.0.1:"));
     assert!(login.redirect_uri().ends_with("/callback"));

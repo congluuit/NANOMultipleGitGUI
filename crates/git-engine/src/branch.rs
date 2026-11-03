@@ -212,6 +212,37 @@ pub fn delete_branch(
     Ok(())
 }
 
+/// Makes `name` pull from and push to the branch of the same name on `remote`
+/// (`branch.<name>.remote` / `.merge`). Unlike [`set_upstream`], `remote/name` does not have
+/// to exist yet: until the next push creates it, git reports the upstream as gone.
+pub fn track_remote(
+    git: &GitRunner,
+    repo: &Path,
+    ctx: &AccountContext,
+    name: &str,
+    remote: &str,
+) -> Result<(), OpError> {
+    ensure_local(git, repo, name)?;
+    validate_remote(git, repo, remote)?;
+    run(
+        git,
+        repo,
+        ctx,
+        &["config", &format!("branch.{name}.remote"), remote],
+    )?;
+    run(
+        git,
+        repo,
+        ctx,
+        &[
+            "config",
+            &format!("branch.{name}.merge"),
+            &format!("refs/heads/{name}"),
+        ],
+    )?;
+    Ok(())
+}
+
 /// Sets the upstream of `name` to `upstream` (`origin/main` or a local branch), or removes it
 /// when `upstream` is `None` (no error if none was set).
 pub fn set_upstream(
@@ -433,5 +464,18 @@ mod tests {
         let err =
             set_upstream(&r.git, &r.path, &r.ctx, "main-2", Some("--unset-upstream")).unwrap_err();
         assert_eq!(err.kind(), Some(FailureKind::InvalidName));
+
+        // A second remote without the branch yet: tracked anyway, reported as gone.
+        r.git(&["remote", "add", "mirror", "../up"]);
+        track_remote(&r.git, &r.path, &r.ctx, "main-2", "mirror").unwrap();
+        assert_eq!(r.git(&["config", "branch.main-2.remote"]), "mirror");
+        assert_eq!(
+            r.git(&["config", "branch.main-2.merge"]),
+            "refs/heads/main-2"
+        );
+        let err = track_remote(&r.git, &r.path, &r.ctx, "main-2", "nowhere").unwrap_err();
+        assert_eq!(err.kind(), Some(FailureKind::NotFound));
+        let err = track_remote(&r.git, &r.path, &r.ctx, "nope", "mirror").unwrap_err();
+        assert_eq!(err.kind(), Some(FailureKind::NotFound));
     }
 }

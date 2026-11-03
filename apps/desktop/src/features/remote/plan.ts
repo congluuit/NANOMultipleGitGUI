@@ -12,8 +12,10 @@ export function splitUpstream(
 }
 
 /**
- * What "Push" does for the current branch: to its upstream when it has one, otherwise to
- * `origin` (or the only remote) with `--set-upstream`. `null` when there is nothing to push to.
+ * What "Push" does for the current branch: to its upstream when it has one (recreating it with
+ * `--set-upstream` when it is gone from that remote, e.g. right after the branch was pointed at
+ * another remote), otherwise to `origin` (or the only remote) with `--set-upstream`. `null` when
+ * there is nothing to push to.
  */
 export function pushPlan(refs: RepoRefs, forceWithLease = false): PushRequest | null {
   const head = refs.head;
@@ -30,13 +32,13 @@ export function branchPushPlan(
   const names = refs.remotes.map((r) => r.name);
   const local = refs.local.find((b) => b.name === branch);
   if (!local) return null;
-  const up = local.upstream && !local.upstreamGone ? splitUpstream(local.upstream, names) : null;
+  const up = local.upstream ? splitUpstream(local.upstream, names) : null;
   if (up) {
     return {
       remote: up.remote,
       branch,
       remoteBranch: up.branch === branch ? null : up.branch,
-      setUpstream: false,
+      setUpstream: local.upstreamGone,
       forceWithLease,
     };
   }

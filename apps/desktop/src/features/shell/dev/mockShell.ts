@@ -5,6 +5,7 @@
  * drop it. Commands it does not know resolve to `null` and are listed in `window.__mockMisses`.
  */
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { accountHandlers } from "./mockAccounts";
 import type {
   DiffRequest,
   GraphRow,
@@ -381,9 +382,14 @@ export function installShellMock() {
   (globalThis as { isTauri?: boolean }).isTauri = true;
   window.__mockMisses = [];
   mockWindows("main");
+  // `&accounts=gitlab`: fake accounts on top of the sample repos (see mockAccounts.ts).
+  const extra =
+    params.get("accounts") === "gitlab"
+      ? accountHandlers((cmd, args) => handlers[cmd]?.(args))
+      : {};
   mockIPC(
     (cmd, args) => {
-      const handler = handlers[cmd];
+      const handler = extra[cmd] ?? handlers[cmd];
       if (handler) return handler((args ?? {}) as Record<string, unknown>);
       if (!window.__mockMisses?.includes(cmd)) window.__mockMisses?.push(cmd);
       return null;

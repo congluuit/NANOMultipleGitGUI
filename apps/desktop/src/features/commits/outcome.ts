@@ -2,7 +2,7 @@ import i18n from "i18next";
 import { errorMessage, type Account, type FailureKind, type OpOutcome, type Outcome } from "@/ipc";
 import { useAccountDialogs } from "@/features/accounts/dialogs";
 import { openExternal } from "@/features/accounts/manager/openExternal";
-import { cachedRepoAccount } from "@/features/accounts/switcher/hooks";
+import { cachedMissingSignIn, cachedRepoAccount } from "@/features/accounts/switcher/hooks";
 import { invalidateRepo } from "@/features/worktree/queries";
 import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
 
@@ -10,7 +10,7 @@ import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
 export function failureText(reason: FailureKind, message: string): string {
   const label = i18n.t(`failure.${reason}`);
   const detail = message.trim();
-  return detail && detail !== label ? `${label} — ${detail}` : label;
+  return detail && detail !== label ? `${label}: ${detail}` : label;
 }
 
 /**
@@ -28,8 +28,24 @@ export function failureNotice(reason: FailureKind, message: string, repoId?: num
     message: label,
     hint: i18n.t(`failureHelp.${reason}`, { account: name }),
     detail: detail && detail !== label ? detail : undefined,
-    actions: failureActions(reason, account),
+    actions: [...signInActions(reason, repoId), ...failureActions(reason, account)],
   };
+}
+
+/**
+ * Refused by the server while a remote of the repo has nobody signed in to its host (a
+ * gitlab.com remote and only GitHub accounts): signing in there is the fix, one click away.
+ */
+function signInActions(reason: FailureKind, repoId: number | undefined): NoticeAction[] {
+  if (repoId === undefined || (reason !== "authFailed" && reason !== "permissionDenied")) return [];
+  const missing = cachedMissingSignIn(repoId);
+  if (!missing) return [];
+  return [
+    {
+      label: i18n.t("failureHelp.action.signIn", { name: missing.name }),
+      run: () => useAccountDialogs.getState().openManager({ signIn: missing.target }),
+    },
+  ];
 }
 
 function failureActions(reason: FailureKind, account: Account | null): NoticeAction[] {

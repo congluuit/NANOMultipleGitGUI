@@ -121,7 +121,7 @@ function ThemeColumn({ theme }: { theme: ResolvedTheme }) {
                     {rule.fg} / {rule.bg}
                   </td>
                   <td className="text-right tabular-nums">
-                    {Number.isNaN(ratio) ? "—" : ratio.toFixed(2)}
+                    {Number.isNaN(ratio) ? "-" : ratio.toFixed(2)}
                   </td>
                   <td className="text-right text-muted-foreground">≥ {rule.min}</td>
                   <td className={cn("pl-2 text-right", pass ? "text-success" : "text-danger")}>

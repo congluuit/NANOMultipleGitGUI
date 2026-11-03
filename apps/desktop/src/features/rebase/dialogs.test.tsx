@@ -188,7 +188,7 @@ describe("RebaseSummary", () => {
       />,
     );
     expect(screen.getByText("2 commit sẽ được viết lại:")).toBeInTheDocument();
-    expect(screen.getByText(/app sẽ checkout nó trước/)).toBeInTheDocument();
+    expect(screen.getByText(/App sẽ checkout nó trước/)).toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: /vẫn viết lại/ }));
     expect(onAllowPushed).toHaveBeenCalledWith(true);
     await user.click(screen.getByRole("checkbox", { name: /autostash/ }));
@@ -206,7 +206,7 @@ describe("RebaseSummary", () => {
         onAutostash={() => {}}
       />,
     );
-    expect(screen.getByText("topic đã chứa main — không có gì để rebase.")).toBeInTheDocument();
+    expect(screen.getByText("topic đã chứa main. Không có gì để rebase.")).toBeInTheDocument();
   });
 });
 

@@ -24,7 +24,7 @@ export function signerText(sig: CommitSignature): string {
 
 /** Option label of a GPG key: first user id + long key id. */
 export function gpgKeyLabel(k: GpgKey): string {
-  return `${k.uids[0] ?? "?"} — ${k.keyId}`;
+  return `${k.uids[0] ?? "?"} (${k.keyId})`;
 }
 
 /** Keys that can actually sign come first. */
@@ -42,5 +42,5 @@ export function sshKeyRef(key: SshKeyInfo): string | null {
 
 /** Label of an SSH key in the picker. */
 export function sshKeyLabel(key: SshKeyInfo): string {
-  return `${key.comment ?? key.keyType} — ${key.fingerprint}`;
+  return `${key.comment ?? key.keyType} (${key.fingerprint})`;
 }

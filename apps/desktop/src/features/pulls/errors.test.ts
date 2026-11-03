@@ -26,6 +26,7 @@ describe("describePullError", () => {
       accountId: PERSONAL.id,
       add: false,
       reauth: true,
+      signIn: null,
     });
   });
 

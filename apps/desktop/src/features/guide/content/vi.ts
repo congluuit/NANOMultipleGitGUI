@@ -38,17 +38,17 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "list",
             items: [
-              "**Thanh trên cùng**: nút tài khoản (repo này đang dùng tài khoản nào — đường kẻ mảnh trên cùng cửa sổ cũng mang màu của tài khoản đó), mỗi repo đang mở là một tab, nút **+** (mở, tạo hoặc clone repo) và ô **Tìm kiếm / lệnh** (Ctrl+K).",
+              "**Thanh trên cùng**: nút tài khoản (repo này đang dùng tài khoản nào, đường kẻ mảnh trên cùng cửa sổ cũng mang màu của tài khoản đó), mỗi repo đang mở là một tab, nút **+** (mở, tạo hoặc clone repo) và ô **Tìm kiếm / lệnh** (Ctrl+K).",
               "**Thanh công cụ**: Fetch, Pull, Push, Branch, Stash, Pop, Hoàn tác, Làm lại; bên phải là **Việc của tôi**, Thanh bên, Bảng phải, Terminal và **Cài đặt**. Khi cửa sổ hẹp, nút thừa được dồn vào menu **⋯**.",
               "**Panel trái**: các nhánh (**Local** = trên máy bạn, **Remote** = trên server), Tags, Stashes, PR / MR, Issues, LFS, Submodules, Worktrees. Ô trên cùng để lọc nhánh theo tên.",
               "**Graph** (ở giữa): mỗi commit là một dòng, mới nhất ở trên, các đường nối cho thấy nhánh tách ra và gộp lại thế nào. Cột: Nhánh / Tag, Graph, Commit message, Tác giả, Thời gian. Dòng **WIP** trên cùng nghĩa là bạn có thay đổi chưa commit.",
-              "**Panel phải**: **Thay đổi** (các file bạn đã sửa, ô commit) — hoặc **Chi tiết commit** khi bạn bấm vào một commit trên graph.",
+              "**Panel phải**: **Thay đổi** (các file bạn đã sửa, ô commit). Hoặc **Chi tiết commit** khi bạn bấm vào một commit trên graph.",
               "**Thanh trạng thái** (dưới cùng): nhánh hiện tại, số commit đi trước (↑) / đi sau (↓) so với server, và hàng đợi truyền tải (fetch / pull / push / tải file đang chạy).",
             ],
           },
           {
             kind: "p",
-            text: "Thông báo hiện ở thanh ngay dưới thanh trên cùng. Nhiều thông báo có nút sửa lỗi giúp bạn — đọc trước khi đóng. **Thanh màu vàng** nghĩa là một thao tác (merge, rebase…) đang tạm dừng chờ bạn.",
+            text: "Thông báo hiện ở thanh ngay dưới thanh trên cùng. Nhiều thông báo có nút sửa lỗi giúp bạn. Đọc trước khi đóng. **Thanh màu vàng** nghĩa là một thao tác (merge, rebase…) đang tạm dừng chờ bạn.",
           },
           {
             kind: "tip",
@@ -158,7 +158,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Đã đăng nhập bằng GitHub CLI (gh) hoặc GitLab CLI (glab)? Phần đầu trình quản lý tài khoản liệt kê các tài khoản đó — bấm **Thêm** là dùng được ngay, không cần đăng nhập lại. Token được cất trong kho mật khẩu của hệ điều hành (keychain), không bao giờ nằm trong file thường.",
+            text: "Đã đăng nhập bằng GitHub CLI (gh) hoặc GitLab CLI (glab)? Phần đầu trình quản lý tài khoản liệt kê các tài khoản đó. Bấm **Thêm** là dùng được ngay, không cần đăng nhập lại. Token được cất trong kho mật khẩu của hệ điều hành (keychain), không bao giờ nằm trong file thường.",
           },
           {
             kind: "term",
@@ -179,7 +179,7 @@ export const guideVi: GuideTopic[] = [
             kind: "list",
             items: [
               "**Quy tắc** (trình quản lý tài khoản → tab **Quy tắc**) tự chọn tài khoản, ví dụ “mọi repo ở github.com/cong-ty-toi dùng tài khoản Công ty”. Quy tắc được xét từ trên xuống.",
-              "Mỗi tài khoản có thể có nhiều **danh tính commit** (tên + email ghi vào commit) — ví dụ email công ty và email cá nhân.",
+              "Mỗi tài khoản có thể có nhiều **danh tính commit** (tên + email ghi vào commit). Ví dụ email công ty và email cá nhân.",
               "Một repo có thể dùng tài khoản khác nhau cho từng remote (xem mục **Theo từng remote** trong nút tài khoản).",
             ],
           },
@@ -221,7 +221,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "App tự dùng đúng khóa cho từng tài khoản — bạn không cần tạo bí danh host trong ~/.ssh/config.",
+            text: "App tự dùng đúng khóa cho từng tài khoản. Bạn không cần tạo bí danh host trong ~/.ssh/config.",
           },
         ],
       },
@@ -320,8 +320,8 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "steps",
             items: [
-              "Bật một lần: **Cài đặt → Gợi ý commit bằng AI → Cài đặt AI…**, bật **Bật gợi ý commit bằng AI** rồi chọn nguồn AI (máy tính của bạn với Ollama — miễn phí, code không rời máy — hoặc dịch vụ như OpenAI dùng API key của bạn).",
-              "Stage các file, rồi bấm **✨** cạnh ô tóm tắt. Gợi ý được điền vào ô message — đọc và sửa lại trước khi commit.",
+              "Bật một lần: **Cài đặt → Gợi ý commit bằng AI → Cài đặt AI…**, bật **Bật gợi ý commit bằng AI** rồi chọn nguồn AI (máy tính của bạn với Ollama, miễn phí, code không rời máy, hoặc dịch vụ như OpenAI dùng API key của bạn).",
+              "Stage các file, rồi bấm **✨** cạnh ô tóm tắt. Gợi ý được điền vào ô message. Đọc và sửa lại trước khi commit.",
             ],
           },
           {
@@ -349,7 +349,7 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "term",
             term: "Checkout / chuyển nhánh",
-            text: "chuyển sang nhánh khác — các file trong thư mục đổi thành phiên bản của nhánh đó.",
+            text: "chuyển sang nhánh khác. Các file trong thư mục đổi thành phiên bản của nhánh đó.",
           },
         ],
       },
@@ -424,7 +424,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Nếu hai bên cùng sửa một chỗ, Git dừng lại vì xung đột — xem mục “Xung đột”.",
+            text: "Nếu hai bên cùng sửa một chỗ, Git dừng lại vì xung đột. Xem mục “Xung đột”.",
           },
         ],
       },
@@ -434,7 +434,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Chuột phải nhánh → **Đổi tên…** hoặc **Xóa…**. Không xóa được nhánh đang đứng — chuyển sang nhánh khác trước. Xóa nhánh có commit chưa gộp vào đâu sẽ được hỏi lại (**Vẫn xóa**). Menu nhánh cũng có mục xóa bản trên server, hoặc xóa cả hai.",
+            text: "Chuột phải nhánh → **Đổi tên…** hoặc **Xóa…**. Không xóa được nhánh đang đứng. Chuyển sang nhánh khác trước. Xóa nhánh có commit chưa gộp vào đâu sẽ được hỏi lại (**Vẫn xóa**). Menu nhánh cũng có mục xóa bản trên server, hoặc xóa cả hai.",
           },
         ],
       },
@@ -459,7 +459,7 @@ export const guideVi: GuideTopic[] = [
             items: [
               "**Fetch**: hỏi server có gì mới, không đổi file của bạn.",
               "**Pull**: fetch rồi đưa commit mới vào nhánh hiện tại. Mũi tên ▾ có merge (mặc định), rebase hoặc chỉ fast-forward.",
-              "**Push**: gửi commit mới của bạn lên server. Mũi tên ▾ có **Force push** an toàn — chỉ dùng khi bạn hiểu rõ vì sao.",
+              "**Push**: gửi commit mới của bạn lên server. Mũi tên ▾ có **Force push** an toàn. Chỉ dùng khi bạn hiểu rõ vì sao.",
             ],
           },
         ],
@@ -470,7 +470,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "↑3 trên nút Push = 3 commit của bạn chưa lên server. ↓2 trên nút Pull = server có 2 commit bạn chưa có. Màu vàng là có cả hai — pull trước. Nếu bấm Push khi đang thiếu commit, app đề nghị **Pull rồi push**.",
+            text: "↑3 trên nút Push = 3 commit của bạn chưa lên server. ↓2 trên nút Pull = server có 2 commit bạn chưa có. Màu vàng là có cả hai. Pull trước. Nếu bấm Push khi đang thiếu commit, app đề nghị **Pull rồi push**.",
           },
           {
             kind: "p",
@@ -484,7 +484,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Trước khi push có thể hiện **Kiểm tra trước khi push**: tài khoản không có quyền ghi vào repo, có commit mang tác giả khác danh tính của bạn (app sửa được tác giả của commit chưa push), hoặc có file quá lớn với server (app chuyển được sang LFS — **Chuyển sang LFS** — có bản sao lưu để hoàn tác).",
+            text: "Trước khi push có thể hiện **Kiểm tra trước khi push**: tài khoản không có quyền ghi vào repo, có commit mang tác giả khác danh tính của bạn (app sửa được tác giả của commit chưa push), hoặc có file quá lớn với server (app chuyển được sang LFS, **Chuyển sang LFS**, có bản sao lưu để hoàn tác).",
           },
           {
             kind: "p",
@@ -529,7 +529,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "warn",
-            text: "Khi rebase, Git đảo “ours” và “theirs”. Nhãn trong trình sửa ghi rõ bên nào là bên nào — bấm **Ours / theirs là gì?** nếu chưa chắc.",
+            text: "Khi rebase, Git đảo “ours” và “theirs”. Nhãn trong trình sửa ghi rõ bên nào là bên nào. Bấm **Ours / theirs là gì?** nếu chưa chắc.",
           },
           {
             kind: "p",
@@ -555,7 +555,7 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "term",
             term: "HEAD",
-            text: "chỗ bạn đang đứng — thường là commit mới nhất của nhánh hiện tại.",
+            text: "chỗ bạn đang đứng. Thường là commit mới nhất của nhánh hiện tại.",
           },
           {
             kind: "term",
@@ -636,7 +636,7 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "list",
             items: [
-              "Hoàn tác một commit trả thay đổi về trạng thái đã stage — không mất gì.",
+              "Hoàn tác một commit trả thay đổi về trạng thái đã stage. Không mất gì.",
               "Hoàn tác không bao giờ ghi đè thay đổi chưa commit; nếu repo đã đổi khác, app sẽ báo thay vì làm.",
               "Nếu các commit đã push, app hỏi trước: hoàn tác chỉ đổi trên máy bạn.",
             ],
@@ -724,8 +724,7 @@ export const guideVi: GuideTopic[] = [
   {
     id: "mywork",
     title: "Việc của tôi & Ghi chú của tôi",
-    summary:
-      "PR đang chờ bạn, PR của bạn, issue giao cho bạn — từ mọi tài khoản — và ghi chú riêng.",
+    summary: "PR đang chờ bạn, PR của bạn, issue giao cho bạn (từ mọi tài khoản) và ghi chú riêng.",
     sections: [
       {
         id: "mywork",
@@ -840,7 +839,7 @@ export const guideVi: GuideTopic[] = [
             kind: "steps",
             items: [
               "**Cài đặt** → **Giao diện**: Sáng / Tối / Theo hệ thống / **Tùy chỉnh**.",
-              "**Quản lý theme…** mở trình tạo theme: bắt đầu từ **Tương phản cao — Tối** hoặc **Tương phản cao — Sáng**, hoặc tự chọn màu.",
+              "**Quản lý theme…** mở trình tạo theme: bắt đầu từ **Tương phản cao (Tối)** hoặc **Tương phản cao (Sáng)**, hoặc tự chọn màu.",
               "**Ngôn ngữ**: English hoặc Tiếng Việt (đổi ngay).",
             ],
           },
@@ -870,7 +869,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "warn",
-            text: "Cất mật khẩu ở nơi an toàn: quên mật khẩu thì không mở được bản sao lưu. Code của bạn không nằm trong bản sao lưu — nó ở trong các repo (hãy push lên server, hoặc chép các thư mục).",
+            text: "Cất mật khẩu ở nơi an toàn: quên mật khẩu thì không mở được bản sao lưu. Code của bạn không nằm trong bản sao lưu. Nó ở trong các repo (hãy push lên server, hoặc chép các thư mục).",
           },
         ],
       },
@@ -926,7 +925,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Nếu bản build này không tự cập nhật được, app sẽ nói rõ và có link tới trang Releases: tải bộ cài mới và cài đè lên — dữ liệu và tài khoản vẫn giữ nguyên.",
+            text: "Nếu bản build này không tự cập nhật được, app sẽ nói rõ và có link tới trang Releases: tải bộ cài mới và cài đè lên. Dữ liệu và tài khoản vẫn giữ nguyên.",
           },
         ],
       },
@@ -989,7 +988,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Có người đã push trước bạn. Bấm **Pull** (giải quyết xung đột nếu có), rồi **Push** lại — hoặc dùng **Pull rồi push**. Tránh force push nếu chưa chắc chắn.",
+            text: "Có người đã push trước bạn. Bấm **Pull** (giải quyết xung đột nếu có), rồi **Push** lại. Hoặc dùng **Pull rồi push**. Tránh force push nếu chưa chắc chắn.",
           },
         ],
       },
@@ -999,7 +998,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Xem nút tài khoản: có đúng tài khoản có quyền vào repo không? Đổi tài khoản, hoặc bấm **Đăng nhập lại** trong thông báo. Push file trong .github/workflows cần quyền “workflow” trên GitHub — thông báo có nút để cấp quyền đó.",
+            text: "Xem nút tài khoản: có đúng tài khoản có quyền vào repo không? Đổi tài khoản, hoặc bấm **Đăng nhập lại** trong thông báo. Push file trong .github/workflows cần quyền “workflow” trên GitHub. Thông báo có nút để cấp quyền đó.",
           },
         ],
       },
@@ -1054,7 +1053,7 @@ export const guideVi: GuideTopic[] = [
         blocks: [
           {
             kind: "p",
-            text: "Mở **Chi tiết kỹ thuật** trong thông báo để xem nguyên văn lời của Git. Log nằm ở **Cài đặt → Lưu trữ → Quản lý lưu trữ… → Log → Mở thư mục** — gửi kèm file hôm nay khi báo lỗi.",
+            text: "Mở **Chi tiết kỹ thuật** trong thông báo để xem nguyên văn lời của Git. Log nằm ở **Cài đặt → Lưu trữ → Quản lý lưu trữ… → Log → Mở thư mục**. Gửi kèm file hôm nay khi báo lỗi.",
           },
         ],
       },

@@ -51,8 +51,7 @@ export function UpdaterSettingsSection() {
         <p className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
           <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
           <span>
-            {t(`updater.error.${result.error.kind}`)} —{" "}
-            {t(`updater.errorHelp.${result.error.kind}`)}
+            {t(`updater.error.${result.error.kind}`)}. {t(`updater.errorHelp.${result.error.kind}`)}
           </span>
         </p>
       );

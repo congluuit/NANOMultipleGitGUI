@@ -48,7 +48,7 @@ describe("CommitAs", () => {
     seedAccounts(queryClient, { contexts: [unboundContext(1)] });
     renderBlock({ name: "Me", email: "me@home.dev" });
     expect(block()).toHaveTextContent("Me <me@home.dev>");
-    expect(block()).toHaveTextContent("Chưa gắn tài khoản — dùng git config của repo");
+    expect(block()).toHaveTextContent("Chưa gắn tài khoản. Dùng git config của repo");
   });
 
   it("keeps the missing-identity warning when unbound", () => {

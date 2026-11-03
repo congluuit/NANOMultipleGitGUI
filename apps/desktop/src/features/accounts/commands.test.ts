@@ -140,7 +140,7 @@ describe("accounts palette commands", () => {
       op: "push",
     });
     expect(useUi.getState().notice?.message).toBe(
-      "Đã chọn tài khoản cho lần push kế tiếp — bấm Push khi sẵn sàng",
+      "Đã chọn tài khoản cho lần push kế tiếp. Bấm Push khi sẵn sàng",
     );
 
     const refs = {
@@ -202,12 +202,14 @@ describe("accounts palette commands", () => {
       accountId: null,
       add: true,
       reauth: false,
+      signIn: null,
     });
     void byId(list, "accounts.manage").run!(c);
     expect(useAccountDialogs.getState().manager).toEqual({
       accountId: null,
       add: false,
       reauth: false,
+      signIn: null,
     });
     expect(byId(list, "accounts.unbind").when?.(c)).toBe(false);
 

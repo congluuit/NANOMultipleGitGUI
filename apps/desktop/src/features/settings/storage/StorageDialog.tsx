@@ -361,7 +361,7 @@ export function StorageDialog() {
             )}
             {moving && progress && (
               <div className="text-muted-foreground">
-                {t(`storage.phase.${progress.phase}`)} — {progressPercent(progress)}%
+                {t(`storage.phase.${progress.phase}`)}: {progressPercent(progress)}%
               </div>
             )}
           </div>

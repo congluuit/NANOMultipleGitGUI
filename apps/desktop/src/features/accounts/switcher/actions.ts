@@ -1,14 +1,22 @@
 /** Switcher actions shared by the pill, the banner, the shortcuts and the command palette. */
 import i18n from "i18next";
 import { isTauri } from "@tauri-apps/api/core";
+import { repoKeys } from "@/features/repos/queries";
 import { worktreeKeys } from "@/features/worktree/queries";
-import { commands, errorMessage, type Account, type RepoAccountContext } from "@/ipc";
+import {
+  commands,
+  errorMessage,
+  type Account,
+  type RepoAccountContext,
+  type RepoRefs,
+} from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
 import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 import { accountKeys } from "../queries";
-import { accountLabel, sortAccounts } from "./model";
+import { accountLabel, sortAccounts, trackingMismatch } from "./model";
 import { setOneShot, type OneShotOp } from "./oneShot";
+import { followAccountRemote, trackingVars } from "./tracking";
 
 const notify = (message: string, kind: "info" | "error" = "info") =>
   useUi.getState().showNotice({ kind, message });
@@ -42,7 +50,30 @@ export async function bindRepo(repoId: number, opts: BindOptions): Promise<boole
     applyContext(repoId, ctx);
     const account = ctx.account ?? cachedAccount(opts.accountId);
     const label = account ? accountLabel(account) : opts.accountId;
-    notify(i18n.t(opts.locked ? "switcher.switchedLocked" : "switcher.switched", { label }));
+    const message = i18n.t(opts.locked ? "switcher.switchedLocked" : "switcher.switched", {
+      label,
+    });
+    // The current branch still pulls/pushes through a remote of another account: say so and
+    // offer the remote of the account just chosen.
+    const m = opts.remote
+      ? null
+      : trackingMismatch(ctx, queryClient.getQueryData<RepoRefs>(repoKeys.refs(repoId)));
+    if (m) {
+      useUi.getState().showNotice({
+        kind: "info",
+        message,
+        hint: i18n.t("switcher.tracking.hint", trackingVars(m)),
+        actions: [
+          {
+            label: i18n.t("switcher.tracking.use", trackingVars(m)),
+            run: () => void followAccountRemote(repoId, m),
+          },
+        ],
+        durationMs: 20_000,
+      });
+    } else {
+      notify(message);
+    }
     return true;
   } catch (e) {
     notify(errorMessage(e), "error");

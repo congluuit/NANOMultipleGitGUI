@@ -120,7 +120,7 @@ describe("LargeFileGuardDialog", () => {
     );
     expect(screen.getByText("1 file nên lưu bằng Git LFS")).toBeInTheDocument();
     expect(screen.getByText("cần stage lại")).toBeInTheDocument();
-    expect(screen.getByText(/chỉ stage lại file đã track LFS/)).toBeInTheDocument();
+    expect(screen.getByText(/Chỉ stage lại file đã track LFS/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Track bằng LFS (khuyến nghị)" }));
     expect(onTrack).toHaveBeenCalledWith([], ["art/old.psd"]);
   });

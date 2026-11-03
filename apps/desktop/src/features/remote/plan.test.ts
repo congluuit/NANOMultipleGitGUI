@@ -60,6 +60,21 @@ describe("pushPlan", () => {
     expect(pushPlan(gone)?.setUpstream).toBe(true);
   });
 
+  it("recreates a gone upstream on its own remote, not on origin", () => {
+    const moved = refs({
+      local: [branch({ upstream: "gitlab/main", upstreamGone: true })],
+      remotes: [
+        { name: "origin", url: "https://github.com/a/b.git", branches: [] },
+        { name: "gitlab", url: "https://gitlab.com/a/b.git", branches: [] },
+      ],
+    });
+    expect(pushPlan(moved)).toMatchObject({
+      remote: "gitlab",
+      remoteBranch: null,
+      setUpstream: true,
+    });
+  });
+
   it("refuses detached heads and repos without remotes", () => {
     expect(
       pushPlan(refs({ head: { branch: null, oid: "a", detached: true, unborn: false } })),
