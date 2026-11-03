@@ -2,6 +2,9 @@ import { CommitDetailsPanel } from "@/features/commit/CommitDetailsPanel";
 import { OperationBanner } from "@/features/commits/OperationBanner";
 import { RefDialogs } from "@/features/commits/RefDialogs";
 import { DiffView } from "@/features/diff/DiffView";
+import { QuickOpen } from "@/features/editor/QuickOpen";
+import { UnsavedQuitGuard } from "@/features/editor/UnsavedQuitGuard";
+import { FilesHost } from "@/features/files/FileDialogs";
 import { FileViewHost } from "@/features/file-history/FileViewHost";
 import { GraphView } from "@/features/graph/GraphView";
 import { FirstStepsBanner } from "@/features/publish/FirstStepsBanner";
@@ -143,6 +146,9 @@ export function AppShell() {
       <TerminalHost />
       <StatusBar />
       <RefDialogs />
+      <UnsavedQuitGuard />
+      <QuickOpen />
+      <FilesHost />
     </div>
   );
 }

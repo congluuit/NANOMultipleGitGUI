@@ -16,7 +16,10 @@ export type ShortcutId =
   | "redo"
   | "findCommit"
   | "commit"
-  | "bindAccount";
+  | "bindAccount"
+  | "quickOpen"
+  | "searchFiles"
+  | "saveFile";
 
 export interface ShortcutEntry {
   /** i18n key under `shortcuts.item`. */
@@ -47,6 +50,9 @@ export const SHORTCUTS: readonly ShortcutEntry[] = [
   },
   { id: "findCommit", group: "repo", keys: (m) => [`${mod(m)}+F`] },
   { id: "commit", group: "repo", keys: (m) => [`${mod(m)}+Enter`] },
+  { id: "quickOpen", group: "repo", keys: (m) => [`${mod(m)}+P`] },
+  { id: "searchFiles", group: "repo", keys: (m) => [`${mod(m)}+Shift+F`] },
+  { id: "saveFile", group: "repo", keys: (m) => [`${mod(m)}+S`] },
   { id: "bindAccount", group: "repo", keys: (m) => [`${mod(m)}+${alt(m)}+1…9`] },
 ];
 

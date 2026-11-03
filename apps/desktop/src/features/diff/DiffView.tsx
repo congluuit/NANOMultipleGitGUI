@@ -7,7 +7,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { splitPath } from "@/features/commit/format";
-import { runOp, worktreeKeys } from "@/features/worktree/queries";
+import { FileBody } from "@/features/editor/FileBody";
+import { dropBuffer, saveBuffer, useIsDirty } from "@/features/editor/store";
+import { runOp, useWorktreeStatus, worktreeKeys } from "@/features/worktree/queries";
 import {
   commands,
   errorMessage,
@@ -42,6 +44,9 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
   const setMode = useWorktreeStore((s) => s.setDiffMode);
   const ignoreWs = useWorktreeStore((s) => s.ignoreWhitespace);
   const setIgnoreWs = useWorktreeStore((s) => s.setIgnoreWhitespace);
+  const wholeFile = useWorktreeStore((s) => s.wholeFile);
+  const setWholeFile = useWorktreeStore((s) => s.setWholeFile);
+  const dirty = useIsDirty(repoId, request.path);
   const openDiff = useWorktreeStore((s) => s.openDiff);
   const root = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState<{ fp: string | null; lines: LineSel }>({
@@ -80,6 +85,12 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
   const { dir, name } = splitPath(request.path);
   const side = request.side;
   const editable = side === "unstaged" || side === "staged";
+  // A file opened in the editor (quick open, file tree) may have no change at all.
+  const status = useWorktreeStatus(repoId, side === "unstaged");
+  const unchanged =
+    side === "unstaged" &&
+    !!status.data &&
+    !status.data.unstaged.some((e) => e.path === request.path);
   const canLines = editable && !!d?.partial;
 
   const applyLines = async (action: PatchAction, selection: LineSelection[]) => {
@@ -93,6 +104,8 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
   };
 
   const stageFile = async () => {
+    // Unsaved edits of the file go to disk first, so what gets staged is what is on screen.
+    if (!(await saveBuffer(repoId, request.path))) return;
     await runOp(repoId, () => commands.stageFiles(repoId, [request.path]));
     openDiff(repoId, { side: "staged", path: request.path });
   };
@@ -110,6 +123,7 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
       return;
     }
     const untracked = side === "untracked";
+    dropBuffer(repoId, request.path);
     await runOp(repoId, () =>
       commands.discardFiles(
         repoId,
@@ -139,10 +153,17 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
           <span className="text-muted-foreground">{dir}</span>
           {name}
         </span>
+        {dirty && (
+          <span className="shrink-0 rounded bg-warning/15 px-1.5 py-0.5 text-[11px] text-warning">
+            {t("editor.unsaved")}
+          </span>
+        )}
         <span className="shrink-0 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted-foreground">
           {side === "commit"
             ? t("diff.commit", { oid: (request.commit ?? "").slice(0, 7) })
-            : t(`diff.${side}`)}
+            : unchanged
+              ? t("diff.unchanged")
+              : t(`diff.${side}`)}
         </span>
         {d && (
           <span className="shrink-0 font-mono text-[11px] tabular-nums">
@@ -150,7 +171,7 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
             <span className="text-danger">−{d.deletions}</span>
           </span>
         )}
-        {(side === "unstaged" || side === "untracked") && (
+        {(side === "unstaged" || side === "untracked") && !unchanged && (
           <>
             <Button
               variant="outline"
@@ -198,17 +219,39 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
           <ToggleGroupItem value="split" className="h-6 px-2 text-[11px]">
             {t("diff.modeSplit")}
           </ToggleGroupItem>
+          <ToggleGroupItem
+            value="file"
+            className="h-6 px-2 text-[11px]"
+            title={
+              side === "unstaged" || side === "untracked"
+                ? t("diff.modeFileEdit")
+                : t("diff.modeFileView")
+            }
+          >
+            {t("diff.modeFile")}
+          </ToggleGroupItem>
         </ToggleGroup>
-        {mode !== "hunk" && !showImage && (
-          <label className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={ignoreWs}
-              onChange={(e) => setIgnoreWs(e.target.checked)}
-              className="accent-primary"
-            />
-            {t("diff.ignoreWs")}
-          </label>
+        {(mode === "inline" || mode === "split") && !showImage && (
+          <>
+            <label className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={wholeFile}
+                onChange={(e) => setWholeFile(e.target.checked)}
+                className="accent-primary"
+              />
+              {t("diff.wholeFile")}
+            </label>
+            <label className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={ignoreWs}
+                onChange={(e) => setIgnoreWs(e.target.checked)}
+                className="accent-primary"
+              />
+              {t("diff.ignoreWs")}
+            </label>
+          </>
         )}
         <button
           type="button"
@@ -223,6 +266,8 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
 
       {showImage ? (
         <ImageDiff repoId={repoId} request={request} />
+      ) : mode === "file" ? (
+        <FileBody repoId={repoId} request={request} contents={contents} />
       ) : mode === "hunk" ? (
         <HunkBody
           query={diff}
@@ -242,6 +287,7 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
           path={request.path}
           split={mode === "split"}
           ignoreWs={ignoreWs}
+          wholeFile={wholeFile}
         />
       )}
 
@@ -382,9 +428,10 @@ interface EditorBodyProps {
   path: string;
   split: boolean;
   ignoreWs: boolean;
+  wholeFile: boolean;
 }
 
-function EditorBody({ query, path, split, ignoreWs }: EditorBodyProps) {
+function EditorBody({ query, path, split, ignoreWs, wholeFile }: EditorBodyProps) {
   const { t } = useTranslation();
   const c = query.data;
   if (query.isError)
@@ -400,6 +447,7 @@ function EditorBody({ query, path, split, ignoreWs }: EditorBodyProps) {
         modified={c.modified ?? ""}
         sideBySide={split}
         ignoreWhitespace={ignoreWs}
+        hideUnchanged={!wholeFile}
       />
     </Suspense>
   );

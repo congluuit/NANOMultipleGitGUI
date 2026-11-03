@@ -8,6 +8,8 @@ interface Props {
   modified: string;
   sideBySide: boolean;
   ignoreWhitespace: boolean;
+  /** Fold the unchanged regions (expandable); off shows every line. */
+  hideUnchanged: boolean;
 }
 
 /** Read-only Monaco diff editor. Loaded lazily: Monaco is a large chunk. */
@@ -17,6 +19,7 @@ export default function MonacoDiff({
   modified,
   sideBySide,
   ignoreWhitespace,
+  hideUnchanged,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
@@ -68,8 +71,9 @@ export default function MonacoDiff({
     editor.current?.updateOptions({
       renderSideBySide: sideBySide,
       ignoreTrimWhitespace: ignoreWhitespace,
+      hideUnchangedRegions: { enabled: hideUnchanged },
     });
-  }, [sideBySide, ignoreWhitespace]);
+  }, [sideBySide, ignoreWhitespace, hideUnchanged]);
 
   useEffect(() => {
     applyMonacoTheme(theme);

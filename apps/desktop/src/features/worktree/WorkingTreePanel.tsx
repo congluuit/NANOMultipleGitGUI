@@ -97,6 +97,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
         <ScrollArea className="min-h-28 flex-1">
           {st.conflicted.length > 0 && (
             <FileSection
+              repoId={repoId}
               kind="conflicted"
               entries={st.conflicted}
               activePath={fileView?.kind === "conflict" ? fileView.path : null}
@@ -113,6 +114,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             />
           )}
           <FileSection
+            repoId={repoId}
             kind="unstaged"
             entries={st.unstaged}
             activePath={activeIn("unstaged")}
@@ -131,6 +133,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             )}
           />
           <FileSection
+            repoId={repoId}
             kind="staged"
             entries={st.staged}
             activePath={activeIn("staged")}

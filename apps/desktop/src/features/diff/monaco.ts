@@ -1,10 +1,33 @@
 // Monaco is bundled locally (no CDN: the app's CSP only allows its own origin). Only the core
-// editor, the diff editor, find and the syntax tokenizers are loaded; there are no language
-// services, so a single editor worker is enough.
+// editor, the diff editor, the syntax tokenizers and the plain-text editing features of the
+// built-in file editor are loaded (find/replace, F1 commands, go to line, line operations,
+// multi-cursor, word completion...); there are no language services, so a single editor
+// worker is enough.
 import * as monaco from "monaco-editor/editor/editor.api";
+import "monaco-editor/features/bracketMatching/register";
+import "monaco-editor/features/caretOperations/register";
+import "monaco-editor/features/clipboard/register";
 import "monaco-editor/features/codicon/register";
+import "monaco-editor/features/comment/register";
+import "monaco-editor/features/contextmenu/register";
+import "monaco-editor/features/cursorUndo/register";
 import "monaco-editor/features/diffEditor/register";
 import "monaco-editor/features/find/register";
+import "monaco-editor/features/folding/register";
+import "monaco-editor/features/fontZoom/register";
+import "monaco-editor/features/gotoLine/register";
+import "monaco-editor/features/hover/register";
+import "monaco-editor/features/inPlaceReplace/register";
+import "monaco-editor/features/indentation/register";
+import "monaco-editor/features/lineSelection/register";
+import "monaco-editor/features/linesOperations/register";
+import "monaco-editor/features/multicursor/register";
+import "monaco-editor/features/quickCommand/register";
+import "monaco-editor/features/readOnlyMessage/register";
+import "monaco-editor/features/smartSelect/register";
+import "monaco-editor/features/suggest/register";
+import "monaco-editor/features/wordHighlighter/register";
+import "monaco-editor/features/wordOperations/register";
 import "monaco-editor/languages/definitions/register.all";
 import EditorWorker from "monaco-editor/editor/editor.worker?worker";
 import type { ResolvedTheme } from "@/theme/theme";
@@ -12,7 +35,7 @@ import { expandHex } from "./color";
 
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };
 
-function token(name: string): string {
+export function token(name: string): string {
   return expandHex(getComputedStyle(document.documentElement).getPropertyValue(name).trim());
 }
 

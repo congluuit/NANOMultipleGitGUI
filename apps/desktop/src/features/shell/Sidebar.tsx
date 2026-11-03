@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CircleDot,
   Cloud,
+  Files,
   FolderTree,
   GitBranch,
   GitCommitHorizontal,
@@ -15,6 +16,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  Search,
   Server,
   Tag,
 } from "lucide-react";
@@ -44,6 +46,9 @@ import { openPublishDialog } from "@/features/publish/store";
 import { IssueSidebarList } from "@/features/issues/IssueSidebarList";
 import { PullSidebarList } from "@/features/pulls/PullSidebarList";
 import { usePullSidebarCount } from "@/features/pulls/sidebarData";
+import { FileTree } from "@/features/files/FileTree";
+import { SearchPanel } from "@/features/files/SearchPanel";
+import { showSidebarView, useSidebarView, type SidebarView } from "@/features/files/store";
 
 function Section({
   icon: Icon,
@@ -189,6 +194,16 @@ function SidebarRail({ sections, loading }: { sections: SectionDef[]; loading: b
         label={t("layout.expandSidebar")}
         onClick={() => toggle("sidebar")}
       />
+      <RailButton
+        icon={Files}
+        label={t("sidebarView.files")}
+        onClick={() => showSidebarView("files")}
+      />
+      <RailButton
+        icon={Search}
+        label={t("sidebarView.search")}
+        onClick={() => showSidebarView("search")}
+      />
       <span className="my-1 h-px w-6 bg-border" />
       {loading && <LoaderCircle className="size-4 animate-spin text-muted-foreground" />}
       {sections.map((s) => (
@@ -264,6 +279,7 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
   const submodules = useSubmodules(repo?.id ?? -1, !!repo && !repo.missing);
   const worktrees = useLinkedWorktrees(repo?.id ?? -1, !!repo && !repo.missing);
   const [typed, setFilter] = useState("");
+  const view = useSidebarView((s) => s.view);
   // The rail has no filter box: its popovers list everything.
   const filter = rail ? "" : typed;
   const toggle = useLayout((s) => s.togglePanel);
@@ -512,16 +528,24 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
 
   const loading = !data && !!repo && !repo.missing;
   if (rail) return <SidebarRail sections={sections} loading={loading} />;
+  const showRepo = !!repo && !repo.missing;
 
   return (
     <aside className="flex min-w-0 flex-1 flex-col bg-surface" aria-label={t("layout.sidebar")}>
+      <div className="flex items-center gap-1 px-2 pt-2">
+        <ViewSwitch />
+      </div>
       <div className="flex items-center gap-1 p-2">
-        <input
-          value={typed}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder={t("sidebar.filter")}
-          className="h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
-        />
+        {view === "search" ? (
+          <span className="flex-1" />
+        ) : (
+          <input
+            value={typed}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder={view === "files" ? t("files.filter") : t("sidebar.filter")}
+            className="h-7 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+          />
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -537,21 +561,64 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
         </Tooltip>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        {loading && (
-          <p className="px-3 py-2 text-xs text-muted-foreground">{t("sidebar.loading")}</p>
+        {view === "files" && showRepo ? (
+          <FileTree repoId={repo.id} filter={typed} />
+        ) : view === "search" && showRepo ? (
+          <SearchPanel repoId={repo.id} />
+        ) : (
+          <>
+            {loading && (
+              <p className="px-3 py-2 text-xs text-muted-foreground">{t("sidebar.loading")}</p>
+            )}
+            {sections.map((s) => (
+              <Section
+                key={`section-${s.id}`}
+                icon={s.icon}
+                title={s.title}
+                count={s.count}
+                defaultOpen={s.defaultOpen}
+              >
+                {s.content}
+              </Section>
+            ))}
+          </>
         )}
-        {sections.map((s) => (
-          <Section
-            key={`section-${s.id}`}
-            icon={s.icon}
-            title={s.title}
-            count={s.count}
-            defaultOpen={s.defaultOpen}
-          >
-            {s.content}
-          </Section>
-        ))}
       </ScrollArea>
     </aside>
+  );
+}
+
+const VIEWS: { id: SidebarView; icon: LucideIcon }[] = [
+  { id: "refs", icon: GitBranch },
+  { id: "files", icon: Files },
+  { id: "search", icon: Search },
+];
+
+/** Branches / Files / Search: what the expanded sidebar shows. */
+function ViewSwitch() {
+  const { t } = useTranslation();
+  const view = useSidebarView((s) => s.view);
+  return (
+    <div
+      role="group"
+      aria-label={t("sidebarView.label")}
+      className="flex h-7 flex-1 items-center gap-0.5 rounded-md bg-surface-2 p-0.5"
+    >
+      {VIEWS.map(({ id, icon: Icon }) => (
+        <button
+          key={id}
+          type="button"
+          aria-pressed={view === id}
+          onClick={() => showSidebarView(id)}
+          className={cn(
+            "flex h-6 min-w-0 flex-1 items-center justify-center gap-1 rounded text-[11px] text-muted-foreground hover:text-foreground",
+            view === id && "bg-background font-medium text-foreground shadow-xs",
+          )}
+        >
+          <Icon className="size-3.5 shrink-0" />
+          <span className="truncate">{t(`sidebarView.${id}`)}</span>
+        </button>
+      ))}
+    </div>
   );
 }

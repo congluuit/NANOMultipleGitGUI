@@ -19,6 +19,8 @@ mod conflicts;
 mod env_path;
 mod error;
 mod file_views;
+// Built-in editor: list / search / create / rename / delete files, stage edited text.
+mod files;
 // Phase 4.3: fork & clone, fork the open repository.
 mod forks;
 mod graph;
@@ -94,6 +96,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             worktree::worktree_status,
             worktree::file_diff,
             worktree::file_contents,
+            worktree::worktree_file_read,
+            worktree::worktree_file_write,
             worktree::stage_files,
             worktree::unstage_files,
             worktree::stage_all,
@@ -114,6 +118,13 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             file_views::blame_file,
             file_views::file_at_commit,
             file_views::diff_images,
+            files::repo_files,
+            files::repo_search,
+            files::file_create,
+            files::folder_create,
+            files::path_rename,
+            files::path_delete,
+            files::index_stage_text,
             stash::stash_create,
             stash::stash_apply,
             stash::stash_pop,

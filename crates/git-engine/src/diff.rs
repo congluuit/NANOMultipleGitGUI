@@ -373,7 +373,7 @@ fn invalid(what: &str) -> GitError {
 }
 
 /// Rejects paths that could be read as options or escape the repository.
-fn check_path(path: &str) -> Result<(), GitError> {
+pub(crate) fn check_path(path: &str) -> Result<(), GitError> {
     let bad = path.is_empty()
         || path.starts_with('-')
         || path.contains('\0')

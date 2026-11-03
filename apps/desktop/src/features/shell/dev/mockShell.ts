@@ -5,7 +5,14 @@
  * drop it. Commands it does not know resolve to `null` and are listed in `window.__mockMisses`.
  */
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { GraphRow, RepoRefs, StatusEntry, WorkingTreeStatus, WorkspaceState } from "@/ipc";
+import type {
+  DiffRequest,
+  GraphRow,
+  RepoRefs,
+  StatusEntry,
+  WorkingTreeStatus,
+  WorkspaceState,
+} from "@/ipc";
 
 const HEAD = "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678";
 const hash = (i: number) => (i.toString(16).padStart(8, "0") + HEAD).slice(0, 40);
@@ -107,6 +114,77 @@ const status: WorkingTreeStatus = {
   conflicted: [],
 };
 
+// Index and working-tree text of the changed sample file, for the diff and file editor views.
+const lines = (...l: string[]) => l.join(String.fromCharCode(10));
+const files: Record<string, { index: string; worktree: string }> = {
+  "src/a.ts": {
+    index: lines(
+      'import { fetchToken } from "./auth";',
+      "",
+      "export interface Session {",
+      "  user: string;",
+      "  token: string;",
+      "  expires: number;",
+      "}",
+      "",
+      "export async function login(user: string, password: string): Promise<Session> {",
+      "  const token = await fetchToken(user, password);",
+      "  return { user, token, expires: Date.now() + 3600_000 };",
+      "}",
+      "",
+      "export function isExpired(session: Session): boolean {",
+      "  return session.expires < Date.now();",
+      "}",
+      "",
+      "// Old helper kept for the CLI.",
+      "export function describe(session: Session): string {",
+      "  return `${session.user} (${session.token.slice(0, 4)}...)`;",
+      "}",
+      "",
+    ),
+    worktree: lines(
+      'import { fetchToken } from "./auth";',
+      "",
+      "const SESSION_MS = 60 * 60 * 1000;",
+      "",
+      "export interface Session {",
+      "  user: string;",
+      "  token: string;",
+      "  expires: number;",
+      "}",
+      "",
+      "export async function login(user: string, password: string): Promise<Session> {",
+      "  const token = await fetchToken(user, password);",
+      "  return { user, token, expires: Date.now() + SESSION_MS };",
+      "}",
+      "",
+      "export function isExpired(session: Session): boolean {",
+      "  // A minute of margin for clock drift.",
+      "  return session.expires - 60_000 < Date.now();",
+      "}",
+      "",
+      "export function describe(session: Session): string {",
+      "  return `${session.user} (${session.token.slice(0, 4)}...)`;",
+      "}",
+      "",
+    ),
+  },
+};
+for (const [path, text] of [
+  ["README.md", lines("# backend-api", "", "Session helpers and the login flow.", "")],
+  ["src/b.ts", lines("export const b = 1;", "")],
+  ["src/lib/util.ts", lines("export function login() {}", "export const SESSION = 1;", "")],
+  ["package.json", lines("{", '  "name": "backend-api"', "}", "")],
+] as const) {
+  files[path] = { index: text, worktree: text };
+}
+const head: Record<string, string> = Object.fromEntries(
+  Object.entries(files).map(([p, f]) => [p, f.index]),
+);
+const created = new Set<string>();
+const version = (text: string) =>
+  `v${[...text].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) | 0, 7)}`;
+
 const tool = (major: number, minor: number) => ({
   version: { major, minor, patch: 0 },
   raw: `${major}.${minor}.0`,
@@ -142,6 +220,147 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   graph_find: () => null,
   graph_search: () => [],
   worktree_status: () => status,
+  file_contents: (a) => {
+    const r = a.request as DiffRequest;
+    const f = files[r.path];
+    if (!f) return { original: null, modified: null, binary: false, tooLarge: false };
+    return r.side === "staged"
+      ? { original: head[r.path] ?? null, modified: f.index, binary: false, tooLarge: false }
+      : { original: f.index, modified: f.worktree, binary: false, tooLarge: false };
+  },
+  repo_files: () => ({
+    tracked: Object.keys(files)
+      .filter((p) => !created.has(p))
+      .sort(),
+    untracked: [...created].sort(),
+    folders: [],
+    truncated: false,
+  }),
+  repo_search: (a) => {
+    const q = String(a.query).toLowerCase();
+    const matches = Object.entries(files).flatMap(([path, f]) =>
+      f.worktree.split(String.fromCharCode(10)).flatMap((text, i) => {
+        const at = text.toLowerCase().indexOf(q);
+        return at < 0 ? [] : [{ path, line: i + 1, column: at + 1, text, textStart: 0 }];
+      }),
+    );
+    return { matches, truncated: false };
+  },
+  file_create: (a) => {
+    const path = a.path as string;
+    if (files[path]) throw new Error(`${path} already exists`);
+    files[path] = { index: "", worktree: "" };
+    created.add(path);
+    return null;
+  },
+  folder_create: () => null,
+  path_rename: (a) => {
+    const from = a.from as string;
+    const to = a.to as string;
+    const f = files[from];
+    if (!f) throw new Error(`${from} does not exist`);
+    files[to] = f;
+    delete files[from];
+    if (created.delete(from)) created.add(to);
+    return null;
+  },
+  path_delete: (a) => {
+    delete files[a.path as string];
+    created.delete(a.path as string);
+    return null;
+  },
+  index_stage_text: (a) => {
+    const f = files[a.path as string];
+    if (!f || a.expected !== f.index) return false;
+    f.index = a.text as string;
+    return true;
+  },
+  file_at_commit: (a) => {
+    const text = head[a.path as string];
+    return {
+      exists: text !== undefined,
+      size: text?.length ?? 0,
+      text: text ?? null,
+      binary: false,
+      tooLarge: false,
+      lfs: null,
+      image: false,
+    };
+  },
+  blame_file: (a) => {
+    const f = files[a.path as string];
+    const text = f?.worktree ?? "";
+    const all = text.split(String.fromCharCode(10));
+    const base = (f?.index ?? "").split(String.fromCharCode(10));
+    return {
+      path: a.path,
+      rev: null,
+      lines: all,
+      lineCommits: all.map((l) => (base.includes(l) ? (l.length % 2 ? 0 : 1) : 2)),
+      origLines: all.map((_, i) => i + 1),
+      commits: [
+        {
+          oid: hash(1),
+          author: "Lan",
+          email: "lan@acme.dev",
+          time: 1_760_000_000,
+          summary: "feat: add login",
+          filename: a.path,
+          previous: null,
+          previousPath: null,
+          boundary: false,
+          uncommitted: false,
+        },
+        {
+          oid: hash(2),
+          author: "Hoang",
+          email: "hoang@acme.dev",
+          time: 1_750_000_000,
+          summary: "fix: token refresh",
+          filename: a.path,
+          previous: null,
+          previousPath: null,
+          boundary: false,
+          uncommitted: false,
+        },
+        {
+          oid: "0".repeat(40),
+          author: "Not Committed Yet",
+          email: "",
+          time: 0,
+          summary: "",
+          filename: a.path,
+          previous: null,
+          previousPath: null,
+          boundary: false,
+          uncommitted: true,
+        },
+      ],
+      tooLarge: false,
+      binary: false,
+    };
+  },
+  worktree_file_read: (a) => {
+    const f = files[a.path as string];
+    return {
+      text: f?.worktree ?? null,
+      exists: !!f,
+      binary: false,
+      tooLarge: false,
+      notUtf8: false,
+      symlink: false,
+      version: f ? version(f.worktree) : "missing",
+    };
+  },
+  worktree_file_write: (a) => {
+    const f = files[a.path as string];
+    if (!f) throw new Error("no such file");
+    if (a.expected != null && a.expected !== version(f.worktree)) {
+      return { saved: false, version: version(f.worktree) };
+    }
+    f.worktree = a.text as string;
+    return { saved: true, version: version(f.worktree) };
+  },
   undo_state: () => ({ undo: null, redo: null }),
   tool_status: () => ({ git: tool(2, 47), gitLfs: tool(3, 5) }),
   submodule_list: () => [],

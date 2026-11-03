@@ -7,6 +7,7 @@ use nanomgg_git_engine::commit_write::{self, CommitOptions, CommitResult, GitIde
 use nanomgg_git_engine::diff::{
     self, DiffRequest, FileContents, FileDiff, LineSelection, PatchAction,
 };
+use nanomgg_git_engine::edit::{self, SaveOutcome, WorktreeFile};
 use nanomgg_git_engine::status::{WorkingTreeStatus, read_status};
 use nanomgg_git_engine::{GitRunner, index};
 use tauri::{AppHandle, Manager};
@@ -52,6 +53,38 @@ pub async fn file_contents(
 ) -> AppResult<FileContents> {
     with_repo(app, repo_id, move |git, root| {
         Ok(diff::file_contents(git, root, &request)?)
+    })
+    .await
+}
+
+/// A working-tree file for the built-in editor.
+#[tauri::command]
+#[specta::specta]
+pub async fn worktree_file_read(
+    app: AppHandle,
+    repo_id: i64,
+    path: String,
+) -> AppResult<WorktreeFile> {
+    with_repo(app, repo_id, move |_, root| {
+        Ok(edit::read_file(root, &path)?)
+    })
+    .await
+}
+
+/// Saves a file from the built-in editor. `expected` is the version it was loaded at; when the
+/// file changed on disk since, nothing is written and the outcome says so.
+#[tauri::command]
+#[specta::specta]
+pub async fn worktree_file_write(
+    app: AppHandle,
+    repo_id: i64,
+    path: String,
+    text: String,
+    expected: Option<String>,
+) -> AppResult<SaveOutcome> {
+    tracing::info!(repo = repo_id, bytes = text.len(), "save file from editor");
+    with_repo(app, repo_id, move |_, root| {
+        Ok(edit::write_file(root, &path, &text, expected.as_deref())?)
     })
     .await
 }

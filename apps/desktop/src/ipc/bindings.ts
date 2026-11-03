@@ -40,6 +40,13 @@ export const commands = {
 	worktreeStatus: (repoId: number) => __TAURI_INVOKE<WorkingTreeStatus>("worktree_status", { repoId }),
 	fileDiff: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileDiff>("file_diff", { repoId, request }),
 	fileContents: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileContents>("file_contents", { repoId, request }),
+	/**  A working-tree file for the built-in editor. */
+	worktreeFileRead: (repoId: number, path: string) => __TAURI_INVOKE<WorktreeFile>("worktree_file_read", { repoId, path }),
+	/**
+	 *  Saves a file from the built-in editor. `expected` is the version it was loaded at; when the
+	 *  file changed on disk since, nothing is written and the outcome says so.
+	 */
+	worktreeFileWrite: (repoId: number, path: string, text: string, expected: string | null) => __TAURI_INVOKE<SaveOutcome>("worktree_file_write", { repoId, path, text, expected }),
 	stageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("stage_files", { repoId, paths }),
 	unstageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("unstage_files", { repoId, paths }),
 	stageAll: (repoId: number) => __TAURI_INVOKE<null>("stage_all", { repoId }),
@@ -102,6 +109,23 @@ export const commands = {
 	fileAtCommit: (repoId: number, commit: string, path: string) => __TAURI_INVOKE<FileAtCommit>("file_at_commit", { repoId, commit, path }),
 	/**  Old and new version of an image for the image diff (LFS objects from the local store). */
 	diffImages: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<ImagePair>("diff_images", { repoId, request }),
+	/**  Every file of the working tree that is not ignored (quick open, file tree). */
+	repoFiles: (repoId: number) => __TAURI_INVOKE<RepoFiles>("repo_files", { repoId }),
+	/**  Lines of the working tree matching `query` (`git grep`). */
+	repoSearch: (repoId: number, query: string, options: SearchOptions, limit: number) => __TAURI_INVOKE<SearchResults>("repo_search", { repoId, query, options, limit }),
+	/**  Creates an empty file (with its missing parent folders). */
+	fileCreate: (repoId: number, path: string) => __TAURI_INVOKE<null>("file_create", { repoId, path }),
+	/**  Creates a folder (with its missing parents). */
+	folderCreate: (repoId: number, path: string) => __TAURI_INVOKE<null>("folder_create", { repoId, path }),
+	/**  Renames or moves a file or folder inside the repository. */
+	pathRename: (repoId: number, from: string, to: string) => __TAURI_INVOKE<null>("path_rename", { repoId, from, to }),
+	/**  Deletes a file, or a folder with everything in it. */
+	pathDelete: (repoId: number, path: string) => __TAURI_INVOKE<null>("path_delete", { repoId, path }),
+	/**
+	 *  Writes `text` as the staged version of `path`. `expected` is the index text the edit was
+	 *  based on (`None`: not in the index); `false` when the index changed since.
+	 */
+	indexStageText: (repoId: number, path: string, text: string, expected: string | null) => __TAURI_INVOKE<boolean>("index_stage_text", { repoId, path, text, expected }),
 	/**  `git stash push`. `created: false` means there was nothing to stash. */
 	stashCreate: (repoId: number, options: StashOptions) => __TAURI_INVOKE<StashCreated>("stash_create", { repoId, options }),
 	/**
@@ -4079,6 +4103,17 @@ export type RepoConfigFix =
 /**  `http.postBuffer 500 MB`: big HTTPS pushes that fail with "RPC failed" / HTTP 413. */
 "postBuffer";
 
+/**  Every file of the working tree that is not ignored. */
+export type RepoFiles = {
+	/**  Tracked files present on disk, sorted. */
+	tracked: string[],
+	/**  Untracked files that are not ignored, sorted. */
+	untracked: string[],
+	/**  Folders with no listed file inside (empty folders, nested repositories), sorted. */
+	folders: string[],
+	truncated: boolean,
+};
+
 /**  Multi-step operation the repository is in the middle of. */
 export type RepoOperation = "merge" | "rebase" | "cherryPick" | "revert" | "bisect" | 
 /**  `git am` (patch series). */
@@ -4208,6 +4243,43 @@ export type RuleTestResult = {
 	allMatches: string[],
 	/**  Stored rules that no longer compile (skipped by the engine). */
 	invalidRules: string[],
+};
+
+/**  Result of [`write_file`]. */
+export type SaveOutcome = {
+	/**  `false` when the file changed on disk since `expected` was read; nothing was written. */
+	saved: boolean,
+	/**  Version of the file on disk now. */
+	version: string,
+};
+
+/**  One matching line. */
+export type SearchMatch = {
+	path: string,
+	/**  1-based line number. */
+	line: number,
+	/**  1-based column of the first match, in UTF-16 units (what the editor counts). */
+	column: number,
+	/**  The line, or the part of a long line around the match. */
+	text: string,
+	/**  Column (0-based, UTF-16) of `text`'s first character in the line. */
+	textStart: number,
+};
+
+/**  How [`search`] matches the query. */
+export type SearchOptions = {
+	caseSensitive: boolean,
+	wholeWord: boolean,
+	/**  Extended regular expression instead of plain text. */
+	regex: boolean,
+	/**  Also search untracked files (never ignored ones). */
+	untracked: boolean,
+};
+
+export type SearchResults = {
+	matches: SearchMatch[],
+	/**  More lines matched than `limit`. */
+	truncated: boolean,
 };
 
 /**  Partial update; omitted fields keep their stored value. */
@@ -5226,6 +5298,20 @@ export type Worktree = {
 };
 
 /**  Which branch a new worktree checks out. */
+/**  A working-tree file as the editor needs it. */
+export type WorktreeFile = {
+	/**  Contents, `None` unless the file exists and is editable text. */
+	text: string | null,
+	exists: boolean,
+	binary: boolean,
+	tooLarge: boolean,
+	/**  Not valid UTF-8 (another encoding): shown read-only so saving cannot corrupt it. */
+	notUtf8: boolean,
+	symlink: boolean,
+	/**  Identifies the bytes on disk; passed back to [`write_file`]. */
+	version: string,
+};
+
 export type WorktreeTarget = 
 /**  An existing local branch (must not be checked out elsewhere). */
 { kind: "branch"; name: string } | 

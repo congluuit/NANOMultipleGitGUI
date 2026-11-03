@@ -1,5 +1,14 @@
 import { useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Copy, FileDiff, Minus, Plus, Undo2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  FileDiff,
+  FilePen,
+  Minus,
+  Plus,
+  Undo2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   ContextMenu,
@@ -14,6 +23,8 @@ import type { StatusEntry } from "@/ipc";
 import { formatBytes, LARGE_FILE_WARN_BYTES } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { LfsLockBadge } from "@/features/lfs/LfsLockBadge";
+import { useWorktreeStore } from "@/stores/worktree";
+import { bufferKey, useDirtyBuffers } from "@/features/editor/store";
 import { clickSelect, KIND_CLASS, kindLetter } from "./format";
 
 const MAX_ROWS = 2000;
@@ -21,6 +32,8 @@ const MAX_ROWS = 2000;
 export type SectionKind = "unstaged" | "staged" | "conflicted";
 
 interface Props {
+  /** Repository of the entries: marks the files with unsaved edits in the editor. */
+  repoId?: number;
   kind: SectionKind;
   entries: StatusEntry[];
   /** Path of the file whose diff is open in this section, if any. */
@@ -35,6 +48,7 @@ interface Props {
 }
 
 export function FileSection({
+  repoId,
   kind,
   entries,
   activePath,
@@ -51,6 +65,7 @@ export function FileSection({
   const [menuTarget, setMenuTarget] = useState<StatusEntry[]>([]);
   const order = useMemo(() => entries.map((e) => e.path), [entries]);
   const byPath = useMemo(() => new Map(entries.map((e) => [e.path, e])), [entries]);
+  const unsaved = useDirtyBuffers((s) => s.dirty);
 
   const title =
     kind === "staged"
@@ -140,6 +155,7 @@ export function FileSection({
                   entry={e}
                   active={e.path === activePath}
                   selected={selected.has(e.path)}
+                  unsaved={repoId !== undefined && !!unsaved[bufferKey(repoId, e.path)]}
                   primaryLabel={primaryLabel}
                   primaryShort={primaryShort}
                   discardLabel={onDiscard ? t("wip.discard") : null}
@@ -182,6 +198,19 @@ export function FileSection({
               <FileDiff />
               {t("wip.openDiff")}
             </ContextMenuItem>
+            {kind === "unstaged" && (
+              <ContextMenuItem
+                disabled={menuTarget.length !== 1 || menuTarget[0]?.kind === "deleted"}
+                onSelect={() => {
+                  if (!menuTarget[0]) return;
+                  useWorktreeStore.getState().setDiffMode("file");
+                  onOpen(menuTarget[0]);
+                }}
+              >
+                <FilePen />
+                {t("wip.editFile")}
+              </ContextMenuItem>
+            )}
             <ContextMenuItem
               onSelect={() =>
                 void navigator.clipboard.writeText(menuTarget.map((e) => e.path).join("\n"))
@@ -207,6 +236,8 @@ interface RowProps {
   entry: StatusEntry;
   active: boolean;
   selected: boolean;
+  /** Edited in the app and not saved yet. */
+  unsaved: boolean;
   primaryLabel: string;
   primaryShort: string;
   discardLabel: string | null;
@@ -219,6 +250,7 @@ function FileRow({
   entry,
   active,
   selected,
+  unsaved,
   primaryLabel,
   primaryShort,
   discardLabel,
@@ -252,6 +284,14 @@ function FileRow({
         <span className="text-muted-foreground">{dir}</span>
         {name}
       </span>
+      {unsaved && (
+        <span
+          className="shrink-0 rounded bg-warning/15 px-1 text-[10px] font-semibold text-warning"
+          title={t("wip.unsavedTitle")}
+        >
+          {t("editor.unsaved")}
+        </span>
+      )}
       <LfsLockBadge path={entry.path} />
       {large && (
         <span

@@ -13,6 +13,7 @@ pub mod commit_write;
 pub mod conflict;
 pub mod context;
 pub mod diff;
+pub mod edit;
 pub mod file_history;
 pub mod graph;
 pub mod guard;

@@ -13,6 +13,13 @@ export const worktreeKeys = {
     ["diff", id, r.side, r.path, r.oldPath ?? null, r.commit ?? null] as const,
   contents: (id: number, r: DiffRequest) =>
     ["contents", id, r.side, r.path, r.oldPath ?? null, r.commit ?? null] as const,
+  /** Working-tree file for the editor; under "contents" so the same refreshes reach it. */
+  file: (id: number, path: string) => ["contents", id, "file", path] as const,
+  /** Every file of the repository (quick open, file tree); refreshed with the working tree. */
+  files: (id: number) => ["contents", id, "repoFiles"] as const,
+  /** Blame of a file in the editor (`rev` null: working tree). */
+  blame: (id: number, path: string, rev: string | null) =>
+    ["contents", id, "blame", path, rev] as const,
 };
 
 export function useWorktreeStatus(repoId: number, enabled = true) {

@@ -76,3 +76,70 @@
     background: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 }
+
+/* Built-in file editor (features/editor): change markers in the gutter as in VS Code, tinted
+   changed lines, and the removed lines shown between them. */
+.monaco-editor .nm-gutter {
+  margin-left: 4px;
+  width: 4px !important;
+}
+.monaco-editor .nm-gutter-added {
+  background: var(--success);
+}
+.monaco-editor .nm-gutter-modified {
+  background: var(--info);
+}
+.monaco-editor .nm-gutter-deleted::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--danger);
+}
+.monaco-editor .nm-gutter-deleted-top::after {
+  top: -4px;
+  bottom: auto;
+}
+.monaco-editor .nm-gutter-added,
+.monaco-editor .nm-gutter-modified,
+.monaco-editor .nm-gutter-deleted {
+  cursor: pointer;
+}
+.monaco-editor .nm-line-added {
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+}
+.monaco-editor .nm-line-modified {
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+}
+.nm-zone {
+  min-width: 100%;
+  font-size: 12px;
+  line-height: 18px;
+}
+.nm-zone-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 18px;
+  padding: 0 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+.nm-zone-action {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.monaco-editor .nm-blame {
+  color: var(--text-muted);
+  font-style: italic;
+  opacity: 0.8;
+}
+.nm-zone-lines {
+  white-space: pre;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  opacity: 0.85;
+}
