@@ -5,6 +5,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-03
+
+### Added
+
+- Built-in file editor: the new **File** mode of the diff view shows the whole file with change markers in the margin. Edit and save with Ctrl+S, revert, stage or unstage one block of changes, see who last changed the current line, and compare with HEAD, a branch, a tag or a commit. Unsaved edits are kept when you switch files, and the app asks before closing with unsaved work.
+- **Ctrl+P** opens any file of the repository by name (also `path:line`), or creates a new one.
+- The left panel has **Branches**, **Files** and **Search** views: a file tree where you can create, rename, move and delete files and folders, and a search in every file of the repository (**Ctrl+Shift+F**) that opens the file at the line.
+- **Sign in to GitLab** in one click: when a repository has a remote on a server you are not signed in to, the yellow banner and the error message offer to sign in there. The browser opens right away, and once you are signed in the repository uses that account by itself.
+- Remotes in the left panel show their server and the account they use, and the Push / Pull tooltips say where they go and as which account (for example "Push main to origin (github.com), as Pret").
+
+### Changed
+
+- When a repository has only one signed-in account on a remote's server, that remote uses it automatically, so a gitlab.com remote works as soon as you add a GitLab account.
+- Publishing a repository preselects the account chosen for that repository instead of the first account in the list.
+- GitLab sign-in now asks for the `api` permission, needed to create projects, forks and merge requests from the app. Sign in again to get it on an existing GitLab account.
+- Messages and the guide are easier to read: long dashes were replaced by plain sentences.
+
+### Fixed
+
+- Push and Pull kept using the GitHub account after switching a repository to a GitLab account, when the current branch still tracked a GitHub remote. The account menu now warns about it, and Push / Pull (toolbar and command palette) ask first: **Push to gitlab** moves the branch to the remote of the chosen account, or keep the current remote, which is remembered for that branch.
+
 ## [1.1.2] - 2026-10-21
 
 ### Added
