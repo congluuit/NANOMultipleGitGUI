@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-04
+
 ### Added
 
 - **Ask AI how to fix it**: when AI is set up (Settings, AI), every error message offers to ask it. The app shows exactly what will be sent (the error, git's output, the branch and the remotes, never a password or token) and asks first, with a "Don't ask again" option. The AI explains the error in plain words and gives the steps, and you can ask follow-up questions. Chats are kept on this computer only; delete one or the whole history from the chat window. Open the history from Settings or the command palette.
