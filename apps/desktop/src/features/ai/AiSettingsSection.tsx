@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { MessageSquareText, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -6,6 +6,7 @@ import { useUi } from "@/stores/ui";
 import { modelOf, serviceName } from "./model";
 import { saveAiConfig, useAiConfig } from "./queries";
 import { openAiSettings } from "./store";
+import { openAiHelp } from "./help/store";
 
 /** Settings → "Gợi ý commit bằng AI": on/off, current service, entry to the AI settings. */
 export function AiSettingsSection() {
@@ -53,6 +54,20 @@ export function AiSettingsSection() {
         <Sparkles />
         {t("ai.settings.open")}
       </Button>
+      {enabled && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => {
+            useUi.getState().setSettingsOpen(false);
+            openAiHelp();
+          }}
+        >
+          <MessageSquareText />
+          {t("aiHelp.history")}
+        </Button>
+      )}
     </div>
   );
 }

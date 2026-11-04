@@ -267,3 +267,84 @@ export function missingSignIn(
   }
   return null;
 }
+
+const bareHost = (host: string) => host.toLowerCase().replace(/:\d+$/, "");
+
+/** `gitlab.com` for an account of the gitlab.com provider; `null` while providers load. */
+export function accountHostOf(
+  account: Pick<Account, "providerId">,
+  providers: readonly Provider[],
+): string | null {
+  const p = providers.find((x) => x.id === account.providerId);
+  const host = p ? hostOfUrl(p.baseUrl) : "";
+  return host ? bareHost(host) : null;
+}
+
+/**
+ * Whether `account` can sign in to `remote` over HTTPS: the app only sends a token to its own
+ * provider's server. SSH remotes and unknown providers are not judged (host aliases exist).
+ */
+export function accountFitsRemote(
+  account: Pick<Account, "providerId">,
+  remote: Pick<RemoteAccountContext, "host" | "transport">,
+  providers: readonly Provider[],
+): boolean {
+  if (remote.transport !== "https" || !remote.host) return true;
+  const host = accountHostOf(account, providers);
+  return host === null || host === bareHost(remote.host);
+}
+
+/**
+ * Ways out when a push/fetch was refused because a remote is bound to an account of another
+ * server (`accountHostMismatch`, e.g. a github.com remote bound to a GitLab account).
+ */
+export interface HostMismatchFix {
+  /** The remote on the refused server. */
+  remote: RemoteAccountContext;
+  /** Server of the account bound to it (`gitlab.com`). */
+  accountHost: string | null;
+  /** Another remote on the bound account's own server: where the push was probably meant to go. */
+  target: RemoteAccountContext | null;
+  /** Accounts signed in to the refused server. */
+  candidates: Account[];
+  /** Nobody is signed in there: where "Sign in" should open. */
+  signIn: SignInTarget | null;
+}
+
+/** Remote on the refused server in a credential helper error ("host `github.com` does not…"). */
+export const refusedHostOf = (text: string) =>
+  /host `([^`]+)` does not belong to this account/i.exec(text)?.[1] ?? null;
+
+export function hostMismatchFix(
+  ctx: RepoAccountContext | null | undefined,
+  accounts: readonly Account[],
+  providers: readonly Provider[],
+  refusedHost: string,
+): HostMismatchFix | null {
+  if (!ctx) return null;
+  const want = bareHost(refusedHost);
+  const onHost = ctx.perRemote.filter((r) => r.host && bareHost(r.host) === want);
+  const remote = onHost.find((r) => r.account) ?? onHost[0];
+  if (!remote) return null;
+  const wrong = remote.account;
+  const accountHost = wrong ? accountHostOf(wrong, providers) : null;
+  const target =
+    (wrong &&
+      accountHost &&
+      ctx.perRemote.find(
+        (r) =>
+          r !== remote &&
+          r.account?.id === wrong.id &&
+          !!r.host &&
+          bareHost(r.host) === accountHost,
+      )) ||
+    null;
+  const candidates = sortAccounts(accounts.filter((a) => accountHostOf(a, providers) === want));
+  return {
+    remote,
+    accountHost,
+    target,
+    candidates,
+    signIn: candidates.length ? null : signInTargetFor(remote, providers),
+  };
+}

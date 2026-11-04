@@ -26,6 +26,7 @@ const KINDS = {
   staleLease: true,
   remoteRejected: true,
   authFailed: true,
+  accountHostMismatch: true,
   connectionFailed: true,
   noUpstream: true,
   detachedHead: true,

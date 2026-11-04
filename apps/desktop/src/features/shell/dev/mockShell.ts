@@ -6,6 +6,7 @@
  */
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { accountHandlers } from "./mockAccounts";
+import { aiHandlers } from "./mockAi";
 import type {
   DiffRequest,
   GraphRow,
@@ -387,6 +388,7 @@ export function installShellMock() {
     params.get("accounts") === "gitlab"
       ? accountHandlers((cmd, args) => handlers[cmd]?.(args))
       : {};
+  if (params.has("ai")) Object.assign(extra, aiHandlers());
   mockIPC(
     (cmd, args) => {
       const handler = extra[cmd] ?? handlers[cmd];

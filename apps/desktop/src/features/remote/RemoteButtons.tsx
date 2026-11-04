@@ -40,7 +40,16 @@ import { useLfsStatus } from "@/features/lfs/queries";
 import { useRepoRefs } from "@/features/repos/queries";
 import { notifyEstimateFailure, runLfsPush } from "@/features/transfers/actions";
 import { failureTexts, formatBytes } from "@/features/transfers/format";
-import { errorMessage, commands, type PullMode, type PushEstimate, type PushRequest } from "@/ipc";
+import { accountKeys } from "@/features/accounts/queries";
+import {
+  errorMessage,
+  commands,
+  type PullMode,
+  type PushEstimate,
+  type PushRequest,
+  type RepoAccountContext,
+} from "@/ipc";
+import { queryClient } from "@/lib/queryClient";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runPushGuard } from "@/features/guards";
 import { offerCreatePull } from "@/features/pulls/actions";
@@ -167,13 +176,15 @@ ${t("remote.viaAccount", { account: remoteAccountName(r) })}`
     const count = p.setUpstream || pulledFirst ? 0 : ahead;
     const target = `${p.remote}/${p.remoteBranch ?? p.branch}`;
     const shotAccount = shot ? accounts.find((a) => a.id === shot.accountId) : undefined;
-    // The account of the remote pushed to, which may differ from the repo's.
-    const remoteCtx = remoteCtxOf(p.remote);
-    const who = shotAccount
-      ? accountLabel(shotAccount)
-      : remoteCtx
-        ? remoteCtx.account && remoteAccountName(remoteCtx)
-        : (account?.label ?? null);
+    // The account of the remote pushed to, which may differ from the repo's. Read when the
+    // push is done: a retry after "Use Pret for origin" runs as the newly bound account.
+    const who = () => {
+      if (shotAccount) return accountLabel(shotAccount);
+      const r = queryClient
+        .getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId))
+        ?.perRemote.find((x) => x.remote === p.remote);
+      return r ? r.account && remoteAccountName(r) : (account?.label ?? null);
+    };
     return void startTransfer(
       repoId,
       "push",
@@ -189,7 +200,7 @@ ${t("remote.viaAccount", { account: remoteAccountName(r) })}`
                   : t("remote.pushed", { branch: p.branch, remote: remoteText(p.remote) }),
               hint:
                 [
-                  who ? t("remote.pushedAs", { account: who }) : null,
+                  who() ? t("remote.pushedAs", { account: who() }) : null,
                   useSettings.getState().ciEnabled ? t("remote.pushedHint") : null,
                 ]
                   .filter(Boolean)

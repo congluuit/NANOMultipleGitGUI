@@ -11,6 +11,7 @@
 //!   setup), start the server, download / delete models with progress ([`ollama`]).
 //! - Every network call can be cancelled with `ai_cancel(requestId)`.
 
+pub mod chat;
 pub mod client;
 pub mod config;
 pub mod context;

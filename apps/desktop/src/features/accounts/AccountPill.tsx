@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { useActiveRepo } from "@/stores/workspace";
 import { AccountAvatar } from "./AccountAvatar";
 import { useAccountDialogs } from "./dialogs";
+import { useProviders } from "./queries";
 import { bindRepo, setAccountOnce, unbindRepo } from "./switcher/actions";
 import {
   useAllIdentities,
@@ -46,6 +47,7 @@ import {
   accountShortcutHint,
   hasRepoBinding,
   hasSplitRemotes,
+  accountFitsRemote,
   identitiesOf,
   trackingMismatch,
   type RepoAccount,
@@ -158,11 +160,19 @@ function RemoteRow({
 }) {
   const { t } = useTranslation();
   const sourceText = useSourceText();
+  const providers = useProviders().data ?? [];
+  // An HTTPS remote only works with an account of its own server: the app never sends a
+  // token elsewhere (a github.com remote bound to a GitLab account is refused on push).
+  const fits = (a: Account) => accountFitsRemote(a, remote, providers);
+  const wrong = !!remote.account && !fits(remote.account);
   return (
     <DropdownMenuSub>
-      <DropdownMenuSubTrigger className="gap-2 text-xs" title={remote.url}>
-        <span className="font-mono">{remote.remote}</span>
-        <span className="text-muted-foreground">→</span>
+      <DropdownMenuSubTrigger
+        className="gap-2 text-xs"
+        title={wrong ? t("switcher.remoteWrongServer") : remote.url}
+      >
+        <span className="font-mono">{remote.remote}:</span>
+        {wrong && <TriangleAlert className="size-3.5 text-warning" />}
         {remote.account && <AccountAvatar account={remote.account} size={14} />}
         <span className="min-w-0 flex-1 truncate">
           {remote.account ? accountLabel(remote.account) : t("switcher.unboundShort")}
@@ -176,10 +186,17 @@ function RemoteRow({
         {accounts.map((a) => (
           <DropdownMenuItem
             key={a.id}
+            disabled={!fits(a)}
+            title={fits(a) ? undefined : t("switcher.otherServer", { host: remote.host ?? "" })}
             onSelect={() => void bindRepo(repoId, { accountId: a.id, remote: remote.remote })}
           >
             <AccountAvatar account={a} size={16} />
-            <span className="flex-1 truncate">{accountLabel(a)}</span>
+            <span className="flex-1 truncate">
+              {accountLabel(a)}
+              {!fits(a) && (
+                <span className="text-muted-foreground"> ({t("switcher.otherServerShort")})</span>
+              )}
+            </span>
             {!remote.inherited && remote.account?.id === a.id && (
               <Check className="size-4 text-primary" />
             )}

@@ -773,6 +773,19 @@ export const commands = {
 	/**  Downloads an Ollama model; progress arrives as [`AiPullProgress`]. */
 	aiOllamaPull: (model: string, requestId: string) => __TAURI_INVOKE<null>("ai_ollama_pull", { model, requestId }),
 	aiOllamaDelete: (model: string) => __TAURI_INVOKE<null>("ai_ollama_delete", { model }),
+	/**  Stored chats, newest first. */
+	aiChatList: () => __TAURI_INVOKE<AiChat[]>("ai_chat_list"),
+	/**
+	 *  Asks a question in chat `chatId`, or in a new chat from `start`. Cancel with
+	 *  `ai_cancel(requestId)`.
+	 */
+	aiChatSend: (requestId: string, chatId: string | null, start: {
+	title: string,
+	context: string,
+	repoName: string | null,
+} | null, message: string, appLanguage: string) => __TAURI_INVOKE<AiChat>("ai_chat_send", { requestId, chatId, start, message, appLanguage }),
+	aiChatDelete: (id: string) => __TAURI_INVOKE<AiChat[]>("ai_chat_delete", { id }),
+	aiChatDeleteAll: () => __TAURI_INVOKE<AiChat[]>("ai_chat_delete_all"),
 	/**
 	 *  Writes the chosen accounts (all when `accountIds` is empty) to an encrypted file. Tokens and
 	 *  the app's SSH keys only with `includeSecrets`.
@@ -1030,6 +1043,36 @@ export type AccountsPreview = {
 	accounts: AccountPreview[],
 	/**  At least one account carries a token. */
 	hasSecrets: boolean,
+};
+
+export type AiChat = {
+	id: string,
+	/**  The error the chat is about (the notice's headline). */
+	title: string,
+	/**  Facts sent with every question: the error, git's output, the repository. */
+	context: string,
+	repoName: string | null,
+	provider: AiProvider,
+	model: string,
+	createdAt: number,
+	updatedAt: number,
+	messages: AiChatMessage[],
+};
+
+export type AiChatMessage = {
+	role: AiChatRole,
+	content: string,
+	/**  Unix milliseconds. */
+	at: number,
+};
+
+export type AiChatRole = "user" | "assistant";
+
+/**  A new chat, started from an error notice. */
+export type AiChatStart = {
+	title: string,
+	context: string,
+	repoName: string | null,
 };
 
 /**  Stored under [`KEY_AI_CONFIG`]. Off by default. */
@@ -2141,7 +2184,13 @@ export type FailureKind =
 /**  `--force-with-lease` refused: the remote branch moved since the last fetch. */
 "staleLease" | 
 /**  Refused by the server (hook declined, protected branch…). */
-"remoteRejected" | "authFailed" | "connectionFailed" | 
+"remoteRejected" | "authFailed" | 
+/**
+ *  The account bound to this remote belongs to another server, so the app's credential
+ *  helper refused to send its token there (e.g. a github.com remote bound to a GitLab
+ *  account).
+ */
+"accountHostMismatch" | "connectionFailed" | 
 /**  The branch has no upstream configured. */
 "noUpstream" | 
 /**  The operation needs a branch but HEAD is detached. */

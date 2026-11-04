@@ -288,24 +288,60 @@ fn texts(v: Option<&Value>) -> String {
         .unwrap_or_default()
 }
 
+/// Who wrote a message of a conversation sent to the model.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Speaker {
+    User,
+    Assistant,
+}
+
 /// Request body + URL of a chat completion for `target`.
 pub fn completion_request(target: &Target, prompt: &Prompt) -> (String, Value) {
+    messages_request(
+        target,
+        &prompt.system,
+        &[(Speaker::User, prompt.user.as_str())],
+        true,
+        MAX_TOKENS,
+    )
+}
+
+/// Request body + URL of a conversation: `system` rules, then the turns in order (the last one
+/// is the user's). `json`: ask Ollama for a JSON answer (commit messages); the cloud services
+/// read the format from the prompt.
+pub fn messages_request(
+    target: &Target,
+    system: &str,
+    turns: &[(Speaker, &str)],
+    json: bool,
+    max_tokens: u32,
+) -> (String, Value) {
     let base = &target.base_url;
+    let role = |s: Speaker| match s {
+        Speaker::User => "user",
+        Speaker::Assistant => "assistant",
+    };
+    let chat = |with_system: bool| {
+        let mut messages = Vec::with_capacity(turns.len() + 1);
+        if with_system {
+            messages.push(json!({ "role": "system", "content": system }));
+        }
+        messages.extend(
+            turns
+                .iter()
+                .map(|(s, text)| json!({ "role": role(*s), "content": text })),
+        );
+        Value::Array(messages)
+    };
     match target.provider {
         AiProvider::Openai | AiProvider::Compatible => {
-            let mut body = json!({
-                "model": target.model,
-                "messages": [
-                    { "role": "system", "content": prompt.system },
-                    { "role": "user", "content": prompt.user },
-                ],
-            });
+            let mut body = json!({ "model": target.model, "messages": chat(true) });
             if target.provider == AiProvider::Openai {
                 // Newer OpenAI models only accept `max_completion_tokens` and the default
                 // temperature.
-                body["max_completion_tokens"] = json!(MAX_TOKENS);
+                body["max_completion_tokens"] = json!(max_tokens);
             } else {
-                body["max_tokens"] = json!(MAX_TOKENS);
+                body["max_tokens"] = json!(max_tokens);
                 body["temperature"] = json!(0.2);
             }
             (format!("{base}/chat/completions"), body)
@@ -314,37 +350,45 @@ pub fn completion_request(target: &Target, prompt: &Prompt) -> (String, Value) {
             format!("{base}/v1/messages"),
             json!({
                 "model": target.model,
-                "max_tokens": MAX_TOKENS,
+                "max_tokens": max_tokens,
                 "temperature": 0.2,
-                "system": prompt.system,
-                "messages": [{ "role": "user", "content": prompt.user }],
+                "system": system,
+                "messages": chat(false),
             }),
         ),
-        AiProvider::Gemini => (
-            format!(
-                "{base}/v1beta/models/{}:generateContent",
-                target.gemini_model()
-            ),
-            json!({
-                "systemInstruction": { "parts": [{ "text": prompt.system }] },
-                "contents": [{ "role": "user", "parts": [{ "text": prompt.user }] }],
-                "generationConfig": { "temperature": 0.2, "maxOutputTokens": 2 * MAX_TOKENS },
-            }),
-        ),
-        AiProvider::Ollama => (
-            format!("{base}/api/chat"),
-            json!({
+        AiProvider::Gemini => {
+            let contents: Vec<Value> = turns
+                .iter()
+                .map(|(s, text)| {
+                    let role = if *s == Speaker::User { "user" } else { "model" };
+                    json!({ "role": role, "parts": [{ "text": text }] })
+                })
+                .collect();
+            (
+                format!(
+                    "{base}/v1beta/models/{}:generateContent",
+                    target.gemini_model()
+                ),
+                json!({
+                    "systemInstruction": { "parts": [{ "text": system }] },
+                    "contents": contents,
+                    "generationConfig": { "temperature": 0.2, "maxOutputTokens": 2 * max_tokens },
+                }),
+            )
+        }
+        AiProvider::Ollama => {
+            let mut body = json!({
                 "model": target.model,
                 "stream": false,
-                "format": "json",
-                "messages": [
-                    { "role": "system", "content": prompt.system },
-                    { "role": "user", "content": prompt.user },
-                ],
+                "messages": chat(true),
                 // The default context (2–4k tokens) would cut the diff.
                 "options": { "temperature": 0.2, "num_ctx": 8192 },
-            }),
-        ),
+            });
+            if json {
+                body["format"] = json!("json");
+            }
+            (format!("{base}/api/chat"), body)
+        }
     }
 }
 
@@ -396,13 +440,36 @@ pub async fn complete(
     cancel: &CancellationToken,
 ) -> Result<String, AiError> {
     let (url, body) = completion_request(target, prompt);
+    send_completion(http, target, &url, &body, cancel).await
+}
+
+/// Sends a conversation (see [`messages_request`]) and returns the answer text.
+pub async fn converse(
+    http: &reqwest::Client,
+    target: &Target,
+    system: &str,
+    turns: &[(Speaker, &str)],
+    max_tokens: u32,
+    cancel: &CancellationToken,
+) -> Result<String, AiError> {
+    let (url, body) = messages_request(target, system, turns, false, max_tokens);
+    send_completion(http, target, &url, &body, cancel).await
+}
+
+async fn send_completion(
+    http: &reqwest::Client,
+    target: &Target,
+    url: &str,
+    body: &Value,
+    cancel: &CancellationToken,
+) -> Result<String, AiError> {
     with_cancel(cancel, async {
         let v = send_json(
             http,
             target,
             reqwest::Method::POST,
-            &url,
-            Some(&body),
+            url,
+            Some(body),
             target.timeout,
         )
         .await?;

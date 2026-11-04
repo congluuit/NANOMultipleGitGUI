@@ -10,8 +10,11 @@ import {
   hasRepoBinding,
   hasSplitRemotes,
   identitiesOf,
+  accountFitsRemote,
+  hostMismatchFix,
   initialOf,
   missingSignIn,
+  refusedHostOf,
   providerNameOf,
   ruleSummary,
   signInName,
@@ -301,5 +304,41 @@ describe("sign in for a remote", () => {
     });
     expect(missingSignIn(github, ACCOUNTS, PROVIDERS)).toBeNull();
     expect(missingSignIn(makeContext(), ACCOUNTS, PROVIDERS)).toBeNull();
+  });
+});
+
+describe("accounts of another server", () => {
+  const github = makeRemote({ remote: "origin", host: "github.com", transport: "https" });
+
+  it("only lets HTTPS remotes use accounts of their own server", () => {
+    expect(accountFitsRemote(PERSONAL, github, PROVIDERS)).toBe(true);
+    expect(accountFitsRemote(WORK, github, PROVIDERS)).toBe(false);
+    // SSH host aliases (`github-work`) cannot be judged by name.
+    expect(accountFitsRemote(WORK, { ...github, transport: "ssh" }, PROVIDERS)).toBe(true);
+    expect(accountFitsRemote(WORK, github, [])).toBe(true);
+  });
+
+  it("reads the refused host from the credential helper error", () => {
+    expect(
+      refusedHostOf(
+        "nanomgg-credential: host `github.com` does not belong to this account (expected `gitlab.com`)",
+      ),
+    ).toBe("github.com");
+    expect(refusedHostOf("fatal: Authentication failed")).toBeNull();
+  });
+
+  it("finds the remote meant for the bound account and the accounts of the refused server", () => {
+    const ctx = makeContext({
+      perRemote: [{ ...github, account: WORK, inherited: false }, makeRemote({ remote: "gitlab" })],
+    });
+    const fix = hostMismatchFix(ctx, ACCOUNTS, PROVIDERS, "github.com")!;
+    expect(fix.remote.remote).toBe("origin");
+    expect(fix.accountHost).toBe("gitlab.acme.dev");
+    expect(fix.target?.remote).toBe("gitlab");
+    expect(fix.candidates.map((a) => a.id)).toEqual([PERSONAL.id, OSS.id]);
+    expect(fix.signIn).toBeNull();
+    const alone = hostMismatchFix(ctx, [WORK], PROVIDERS, "github.com")!;
+    expect(alone.signIn).toEqual({ kind: "github", baseUrl: "https://github.com" });
+    expect(hostMismatchFix(ctx, ACCOUNTS, PROVIDERS, "bitbucket.org")).toBeNull();
   });
 });

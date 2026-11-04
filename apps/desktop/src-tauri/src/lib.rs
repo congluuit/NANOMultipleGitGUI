@@ -380,6 +380,11 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             ai::ai_ollama_start,
             ai::ai_ollama_pull,
             ai::ai_ollama_delete,
+            // "Hỏi AI" about an error, chats kept on this computer.
+            ai::chat::ai_chat_list,
+            ai::chat::ai_chat_send,
+            ai::chat::ai_chat_delete,
+            ai::chat::ai_chat_delete_all,
             // Phase 6.3 / 6.6: account export/import, full backup/restore.
             backup::backup_accounts_export,
             backup::backup_accounts_open,

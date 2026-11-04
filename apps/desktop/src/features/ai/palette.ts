@@ -1,5 +1,5 @@
 /** Palette commands of the AI commit-message helper (6.4). */
-import { Sparkles } from "lucide-react";
+import { MessageSquareText, Sparkles } from "lucide-react";
 import {
   registerCommands,
   type PaletteCommand,
@@ -10,6 +10,7 @@ import { queryClient } from "@/lib/queryClient";
 import { normalizeConfig } from "./model";
 import { aiKeys } from "./queries";
 import { openAiSettings, useAiUi } from "./store";
+import { openAiHelp } from "./help/store";
 import { applySuggestion, requestSuggestion } from "./suggest";
 
 const aiEnabled = () =>
@@ -24,6 +25,15 @@ export function aiCommands(c: PaletteContext): PaletteCommand[] {
       icon: Sparkles,
       keywords: ["ai", "ollama", "openai", "claude", "gemini", "commit message", "goi y"],
       run: openAiSettings,
+    },
+    {
+      id: "ai.help",
+      title: c.t("aiHelp.cmd"),
+      group: c.t("cmd.group.app"),
+      icon: MessageSquareText,
+      keywords: ["ai", "chat", "hoi ai", "loi", "error", "lich su"],
+      when: () => aiEnabled(),
+      run: openAiHelp,
     },
     {
       id: "ai.suggest",

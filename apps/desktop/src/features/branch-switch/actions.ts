@@ -180,7 +180,7 @@ function operationNotice(
 }
 
 /** Opens the first conflicted file in the conflict editor. */
-function openConflictsAction(repoId: number, paths?: string[]): NoticeAction {
+export function openConflictsAction(repoId: number, paths?: string[]): NoticeAction {
   return {
     label: i18n.t("branchSwitch.openConflicts"),
     run: () =>

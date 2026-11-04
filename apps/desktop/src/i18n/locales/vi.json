@@ -433,6 +433,7 @@
     "staleLease": "Nhánh trên remote đã thay đổi kể từ lần fetch trước",
     "remoteRejected": "Remote từ chối",
     "authFailed": "Xác thực thất bại",
+    "accountHostMismatch": "Remote đang gắn tài khoản của máy chủ khác",
     "connectionFailed": "Không kết nối được tới remote",
     "noUpstream": "Nhánh chưa có upstream",
     "detachedHead": "Đang ở HEAD tách rời",
@@ -925,6 +926,9 @@
     "noIdentity": "chưa có danh tính",
     "perRemote": "Theo từng remote",
     "inherited": "theo repo",
+    "remoteWrongServer": "Remote này đang gắn tài khoản của máy chủ khác nên push/pull sẽ bị từ chối. Chọn một tài khoản của đúng máy chủ.",
+    "otherServer": "Tài khoản này thuộc máy chủ khác, không đăng nhập được vào {{host}}",
+    "otherServerShort": "máy chủ khác",
     "clearRemote": "Bỏ gắn remote {{remote}}",
     "unbind": "Bỏ gắn",
     "add": "Thêm tài khoản…",
@@ -1574,6 +1578,7 @@
     "staleLease": "Có người vừa push lên nhánh này sau lần Fetch cuối của bạn, nên force push bị chặn để không xóa mất commit của họ. Bấm Fetch, xem lại lịch sử rồi quyết định.",
     "remoteRejected": "Server từ chối thay đổi (thường do hook hoặc quy tắc của repo). Mở 'Chi tiết kỹ thuật' bên dưới để xem lý do server ghi kèm.",
     "authFailed": "Đăng nhập của {{account}} không còn hợp lệ (token hết hạn hoặc bị thu hồi). Đăng nhập lại để lấy token mới.",
+    "accountHostMismatch": "Remote này đang gắn với một tài khoản của máy chủ khác, nên app không gửi thông tin đăng nhập tới đó. Chọn đúng tài khoản cho remote rồi thử lại.",
     "connectionFailed": "Không kết nối được tới server. Kiểm tra mạng/VPN/proxy và URL remote, rồi thử lại.",
     "noUpstream": "Nhánh này chưa gắn với nhánh nào trên server. Bấm Push: app sẽ tự tạo nhánh trên server và gắn upstream.",
     "detachedHead": "Bạn đang đứng ở một commit lẻ chứ không ở nhánh nào (HEAD tách rời). Tạo nhánh mới tại đây hoặc checkout một nhánh có sẵn trước.",
@@ -1596,6 +1601,13 @@
     "signingFailed": "Identity của {{account}} được cấu hình ký commit nhưng khóa ký không chạy được. Mở Quản lý tài khoản → identity → Thử ký: kiểm tra khóa còn tồn tại (GPG: gpg --list-secret-keys; SSH: file .pub), hoặc tắt ký cho identity đó."
   },
   "recovery": {
+    "hostMismatch": {
+      "title": "{{remote}} đang gắn nhầm tài khoản {{account}}",
+      "hint": "{{account}} là tài khoản của {{accountHost}}, nên app không gửi thông tin đăng nhập của nó tới {{remote}}. Chọn một tài khoản của máy chủ này cho remote rồi thử lại.",
+      "hintTarget": "{{account}} là tài khoản của {{accountHost}}, nên không push được lên {{remote}}. Nếu bạn muốn đưa code lên {{target}}, bấm nút đầu tiên. Nếu muốn lên {{remote}}, chọn một tài khoản của máy chủ đó.",
+      "pushTarget": "Push lên {{target}} bằng {{account}}",
+      "useAccount": "Dùng {{account}} cho {{remote}}"
+    },
     "retry": "Thử lại",
     "tryAgain": "Hãy thử lại thao tác vừa rồi.",
     "pullThenPush": "Pull về rồi Push lại",
@@ -1657,7 +1669,17 @@
     "fileBusy": {
       "title": "Không ghi được file. File đang bị chương trình khác mở",
       "hint": "Một file đang được mở (editor, game engine, trình xem ảnh…) hoặc chỉ đọc nên git không ghi / xoá được. Đóng chương trình đó rồi bấm Thử lại."
-    }
+    },
+    "fetchFirst": "Tải về để xem thay đổi mới",
+    "createBranch": "Tạo nhánh tại đây",
+    "protectedBranch": "Chuyển commit sang nhánh mới",
+    "abortOperation": "Hủy thao tác đang dở",
+    "undoLastCommit": "Hoàn tác commit cuối (giữ thay đổi)",
+    "fork": "Tạo bản fork để push",
+    "publishBranch": "Đẩy {{branch}} lên {{remote}} và theo dõi",
+    "firstCommit": "Đây là commit đầu tiên nên không hoàn tác được. Hãy sửa file rồi dùng “Sửa commit trước (amend)”.",
+    "commitUndone": "Đã hoàn tác commit cuối, thay đổi vẫn còn nguyên.",
+    "commitUndoneHint": "Xóa mật khẩu hoặc khóa bí mật khỏi file, thêm file đó vào .gitignore nếu cần, rồi commit và push lại."
   },
   "notice": {
     "technical": "Chi tiết kỹ thuật (log của git)",
@@ -4061,5 +4083,33 @@
     "files": "File",
     "search": "Tìm",
     "label": "Nội dung thanh bên"
+  },
+  "aiHelp": {
+    "ask": "Hỏi AI cách sửa",
+    "setup": "Thiết lập AI để được hướng dẫn",
+    "cmd": "Hỏi AI về lỗi (lịch sử chat)",
+    "title": "Hỏi AI",
+    "history": "Lịch sử hỏi AI",
+    "noChats": "Chưa có cuộc trò chuyện nào.",
+    "empty": "Khi gặp lỗi mà app không tự sửa được, bấm \"Hỏi AI cách sửa\" trên thông báo lỗi. AI sẽ đọc lỗi và hướng dẫn từng bước.",
+    "localOnly": "Lịch sử chỉ lưu trên máy này.",
+    "delete": "Xóa cuộc trò chuyện",
+    "deleteAll": "Xóa toàn bộ lịch sử",
+    "deleteAllTitle": "Xóa toàn bộ lịch sử hỏi AI?",
+    "deleteAllText": "{{count}} cuộc trò chuyện sẽ bị xóa khỏi máy này. Không thể khôi phục.",
+    "using": "Đang dùng {{service}} ({{model}})",
+    "sent": "Thông tin đã gửi cho AI",
+    "thinking": "AI đang phân tích lỗi...",
+    "placeholder": "Hỏi thêm (Enter để gửi, Shift+Enter xuống dòng)",
+    "send": "Gửi",
+    "firstQuestion": "Lỗi này nghĩa là gì và tôi nên làm gì để sửa? Hãy hướng dẫn từng bước, ưu tiên các nút có sẵn trong app.",
+    "consent": {
+      "title": "Gửi lỗi này cho {{service}} để hỏi cách sửa?",
+      "cloud": "App sẽ gửi nội dung bên dưới cho {{service}} (model {{model}}) qua Internet. Không gửi mật khẩu, token hay nội dung code.",
+      "local": "Nội dung bên dưới được gửi cho {{service}} (model {{model}}) chạy ngay trên máy này, không rời khỏi máy.",
+      "preview": "Nội dung sẽ gửi:",
+      "remember": "Lần sau không hỏi lại",
+      "confirm": "Gửi và hỏi AI"
+    }
   }
 }

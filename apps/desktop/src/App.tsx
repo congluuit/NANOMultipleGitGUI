@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CliSyncNoticeHost } from "@/features/accounts/cli-sync";
 import { AccountManagerHost } from "@/features/accounts/manager";
 import { AiSettingsHost } from "@/features/ai/AiSettingsDialog";
+import { AiHelpHost } from "@/features/ai/help/AiHelpDialog";
 import { BackupHost } from "@/features/backup/BackupHost";
 import { BranchSwitchDialogHost } from "@/features/branch-switch/BranchSwitchDialog";
 import { GuideHost } from "@/features/guide/GuideDialog";
@@ -76,6 +77,7 @@ export default function App() {
       <ShortcutsHost />
       {/* Phase 6.4 */}
       <AiSettingsHost />
+      <AiHelpHost />
     </TooltipProvider>
   );
 }

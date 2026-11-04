@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Ask AI how to fix it**: when AI is set up (Settings, AI), every error message offers to ask it. The app shows exactly what will be sent (the error, git's output, the branch and the remotes, never a password or token) and asks first, with a "Don't ask again" option. The AI explains the error in plain words and gives the steps, and you can ask follow-up questions. Chats are kept on this computer only; delete one or the whole history from the chat window. Open the history from Settings or the command palette.
+- More errors come with a button that fixes them: push a branch that has no upstream yet, create a branch on a detached HEAD, move commits refused by a protected branch to a new branch, open the conflicts or abort an unfinished merge or rebase, undo the last commit when the server found a password in it, fork a repository you may not push to, fetch first when a force push was refused because someone else pushed, and retry after a network error. Errors with no fix of their own offer to set up AI for guidance.
+
+### Fixed
+
+- A push refused because the remote is bound to an account of another server (for example a github.com remote with a GitLab account) now says so in plain words and offers the ways out: push to the remote of that account instead, use an account of this server for the remote and retry, or sign in to that server. The account menu warns about such a remote and greys out accounts of other servers.
+
 ## [1.2.0] - 2026-11-03
 
 ### Added

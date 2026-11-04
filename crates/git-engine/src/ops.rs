@@ -48,6 +48,10 @@ pub enum FailureKind {
     /// Refused by the server (hook declined, protected branch…).
     RemoteRejected,
     AuthFailed,
+    /// The account bound to this remote belongs to another server, so the app's credential
+    /// helper refused to send its token there (e.g. a github.com remote bound to a GitLab
+    /// account).
+    AccountHostMismatch,
     ConnectionFailed,
     /// The branch has no upstream configured.
     NoUpstream,
@@ -119,6 +123,9 @@ pub fn failure_kind(stderr: &str) -> Option<FailureKind> {
     let any = |ps: &[&str]| ps.iter().any(|p| s.contains(p));
     Some(if has("(stale info)") {
         StaleLease
+    } else if has("does not belong to this account") {
+        // Printed by `nanomgg-credential` (crates/credentials/src/host.rs).
+        AccountHostMismatch
     } else if any(&[
         "failed to sign the data",
         "signing failed",
@@ -855,6 +862,11 @@ mod tests {
             (
                 "fatal: could not read Username for 'https://github.com': terminal prompts disabled",
                 FailureKind::AuthFailed,
+            ),
+            (
+                "nanomgg-credential: host `github.com` does not belong to this account (expected `gitlab.com`)
+fatal: credential helper '!'C:/x/nanomgg-credential.exe'' told us to quit",
+                FailureKind::AccountHostMismatch,
             ),
             (
                 "fatal: unable to access 'https://nope.invalid/x.git/': Could not resolve host: nope.invalid",

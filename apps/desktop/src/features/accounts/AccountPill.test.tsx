@@ -204,7 +204,7 @@ describe("AccountPill", () => {
     const upstream = within(menu())
       .getAllByRole("menuitem")
       .find((r) => r.textContent?.startsWith("upstream"));
-    expect(upstream).toHaveTextContent(/→.*Cá nhân · chọn thủ công/);
+    expect(upstream).toHaveTextContent(/upstream:.*Cá nhân · chọn thủ công/);
     const origin = within(menu())
       .getAllByRole("menuitem")
       .find((r) => r.textContent?.startsWith("origin"));

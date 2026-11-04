@@ -8,6 +8,8 @@
  * - `game-assets` (tab 2) is unbound with a gitlab.com remote. With `&signedOut` there is
  *   no GitLab account yet: the banner offers "Đăng nhập GitLab", which opens the wizard and
  *   starts the browser sign-in.
+ * - `&wrongAccount`: `origin` (github.com) of tab 1 is bound to the GitLab account, so Push is
+ *   refused by the credential helper and the notice offers the ways out.
  */
 import type {
   Account,
@@ -69,7 +71,10 @@ const CARTIMES = account({
   color: "#0c8599",
   sortOrder: 1,
 });
-const ACCOUNTS = new URLSearchParams(location.search).has("signedOut") ? [PRET] : [PRET, CARTIMES];
+const query = new URLSearchParams(location.search);
+const ACCOUNTS = query.has("signedOut") ? [PRET] : [PRET, CARTIMES];
+/** Account of `origin` in tab 1 (changed by binding that remote). */
+let originAccount = query.has("wrongAccount") ? CARTIMES : PRET;
 
 const identity = (id: string, a: Account, email: string): Identity => ({
   id,
@@ -125,7 +130,7 @@ function context(repoId: number): RepoAccountContext {
   const perRemote =
     repoId === 1
       ? [
-          remote("origin", "https://github.com/acme/backend-api.git", PRET, {
+          remote("origin", "https://github.com/acme/backend-api.git", originAccount, {
             source: "locked",
             inherited: false,
           }),
@@ -159,6 +164,9 @@ export function accountHandlers(base: (cmd: string, args: Record<string, unknown
     repo_account_context: (a) => context(a.repoId as number),
     repo_binding_set: (a) => {
       const input = a.binding as { accountId: string; remote: string | null };
+      if (a.repoId === 1 && input.remote === "origin") {
+        originAccount = ACCOUNTS.find((x) => x.id === input.accountId) ?? originAccount;
+      }
       if (!input.remote) {
         repoAccount[a.repoId as number] = ACCOUNTS.find((x) => x.id === input.accountId) ?? null;
       }
@@ -191,7 +199,20 @@ export function accountHandlers(base: (cmd: string, args: Record<string, unknown
     push_guard: () => ({ status: "cancelled" }),
     remote_fetch: () => done({ updatedRefs: 0 }),
     remote_pull: () => done({ result: "upToDate", conflicts: [], pending: null, head: null }),
-    remote_push: () => done({ upToDate: false }),
+    remote_push: (a) => {
+      const remoteName = (a.request as { remote: string }).remote;
+      if (a.repoId === 1 && remoteName === "origin" && originAccount !== PRET) {
+        return {
+          status: "rejected",
+          reason: "accountHostMismatch",
+          message: [
+            "nanomgg-credential: host `github.com` does not belong to this account (expected `gitlab.com`)",
+            "fatal: credential helper told us to quit",
+          ].join(String.fromCharCode(10)),
+        };
+      }
+      return done({ upToDate: false });
+    },
     auth_config: (a) => ({
       providerId: a.providerId,
       hasClientId: true,

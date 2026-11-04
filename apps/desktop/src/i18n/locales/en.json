@@ -433,6 +433,7 @@
     "staleLease": "The remote branch changed since the last fetch",
     "remoteRejected": "Rejected by the remote",
     "authFailed": "Authentication failed",
+    "accountHostMismatch": "The remote is bound to an account of another server",
     "connectionFailed": "Could not reach the remote",
     "noUpstream": "The branch has no upstream",
     "detachedHead": "HEAD is detached",
@@ -925,6 +926,9 @@
     "noIdentity": "no identity",
     "perRemote": "Per remote",
     "inherited": "from repo",
+    "remoteWrongServer": "This remote is bound to an account of another server, so push/pull are refused. Pick an account of the right server.",
+    "otherServer": "This account belongs to another server and cannot sign in to {{host}}",
+    "otherServerShort": "other server",
     "clearRemote": "Unbind remote {{remote}}",
     "unbind": "Unbind",
     "add": "Add account…",
@@ -1574,6 +1578,7 @@
     "staleLease": "Someone pushed to this branch after your last Fetch, so force push was stopped to avoid deleting their commits. Fetch, review the history, then decide.",
     "remoteRejected": "The server refused the change (usually a hook or a repository rule). Open 'Technical details' below to see the reason the server gave.",
     "authFailed": "The sign-in of {{account}} is no longer valid (token expired or revoked). Sign in again to get a new token.",
+    "accountHostMismatch": "This remote is bound to an account of another server, so the app does not send its sign-in there. Pick the right account for the remote and try again.",
     "connectionFailed": "Could not reach the server. Check your network/VPN/proxy and the remote URL, then try again.",
     "noUpstream": "This branch is not linked to a branch on the server yet. Click Push: the app creates the remote branch and sets the upstream.",
     "detachedHead": "You are on a single commit, not on a branch (detached HEAD). Create a branch here or check out an existing branch first.",
@@ -1596,6 +1601,13 @@
     "signingFailed": "The identity of {{account}} signs commits, but the key did not work. Open Accounts → the identity → Test signing: check the key exists (GPG: gpg --list-secret-keys; SSH: the .pub file), or turn signing off for that identity."
   },
   "recovery": {
+    "hostMismatch": {
+      "title": "{{remote}} is bound to the wrong account, {{account}}",
+      "hint": "{{account}} is an account of {{accountHost}}, so the app does not send its sign-in to {{remote}}. Pick an account of this server for the remote and try again.",
+      "hintTarget": "{{account}} is an account of {{accountHost}}, so it cannot push to {{remote}}. To put the code on {{target}}, click the first button. To push to {{remote}}, pick an account of that server.",
+      "pushTarget": "Push to {{target}} as {{account}}",
+      "useAccount": "Use {{account}} for {{remote}}"
+    },
     "retry": "Try again",
     "tryAgain": "Try the last action again.",
     "pullThenPush": "Pull, then push again",
@@ -1657,7 +1669,17 @@
     "fileBusy": {
       "title": "Could not write a file. It is open in another program",
       "hint": "A file is open (editor, game engine, image viewer…) or read-only, so git cannot write or delete it. Close that program, then click Try again."
-    }
+    },
+    "fetchFirst": "Fetch to see the new changes",
+    "createBranch": "Create a branch here",
+    "protectedBranch": "Move the commits to a new branch",
+    "abortOperation": "Abort the unfinished operation",
+    "undoLastCommit": "Undo the last commit (keep changes)",
+    "fork": "Fork it to push there",
+    "publishBranch": "Push {{branch}} to {{remote}} and track it",
+    "firstCommit": "This is the first commit, so it cannot be undone. Edit the files, then use “Amend previous commit”.",
+    "commitUndone": "The last commit was undone. Your changes are still there.",
+    "commitUndoneHint": "Remove the password or secret key from the file, add it to .gitignore if needed, then commit and push again."
   },
   "notice": {
     "technical": "Technical details (git output)",
@@ -4061,5 +4083,33 @@
     "files": "Files",
     "search": "Search",
     "label": "Sidebar content"
+  },
+  "aiHelp": {
+    "ask": "Ask AI how to fix it",
+    "setup": "Set up AI to get guidance",
+    "cmd": "Ask AI about errors (chat history)",
+    "title": "Ask AI",
+    "history": "AI chat history",
+    "noChats": "No chats yet.",
+    "empty": "When an error comes up that the app cannot fix by itself, click \"Ask AI how to fix it\" on the error notice. The AI reads the error and guides you step by step.",
+    "localOnly": "History is kept on this computer only.",
+    "delete": "Delete chat",
+    "deleteAll": "Delete all history",
+    "deleteAllTitle": "Delete all AI chat history?",
+    "deleteAllText": "{{count}} chats will be deleted from this computer. This cannot be undone.",
+    "using": "Using {{service}} ({{model}})",
+    "sent": "Information sent to the AI",
+    "thinking": "The AI is looking at the error...",
+    "placeholder": "Ask a follow-up (Enter to send, Shift+Enter for a new line)",
+    "send": "Send",
+    "firstQuestion": "What does this error mean and how do I fix it? Please guide me step by step, using the app's own buttons where possible.",
+    "consent": {
+      "title": "Send this error to {{service}} and ask how to fix it?",
+      "cloud": "The app sends the text below to {{service}} (model {{model}}) over the Internet. No passwords, tokens or code are sent.",
+      "local": "The text below goes to {{service}} (model {{model}}) running on this computer. It does not leave this computer.",
+      "preview": "What will be sent:",
+      "remember": "Don't ask again",
+      "confirm": "Send and ask AI"
+    }
   }
 }
