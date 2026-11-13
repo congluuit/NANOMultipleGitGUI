@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -24,7 +24,33 @@ import {
   progressLine,
   summarize,
 } from "./format";
-import { retryOf, useTransferQueue, type QueueItem } from "./store";
+import { fixOf, retryOf, useTransferQueue, type QueueItem } from "./store";
+
+/** How long the status bar shows that a transfer just finished. */
+const FLASH_MS = 8_000;
+
+/** The transfer that finished last (cancelled ones are not announced). */
+function lastFinish(items: readonly QueueItem[]): QueueItem | null {
+  let last: QueueItem | null = null;
+  for (const item of items) {
+    if (item.finishedAt === null || item.status === "cancelled") continue;
+    if (!last || item.finishedAt > (last.finishedAt ?? 0)) last = item;
+  }
+  return last;
+}
+
+/** {@link lastFinish} for {@link FLASH_MS} after it finished, then `null`. */
+function useRecentFinish(items: readonly QueueItem[]): QueueItem | null {
+  const last = useMemo(() => lastFinish(items), [items]);
+  const [expired, setExpired] = useState<string | null>(null);
+  useEffect(() => {
+    if (!last?.finishedAt) return;
+    const left = last.finishedAt + FLASH_MS - Date.now();
+    const timer = window.setTimeout(() => setExpired(last.opId), Math.max(0, left));
+    return () => window.clearTimeout(timer);
+  }, [last]);
+  return last && last.opId !== expired ? last : null;
+}
 
 const SMALL_BUTTON =
   "shrink-0 rounded px-1.5 py-0.5 text-[11px] hover:bg-surface-2 disabled:opacity-50";
@@ -121,7 +147,9 @@ function KindIcon({ item }: { item: QueueItem }) {
 export function QueueRow({ item }: { item: QueueItem }) {
   const { t } = useTranslation();
   const percent = itemPercent(item);
-  const retry = item.status === "failed" || item.status === "cancelled" ? retryOf(item.opId) : null;
+  const ended = item.status === "failed" || item.status === "cancelled";
+  const retry = ended ? retryOf(item.opId) : null;
+  const fix = ended ? fixOf(item.opId) : null;
   const line = progressLine(item);
   return (
     <li className="space-y-1 py-1.5" data-testid={`transfer-${item.opId}`}>
@@ -155,6 +183,15 @@ export function QueueRow({ item }: { item: QueueItem }) {
           </button>
         ) : (
           <>
+            {fix && (
+              <button
+                type="button"
+                className={cn(SMALL_BUTTON, "border border-primary/40 text-primary")}
+                onClick={fix.run}
+              >
+                {fix.label}
+              </button>
+            )}
             {retry && (
               <button type="button" className={SMALL_BUTTON} onClick={retry}>
                 {t("transfers.retry")}
@@ -210,6 +247,7 @@ export function QueueRow({ item }: { item: QueueItem }) {
 export function QueueList({ items }: { items: readonly QueueItem[] }) {
   const { t } = useTranslation();
   const tabs = useWorkspace((s) => s.tabs);
+  const activeId = useWorkspace((s) => s.activeId);
   const groups = useMemo(() => {
     const byRepo = new Map<number, QueueItem[]>();
     const sorted = [...items].sort(
@@ -229,9 +267,20 @@ export function QueueList({ items }: { items: readonly QueueItem[] }) {
     <div className="max-h-96 overflow-y-auto px-3 py-1 text-xs">
       {groups.map(([repoId, list]) => (
         <section key={repoId} className="py-1">
-          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase">
-            {tabs.find((tab) => tab.id === repoId)?.name ??
-              t("transfers.unknownRepo", { id: repoId })}
+          <h3 className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground uppercase">
+            <span className="min-w-0 truncate">
+              {tabs.find((tab) => tab.id === repoId)?.name ??
+                t("transfers.unknownRepo", { id: repoId })}
+            </span>
+            {tabs.some((tab) => tab.id === repoId) && repoId !== activeId && (
+              <button
+                type="button"
+                className={cn(SMALL_BUTTON, "font-normal normal-case")}
+                onClick={() => useWorkspace.getState().setActive(repoId)}
+              >
+                {t("transfers.openRepo")}
+              </button>
+            )}
           </h3>
           <ul className="divide-y">
             {list.map((item) => (
@@ -254,7 +303,32 @@ export function TransferQueueWidget() {
     [itemsById, order],
   );
   const summary = useMemo(() => summarize(items), [items]);
+  const recent = useRecentFinish(items);
+  const tabs = useWorkspace((s) => s.tabs);
   if (!items.length) return null;
+  const recentRepo = recent ? tabs.find((tab) => tab.id === recent.repoId)?.name : undefined;
+  // "Push xong · Game A": a transfer that finished, maybe in a repository the user left.
+  const flash = recent ? (
+    <span
+      data-testid="transfer-flash"
+      className={cn(
+        "flex min-w-0 shrink items-center gap-1 rounded px-1 font-medium",
+        recent.status === "failed" ? "bg-danger/15 text-danger" : "bg-success/15 text-success",
+      )}
+    >
+      {recent.status === "failed" ? (
+        <AlertTriangle className="size-3 shrink-0" />
+      ) : (
+        <CheckCircle2 className="size-3 shrink-0" />
+      )}
+      <span className="truncate">
+        {t(recent.status === "failed" ? "transfers.flashFailed" : "transfers.flashDone", {
+          kind: t(`transfers.kind.${recent.kind}`),
+          repo: recentRepo ?? t("transfers.unknownRepo", { id: recent.repoId }),
+        })}
+      </span>
+    </span>
+  ) : null;
 
   let label: ReactNode;
   if (summary.lfs) {
@@ -315,6 +389,7 @@ export function TransferQueueWidget() {
           {extraRunning > 0 && !summary.lfs && (
             <span className="shrink-0 text-muted-foreground">+{extraRunning}</span>
           )}
+          {flash}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

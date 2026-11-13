@@ -15,8 +15,10 @@ pub mod chat;
 pub mod client;
 pub mod config;
 pub mod context;
+pub mod describe;
 pub mod ollama;
 pub mod prompt;
+pub mod review;
 #[cfg(test)]
 mod tests;
 
@@ -431,6 +433,160 @@ pub async fn ai_generate(
     let st = app.state::<AppState>();
     let root = repo_root(&st, repo_id)?;
     generate_impl(
+        &http(&app),
+        &st.storage,
+        st.accounts.secrets.as_ref(),
+        &Endpoints::default(),
+        st.git.clone(),
+        root,
+        &app_language,
+        unstaged,
+        &cancel,
+    )
+    .await
+}
+
+/// "Gợi ý mô tả" (Publish): one sentence describing the repository, from its name, README,
+/// manifest, file types and recent commit subjects (never its code). Same service, model and
+/// language setting as the commit messages; cancel with `ai_cancel(requestId)`.
+#[tauri::command]
+#[specta::specta]
+pub async fn ai_describe_repo(
+    app: AppHandle,
+    repo_id: i64,
+    request_id: String,
+    app_language: String,
+    name: String,
+) -> AiResult<String> {
+    let (_running, cancel) = Running::start(&request_id)?;
+    let st = app.state::<AppState>();
+    let cfg = load_config(&st.storage)?;
+    if !cfg.enabled {
+        return Err(AiError::NotEnabled {
+            message: "AI suggestions are turned off".into(),
+        });
+    }
+    let key = config::read_key(st.accounts.secrets.as_ref(), cfg.provider)?;
+    let target = Target::new(&cfg, key, &Endpoints::default(), true)?;
+    let root = repo_root(&st, repo_id)?;
+    let git = st.git.clone();
+    let repo_name = name.trim().to_owned();
+    let facts = tauri::async_runtime::spawn_blocking(move || {
+        describe::collect_facts(&git, &root, &repo_name)
+    })
+    .await
+    .map_err(|e| AiError::internal(e.to_string()))?;
+    let language = prompt::resolve_language(cfg.language, &app_language);
+    tracing::info!(
+        provider = ?target.provider,
+        model = %target.model,
+        bytes = facts.len(),
+        "ai repository description requested"
+    );
+    let user = describe::user_prompt(&facts, language);
+    let raw = client::converse(
+        &http(&app),
+        &target,
+        &describe::system_prompt(),
+        &[(client::Speaker::User, user.as_str())],
+        describe::MAX_TOKENS,
+        &cancel,
+    )
+    .await?;
+    describe::parse_description(&raw).ok_or_else(|| AiError::EmptyAnswer {
+        message: "the answer had no usable description".into(),
+    })
+}
+
+/// Result of [`ai_review`].
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AiReview {
+    pub text: String,
+    pub source: AiDiffSource,
+    /// Number of changed files the review looked at.
+    pub files: u32,
+    /// Part of the diff was left out to keep the request small.
+    pub truncated: bool,
+    pub provider: AiProvider,
+    pub model: String,
+}
+
+/// Core of [`ai_review`]: reads the staged changes (or, with `unstaged`, the working-tree
+/// changes when nothing is staged) and asks the configured service to review them. Refused
+/// while AI is turned off.
+#[allow(clippy::too_many_arguments)]
+pub async fn review_impl(
+    http: &reqwest::Client,
+    storage: &Storage,
+    secrets: &dyn SecretStore,
+    endpoints: &Endpoints,
+    git: GitRunner,
+    root: PathBuf,
+    app_language: &str,
+    unstaged: bool,
+    cancel: &CancellationToken,
+) -> AiResult<AiReview> {
+    let cfg = load_config(storage)?;
+    if !cfg.enabled {
+        return Err(AiError::NotEnabled {
+            message: "AI suggestions are turned off".into(),
+        });
+    }
+    let key = config::read_key(secrets, cfg.provider)?;
+    let target = Target::new(&cfg, key, endpoints, true)?;
+    let ctx = tauri::async_runtime::spawn_blocking(move || context::collect(&git, &root, unstaged))
+        .await
+        .map_err(|e| AiError::internal(e.to_string()))??;
+    let language = prompt::resolve_language(cfg.language, app_language);
+    let user = review::user_prompt(&ctx, language);
+    tracing::info!(
+        provider = ?target.provider,
+        model = %target.model,
+        files = ctx.files.len(),
+        bytes = user.len(),
+        truncated = ctx.truncated,
+        "ai review requested"
+    );
+    let raw = client::converse(
+        http,
+        &target,
+        &review::system_prompt(),
+        &[(client::Speaker::User, user.as_str())],
+        review::MAX_TOKENS,
+        cancel,
+    )
+    .await?;
+    let text = review::parse_review(&raw).ok_or_else(|| AiError::EmptyAnswer {
+        message: "the answer had no review".into(),
+    })?;
+    Ok(AiReview {
+        text,
+        source: ctx.source,
+        files: (ctx.files.len() + ctx.untracked.len()) as u32,
+        truncated: ctx.truncated,
+        provider: target.provider,
+        model: target.model,
+    })
+}
+
+/// "AI review": asks the AI service to look for mistakes in the staged changes (or, with
+/// `unstaged`, the working-tree changes when nothing is staged). Runs only on request, with
+/// the same cut diff, service and language as the commit message suggestion; cancel with
+/// `ai_cancel(requestId)`.
+#[tauri::command]
+#[specta::specta]
+pub async fn ai_review(
+    app: AppHandle,
+    repo_id: i64,
+    request_id: String,
+    app_language: String,
+    unstaged: bool,
+) -> AiResult<AiReview> {
+    let (_running, cancel) = Running::start(&request_id)?;
+    let st = app.state::<AppState>();
+    let root = repo_root(&st, repo_id)?;
+    review_impl(
         &http(&app),
         &st.storage,
         st.accounts.secrets.as_ref(),

@@ -27,7 +27,9 @@
     "copyPath": "Sao chép đường dẫn thư mục",
     "pin": "Ghim tab",
     "unpin": "Bỏ ghim tab",
-    "pinned": "Đã ghim"
+    "pinned": "Đã ghim",
+    "groupByAccount": "Nhóm tab theo tài khoản",
+    "alreadyGrouped": "Các tab đã được nhóm theo tài khoản."
   },
   "toolbar": {
     "fetch": "Fetch",
@@ -66,7 +68,8 @@
     "loading": "Đang đọc…",
     "jumpTo": "Bấm để tới commit",
     "publishRepo": "Publish lên GitHub / GitLab…",
-    "addRemote": "Thêm remote bằng URL…"
+    "addRemote": "Thêm remote bằng URL…",
+    "recent": "Gần đây"
   },
   "graph": {
     "openRepo": "Mở repo…",
@@ -150,7 +153,9 @@
     "confirmBranchSwitch": "Hỏi lại trước khi chuyển nhánh bằng nhấp đúp",
     "confirmBranchSwitchHint": "Nhấp đúp hoặc Enter trên một nhánh ở panel trái sẽ hiện hộp xác nhận trước, tránh lỡ tay chuyển nhánh.",
     "donate": "Nếu bạn thấy thích ý tưởng này, hãy ủng hộ tôi bằng",
-    "donateThanks": "Cảm ơn bạn! Quét mã bằng app ngân hàng (BIDV)."
+    "donateThanks": "Cảm ơn bạn! Quét mã bằng app ngân hàng (BIDV).",
+    "osNotifications": "Thông báo hệ thống",
+    "osNotificationsHint": "Khi cửa sổ đang ở phía sau, hiện thông báo hệ thống cho việc vừa xong hoặc bị lỗi (push, tóm tắt fetch, lỗi)."
   },
   "palette": {
     "title": "Bảng màu & design tokens",
@@ -196,7 +201,8 @@
     "lfsMissing": "Chưa cài Git LFS. Repo dùng LFS sẽ không tải được file lớn. Cài git-lfs {{min}} trở lên (https://git-lfs.com).",
     "lfsOld": "Git LFS {{version}} quá cũ. Cần {{min}} trở lên.",
     "recheck": "Kiểm tra lại",
-    "dismiss": "Ẩn"
+    "dismiss": "Ẩn",
+    "loading": "Đang tải…"
   },
   "details": {
     "title": "Chi tiết commit",
@@ -264,7 +270,11 @@
     "conflictCount_one": "{{count}} xung đột",
     "undoShort": "Hoàn tác",
     "resolvedShort": "Đã giải quyết",
-    "unsavedTitle": "Đã sửa trong app nhưng chưa lưu: mở file để lưu. Commit sẽ lấy bản đang nằm trên đĩa."
+    "unsavedTitle": "Đã sửa trong app nhưng chưa lưu: mở file để lưu. Commit sẽ lấy bản đang nằm trên đĩa.",
+    "staging": "Đang stage {{done}}/{{total}} file",
+    "stageStopping": "Đang dừng…",
+    "stageStopped": "Đã dừng: {{done}}/{{total}} file đã được stage",
+    "stagePartly": "Đã stage {{done}}/{{total}} file trước khi lỗi; những file đó vẫn ở trạng thái đã stage."
   },
   "diff": {
     "title": "Diff",
@@ -637,7 +647,9 @@
       "behindHead": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit. Pull để lấy về",
       "behindHead_one": "Nhánh hiện tại {{branch}} đang chậm {{count}} commit. Pull để lấy về",
       "more": "… và {{count}} mục khác",
-      "pull": "Pull {{branch}}"
+      "pull": "Pull {{branch}}",
+      "titleAuto": "Có mới trên server: {{count}} nhánh remote thay đổi.",
+      "titleAuto_one": "Có mới trên server: {{count}} nhánh remote thay đổi."
     },
     "kind": {
       "fetch": "Fetch",
@@ -768,7 +780,10 @@
     "estimateFailed": "Không ước lượng được dung lượng LFS: {{message}}",
     "ignoreDiskSpace": "Vẫn tải",
     "diskWarning": "Ổ đĩa chỉ còn trống {{free}}, cần khoảng {{needed}}.",
-    "cancelled": "Đã hủy truyền tải. Chạy lại sẽ chỉ truyền phần còn thiếu."
+    "cancelled": "Đã hủy truyền tải. Chạy lại sẽ chỉ truyền phần còn thiếu.",
+    "openRepo": "Mở",
+    "flashDone": "{{kind}} xong · {{repo}}",
+    "flashFailed": "{{kind}} lỗi · {{repo}}"
   },
   "lfsErrors": {
     "noPermission": {
@@ -1173,13 +1188,19 @@
       "github": "GitHub.com",
       "githubEnterprise": "GitHub Enterprise",
       "gitlab": "GitLab.com",
-      "gitlabSelfHosted": "GitLab tự host"
+      "gitlabSelfHosted": "GitLab tự host",
+      "gitea": "Gitea / Forgejo",
+      "bitbucket": "Bitbucket",
+      "azureDevops": "Azure DevOps"
     },
     "kindHint": {
       "github": "Tài khoản github.com",
       "githubEnterprise": "Máy chủ GitHub riêng của công ty",
       "gitlab": "Tài khoản gitlab.com",
-      "gitlabSelfHosted": "Máy chủ GitLab riêng"
+      "gitlabSelfHosted": "Máy chủ GitLab riêng",
+      "gitea": "Codeberg hoặc server riêng (access token, thử nghiệm)",
+      "bitbucket": "bitbucket.org, dùng cho push, pull và clone (API token)",
+      "azureDevops": "dev.azure.com, dùng cho push, pull và clone (access token)"
     },
     "urlError": {
       "required": "Nhập địa chỉ máy chủ",
@@ -1222,7 +1243,11 @@
         "required": "Dán token vào đây",
         "malformed": "Token không được chứa khoảng trắng"
       },
-      "submit": "Kiểm tra và lưu"
+      "submit": "Kiểm tra và lưu",
+      "login": "Email tài khoản Atlassian",
+      "loginHint": "Email bạn dùng để đăng nhập Bitbucket. Chỉ dùng để kiểm tra token.",
+      "loginRequired": "Hãy nhập email tài khoản Atlassian",
+      "gitOnly": "Push, pull và clone sẽ chạy bằng tài khoản này. Pull request, issue và CI của server này chưa hiển thị trong app."
     },
     "done": {
       "title": "Đã thêm tài khoản",
@@ -1548,7 +1573,7 @@
       "inCommits_one": "trong {{count}} commit",
       "inCommits_other": "trong {{count}} commit",
       "migrate": "Chuyển sang LFS",
-      "migrateDesc": "Chạy git lfs migrate import chỉ cho các commit chưa push: {{paths}}",
+      "migrateDesc": "Chạy git lfs migrate import chỉ cho các commit chưa push (thay đổi chưa commit được cất tạm rồi trả lại): {{paths}}",
       "sharedBlobsTitle": "File nặng nằm trong commit đã push",
       "sharedBlobsDesc": "Ứng dụng không tự viết lại lịch sử đã chia sẻ. Cách xử lý: phối hợp với nhóm rồi chạy git lfs migrate import --everything (sẽ phải force push), hoặc xóa file khỏi lịch sử bằng git filter-repo. Sau đó mọi người cần clone lại.",
       "backupDone": "Đã viết lại {{count}} commit. Bản sao lưu: {{ref}}",
@@ -1557,7 +1582,9 @@
       "pushAnyway": "Vẫn push",
       "push": "Push",
       "pushBlocked": "Không thể push: tài khoản không có quyền hoặc có file vượt giới hạn cứng",
-      "rewriteFailed": "Không viết lại được: {{message}}"
+      "rewriteFailed": "Không viết lại được: {{message}}",
+      "drop": "Bỏ khỏi commit (giữ trên máy)",
+      "dropDesc": "Bỏ các file này khỏi những commit chưa push, giữ nguyên trên máy và thêm vào .gitignore. Dùng khi file quá lớn cả với LFS hoặc server không có LFS: {{paths}}"
     }
   },
   "failureHelp": {
@@ -1587,7 +1614,7 @@
     "protectedBranch": "Chủ repo đã bật bảo vệ cho nhánh này (cấm push thẳng, cấm force push hoặc bắt buộc review). Tạo nhánh mới, push nhánh đó rồi mở Pull Request / Merge Request.",
     "emailPrivacy": "Bạn đã bật 'Block command line pushes that expose my email' trên GitHub. Đổi email của identity sang địa chỉ dạng …@users.noreply.github.com (xem ở GitHub Settings → Emails), sửa tác giả các commit chưa push rồi Push lại.",
     "secretDetected": "Một commit chưa push có chứa mật khẩu, API key hoặc token. Xóa bí mật đó khỏi file, sửa lại commit (Amend, hoặc reset về trước commit đó rồi commit lại), thu hồi/đổi bí mật đã lộ, sau đó Push lại.",
-    "fileTooLarge": "GitHub không nhận file lớn hơn 100 MB. Hãy dùng Git LFS cho file này: Push Guard có nút 'Chuyển sang LFS' cho các commit chưa push.",
+    "fileTooLarge": "Server không nhận file vượt giới hạn dung lượng (GitHub: 100 MB). Thử lại nguyên trạng sẽ chỉ chờ upload lâu rồi lỗi tiếp. Bấm 'Chuyển file nặng sang LFS rồi push lại': app tìm file nặng trong các commit chưa push, đưa chúng vào Git LFS và push lại. Nếu file quá lớn cả với LFS, chọn 'Bỏ file nặng khỏi commit': file vẫn nằm trên máy.",
     "action": {
       "signIn": "Đăng nhập {{name}}",
       "reauth": "Đăng nhập lại {{account}}",
@@ -1685,7 +1712,8 @@
     "technical": "Chi tiết kỹ thuật (log của git)",
     "autoHide": "Tự ẩn sau {{count}} giây",
     "autoHide_one": "Tự ẩn sau {{count}} giây",
-    "paused": "Đã tạm dừng trong lúc bạn đọc"
+    "paused": "Đã tạm dừng trong lúc bạn đọc",
+    "openRepo": "Mở {{name}}"
   },
   "branchMenu": {
     "pull": "Pull (fast-forward nếu được)",
@@ -2865,7 +2893,16 @@
     "submitNew": "Tạo repo",
     "submitNewPush": "Tạo repo và push",
     "submitUrl": "Nối remote",
-    "submitUrlPush": "Nối remote và push"
+    "submitUrlPush": "Nối remote và push",
+    "describe": "Gợi ý mô tả bằng AI",
+    "describeSetup": "Gợi ý mô tả bằng AI (chưa bật AI, bấm để thiết lập)",
+    "describeSendsTo": "Tên, README và loại file của project sẽ được gửi tới {{service}} (không gửi code).",
+    "describing": "AI đang viết mô tả…",
+    "background": "Chạy nền",
+    "backgroundTitle": "Đóng cửa sổ này, push vẫn tiếp tục ở hàng đợi Transfer dưới thanh trạng thái",
+    "backgroundStarted": "Đang push {{branch}} lên {{remote}} ở chế độ nền",
+    "backgroundHint": "Bạn có thể chuyển sang project khác. Tiến độ và kết quả hiện ở hàng đợi Transfer dưới thanh trạng thái.",
+    "donePushSkipped": "Đã tạo repository và remote {{remote}}, nhưng chưa push. Bấm Push khi bạn sẵn sàng."
   },
   "issues": {
     "sidebar": "Issues",
@@ -4110,6 +4147,218 @@
       "preview": "Nội dung sẽ gửi:",
       "remember": "Lần sau không hỏi lại",
       "confirm": "Gửi và hỏi AI"
+    },
+    "doIt": "Làm ngay trong app",
+    "action": {
+      "retry": "Thử lại thao tác vừa lỗi",
+      "fetch": "Fetch",
+      "pull": "Pull (gộp commit mới)",
+      "push": "Push",
+      "stash": "Cất tạm thay đổi (Stash)",
+      "lfs": "Mở cài đặt Git LFS",
+      "accounts": "Mở quản lý tài khoản"
     }
+  },
+  "largeFiles": {
+    "toLfs": "Chuyển file nặng sang LFS rồi push lại",
+    "drop": "Bỏ file nặng khỏi commit (giữ trên máy)",
+    "scanning": "Đang tìm file nặng trong các commit chưa push…",
+    "moving_one": "Đang chuyển {{count}} file sang Git LFS: {{files}}",
+    "moving_other": "Đang chuyển {{count}} file sang Git LFS: {{files}}",
+    "dropping_one": "Đang bỏ {{count}} file khỏi các commit chưa push: {{files}}",
+    "dropping_other": "Đang bỏ {{count}} file khỏi các commit chưa push: {{files}}",
+    "movedPushing_one": "Đã chuyển {{count}} file sang Git LFS. Đang push lại…",
+    "movedPushing_other": "Đã chuyển {{count}} file sang Git LFS. Đang push lại…",
+    "droppedPushing_one": "Đã bỏ {{count}} file khỏi các commit chưa push. Đang push lại…",
+    "droppedPushing_other": "Đã bỏ {{count}} file khỏi các commit chưa push. Đang push lại…",
+    "dropHint": "File vẫn nằm nguyên trên máy, chỉ không được đưa lên server.",
+    "ignored_one": "Đã thêm {{count}} file vào .gitignore để lần sau không bị commit lại (nhớ commit file .gitignore).",
+    "ignored_other": "Đã thêm {{count}} file vào .gitignore để lần sau không bị commit lại (nhớ commit file .gitignore).",
+    "stashKept": "Thay đổi chưa commit của bạn chưa trả lại được nên vẫn nằm trong Stash. Mở Stash để lấy lại.",
+    "undo": "Hoàn tác",
+    "noBranch": "Không xác định được nhánh để push (HEAD đang tách rời hoặc repo chưa có remote).",
+    "notFound": "Không tìm thấy file nặng trong các commit chưa push",
+    "notFoundHint": "Server báo có file quá lớn ({{files}}) nhưng các commit chưa push không chứa file nào vượt giới hạn. File có thể nằm trong một commit đã push trước đó. Hãy hỏi AI hoặc mở Push Guard để xem chi tiết.",
+    "failed": "Không xử lý được file nặng"
+  },
+  "overview": {
+    "cmd": "Tất cả repo…",
+    "button": "Tất cả repo",
+    "tooltip": "Xem nhanh mọi repo đang mở: fetch tất cả, pull tất cả",
+    "title": "Tất cả repo",
+    "description": "Nhánh, số commit cần pull hoặc push và thay đổi chưa commit của mọi repo đang mở.",
+    "summary": "Đang mở {{count}} repo. {{behind}} repo có commit cần pull, {{ahead}} repo có commit cần push, {{dirty}} repo có thay đổi chưa commit.",
+    "summary_one": "Đang mở {{count}} repo. {{behind}} repo có commit cần pull, {{ahead}} repo có commit cần push, {{dirty}} repo có thay đổi chưa commit.",
+    "fetchAll": "Fetch tất cả",
+    "pullAll": "Pull tất cả ({{count}})",
+    "pullAllTip": "Chỉ pull những repo đang chậm hơn server và không có thay đổi chưa commit, chỉ fast-forward. Các repo khác được giữ nguyên.",
+    "refresh": "Làm mới",
+    "col": {
+      "repo": "Repo",
+      "branch": "Nhánh",
+      "sync": "Server",
+      "state": "Trạng thái"
+    },
+    "openTip": "Mở {{path}}",
+    "detached": "HEAD tách rời",
+    "empty": "Chưa mở repo nào.",
+    "note": "Số commit cần pull tính theo lần fetch gần nhất. Bấm Fetch tất cả để biết trên server có gì mới.",
+    "missing": "Không tìm thấy thư mục",
+    "unreadable": "Không đọc được",
+    "conflicts": "{{count}} xung đột",
+    "conflicts_one": "{{count}} xung đột",
+    "changes": "{{count}} file thay đổi",
+    "changes_one": "{{count}} file thay đổi",
+    "stashes": "{{count}} stash",
+    "stashes_one": "{{count}} stash",
+    "clean": "Không có gì để commit",
+    "noUpstream": "Chưa có trên server",
+    "inSync": "Đã cập nhật",
+    "behindTip": "{{count}} commit cần pull",
+    "behindTip_one": "{{count}} commit cần pull",
+    "aheadTip": "{{count}} commit cần push",
+    "aheadTip_one": "{{count}} commit cần push",
+    "done": {
+      "fetch": "Đã fetch.",
+      "pull": "Đã pull."
+    },
+    "result": {
+      "fetch": "Đã fetch {{count}} repo.",
+      "fetch_one": "Đã fetch {{count}} repo.",
+      "pull": "Đã pull {{count}} repo.",
+      "pull_one": "Đã pull {{count}} repo.",
+      "fetchFailed": "Đã fetch {{done}} repo, {{failed}} repo lỗi.",
+      "pullFailed": "Đã pull {{done}} repo, {{failed}} repo lỗi."
+    }
+  },
+  "reflog": {
+    "cmd": "Tìm lại commit đã mất (reflog)…",
+    "title": "HEAD đã đi qua đâu",
+    "description": "Mọi lần commit, checkout, reset và rebase mà git còn nhớ, mới nhất ở trên. Commit không còn nhánh nào trỏ tới vẫn nằm ở đây: tạo nhánh trên nó để lấy lại.",
+    "filter": "Lọc theo thao tác, nội dung hoặc mã commit…",
+    "show": "Xem",
+    "branch": "Tạo nhánh",
+    "branchTip": "Tạo nhánh tại commit này",
+    "checkout": "Checkout",
+    "empty": "Không có gì khớp."
+  },
+  "stats": {
+    "cmd": "Thống kê repo…",
+    "title": "Thống kê repo",
+    "description": "Tính từ lịch sử của nhánh hiện tại.",
+    "commits": "Commit",
+    "authors": "Tác giả",
+    "firstCommit": "Commit đầu tiên",
+    "lastCommit": "Commit mới nhất",
+    "none": "Chưa có",
+    "activity": "Số commit mỗi tuần, 12 tháng gần đây",
+    "activityLabel": "{{count}} commit trong 12 tháng gần đây",
+    "weekTip": "Tuần từ {{date}}: {{count}} commit",
+    "weekTip_one": "Tuần từ {{date}}: {{count}} commit",
+    "topAuthors": "Tác giả hoạt động nhiều nhất",
+    "topFiles": "File thay đổi nhiều nhất, 12 tháng gần đây",
+    "noRecent": "Không có commit nào trong 12 tháng gần đây."
+  },
+  "sparse": {
+    "cmd": "Sparse checkout (chỉ giữ một số thư mục)…",
+    "title": "Sparse checkout",
+    "description": "Chỉ giữ những thư mục bạn làm việc. Các thư mục khác biến mất khỏi ổ đĩa nhưng vẫn còn trong repo, và sẽ quay lại khi bạn tắt chức năng này.",
+    "descriptionOn": "Sparse checkout đang bật: {{count}} thư mục được giữ trên ổ đĩa.",
+    "descriptionOn_one": "Sparse checkout đang bật: {{count}} thư mục được giữ trên ổ đĩa.",
+    "folders": "Thư mục cần giữ",
+    "all": "Tất cả",
+    "none": "Bỏ hết",
+    "noFolders": "Repo này không có thư mục nào ở cấp trên cùng.",
+    "extra": "Thư mục khác (mỗi dòng một thư mục)",
+    "extraPlaceholder": "packages/app/src",
+    "note": "File ở cấp trên cùng luôn được giữ. Hãy commit hoặc stash thay đổi trước: git sẽ từ chối nếu thư mục bị bỏ còn thay đổi chưa commit.",
+    "disable": "Tắt (lấy lại mọi file)",
+    "apply": "Giữ {{count}} thư mục",
+    "apply_one": "Giữ {{count}} thư mục",
+    "keepsAllTip": "Bạn đang chọn mọi thư mục: không có gì để bỏ ra.",
+    "applied": "Sparse checkout: giữ {{count}} thư mục trên ổ đĩa.",
+    "applied_one": "Sparse checkout: giữ {{count}} thư mục trên ổ đĩa.",
+    "disabled": "Đã tắt sparse checkout. Mọi file đã quay lại."
+  },
+  "patch": {
+    "cmd": {
+      "apply": "Áp file patch…",
+      "saveChanges": "Lưu thay đổi chưa commit thành patch…"
+    },
+    "menu": {
+      "save": "Lưu thành patch…"
+    },
+    "saveTitle": "Lưu patch",
+    "pickTitle": "Chọn file patch",
+    "saved": "Đã lưu patch vào {{file}}.",
+    "applied": "Đã áp patch. Thay đổi nằm trong thư mục làm việc, chưa commit.",
+    "appliedCommits": "Đã áp patch thành các commit.",
+    "applyTitle": "Áp patch",
+    "commits": "{{count}} commit trong patch này",
+    "commits_one": "{{count}} commit trong patch này",
+    "files": "{{count}} file thay đổi",
+    "files_one": "{{count}} file thay đổi",
+    "notClean": "Patch này không khớp hoàn toàn với file của bạn. App sẽ gộp ở những chỗ có thể, và bạn có thể phải xử lý xung đột.",
+    "asCommits": "Áp thành {{count}} commit",
+    "asCommits_one": "Áp thành {{count}} commit",
+    "asCommitsTip": "Tạo lại các commit với tác giả, ngày và nội dung gốc",
+    "asChanges": "Áp thành thay đổi",
+    "asChangesTip": "Đưa thay đổi vào thư mục làm việc, bạn tự xem lại và commit"
+  },
+  "bisect": {
+    "cmd": "Tìm commit gây lỗi (bisect)…",
+    "menu": {
+      "title": "Tìm commit gây lỗi",
+      "goodHere": "Ở đây vẫn chạy tốt (bắt đầu bisect)…",
+      "badHere": "Ở đây đã bị lỗi (bắt đầu bisect)…"
+    },
+    "startTitle": "Tìm commit gây lỗi",
+    "startDescription": "Cho biết một commit đang bị lỗi và một commit cũ hơn vẫn chạy tốt. App lần lượt checkout các commit ở giữa, bạn chạy thử từng cái và cho biết có lỗi hay không, đến khi tìm ra commit đầu tiên gây lỗi.",
+    "badLabel": "Commit bị lỗi",
+    "badHint": "Mã commit, nhánh hoặc tag. HEAD là vị trí hiện tại của bạn.",
+    "goodLabel": "Commit gần nhất còn chạy tốt",
+    "goodPlaceholder": "mã commit, tag hoặc nhánh",
+    "goodHint": "Phải cũ hơn commit bị lỗi.",
+    "start": "Bắt đầu",
+    "started": "Đã bắt đầu bisect: còn {{count}} commit cần thu hẹp. Hãy chạy thử app rồi cho biết có lỗi không.",
+    "started_one": "Đã bắt đầu bisect: còn {{count}} commit cần thu hẹp. Hãy chạy thử app rồi cho biết có lỗi không.",
+    "found": "Đã tìm ra: {{oid}} {{subject}} là commit đầu tiên gây lỗi.",
+    "stopped": "Đã kết thúc bisect. Bạn đã quay về vị trí ban đầu.",
+    "banner": {
+      "title": "Đang tìm commit gây lỗi.",
+      "testing": "Hãy thử {{oid}}",
+      "left": "còn khoảng {{count}} lần thử",
+      "left_one": "còn khoảng {{count}} lần thử",
+      "good": "Chạy tốt",
+      "goodTip": "Commit này không bị lỗi",
+      "bad": "Bị lỗi",
+      "badTip": "Commit này bị lỗi",
+      "skip": "Không thử được",
+      "skipTip": "Commit này không thử được (ví dụ không build được)",
+      "stop": "Dừng",
+      "found": "Commit đầu tiên gây lỗi:",
+      "show": "Xem commit",
+      "finish": "Kết thúc"
+    }
+  },
+  "aiReview": {
+    "cmd": "AI xem lại thay đổi của tôi…",
+    "button": "AI xem lại các thay đổi sắp commit",
+    "title": "AI review",
+    "consent": {
+      "cloud": "Thay đổi của bạn sẽ được gửi tới {{service}} (model {{model}}).",
+      "local": "Thay đổi của bạn không rời khỏi máy này: {{service}} (model {{model}}).",
+      "what": "Nội dung gửi đi: diff của các file đã stage (được cắt bớt cho gọn), tên file và tên nhánh. Không bao giờ có mật khẩu hay token.",
+      "never": "AI chỉ xem lại khi bạn yêu cầu ở đây. Nó không bao giờ tự chạy trước khi commit hay push, và không chặn hai việc đó.",
+      "remember": "Không hỏi lại",
+      "confirm": "Xem lại thay đổi của tôi"
+    },
+    "running": "{{service}} đang đọc thay đổi của bạn…",
+    "doneDescription": "{{service}} (model {{model}}) đã xem {{count}} file.",
+    "doneDescription_one": "{{service}} (model {{model}}) đã xem {{count}} file.",
+    "unstagedUsed": "Chưa có gì được stage nên AI đã xem các thay đổi chưa stage.",
+    "truncated": "Thay đổi quá dài nên không gửi hết được: một phần chưa được xem.",
+    "disclaimer": "AI có thể sai hoặc bỏ sót. Hãy coi đây là một người xem lại thêm, không phải lời bảo đảm.",
+    "again": "Xem lại lần nữa"
   }
 }

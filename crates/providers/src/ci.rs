@@ -222,6 +222,8 @@ struct RawCombined {
 #[derive(Deserialize)]
 struct RawStatus {
     context: Option<String>,
+    /// Gitea / Forgejo name it `status`.
+    #[serde(alias = "status")]
     state: String,
     description: Option<String>,
     target_url: Option<String>,
@@ -271,6 +273,9 @@ impl From<RawStatus> for CiJob {
         let state = match s.state.as_str() {
             "success" => CiJobState::Success,
             "failure" | "error" => CiJobState::Failure,
+            // Gitea / Forgejo only.
+            "skipped" => CiJobState::Skipped,
+            "warning" => CiJobState::Neutral,
             _ => CiJobState::Queued,
         };
         let created = s.created_at.as_deref().and_then(parse_timestamp);
@@ -349,12 +354,37 @@ impl GithubClient {
                 &[("per_page", "100")],
             )
             .await?;
+        // Gitea / Forgejo give the link of a status relative to the site.
+        let base = self.api().endpoint().base_url().clone();
+        let absolute = |mut s: RawStatus| {
+            if let Some(path) = s.target_url.as_deref().filter(|u| u.starts_with('/')) {
+                s.target_url = base.join(path).ok().map(String::from);
+            }
+            s
+        };
         // The combined `state` is "pending" when there are no statuses at all: fold ourselves.
-        Ok(resp.body.statuses.into_iter().map(CiJob::from).collect())
+        Ok(resp
+            .body
+            .statuses
+            .into_iter()
+            .map(absolute)
+            .map(CiJob::from)
+            .collect())
     }
 
     pub async fn ci_status(&self, full_name: &str, sha: &str) -> Result<CiStatus, ProviderError> {
         let (owner, repo) = Self::ci_segments(full_name)?;
+        if self.is_gitea() {
+            // No check runs there: commit statuses are all of it.
+            let mut out = CiStatus::none(sha);
+            out.jobs = match self.combined_status(&owner, &repo, sha).await {
+                Ok(jobs) => jobs,
+                Err(e) if unknown_commit(&e) => return Ok(out),
+                Err(e) => return Err(e),
+            };
+            out.state = fold_state(&out.jobs);
+            return Ok(out);
+        }
         let (checks, statuses) = tokio::join!(
             self.check_runs(&owner, &repo, sha),
             self.combined_status(&owner, &repo, sha)

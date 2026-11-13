@@ -453,13 +453,24 @@ impl GithubClient {
             .send_json::<RawPull, _>(
                 Method::POST,
                 &["repos", o, r, "pulls"],
-                &json!({
-                    "title": create.title.trim(),
-                    "head": create.source_branch,
-                    "base": create.target_branch,
-                    "body": create.body,
-                    "draft": create.draft,
-                }),
+                &if self.is_gitea() {
+                    // No `draft` field there: a draft is a title that starts with "WIP:".
+                    let title = create.title.trim();
+                    json!({
+                        "title": if create.draft { format!("WIP: {title}") } else { title.to_owned() },
+                        "head": create.source_branch,
+                        "base": create.target_branch,
+                        "body": create.body,
+                    })
+                } else {
+                    json!({
+                        "title": create.title.trim(),
+                        "head": create.source_branch,
+                        "base": create.target_branch,
+                        "body": create.body,
+                        "draft": create.draft,
+                    })
+                },
             )
             .await?
             .body;
@@ -507,6 +518,9 @@ impl GithubClient {
         let (o, r) = repo_segments(full_name)?;
         let n = number.to_string();
         let pull = self.raw_pull(full_name, number).await?;
+        if self.is_gitea() {
+            return self.gitea_merge(full_name, number, request, pull).await;
+        }
         let mut payload = json!({
             "merge_method": match request.method {
                 PullMergeMethod::Merge => "merge",
@@ -547,8 +561,71 @@ impl GithubClient {
         Ok(result)
     }
 
+    /// Gitea / Forgejo: `POST …/pulls/{n}/merge` with `Do` (GitHub: `PUT` with
+    /// `merge_method`), an empty answer, and the merge commit read from the pull afterwards.
+    async fn gitea_merge(
+        &self,
+        full_name: &str,
+        number: u64,
+        request: &PullMergeRequest,
+        pull: RawPull,
+    ) -> Result<PullMerged, ProviderError> {
+        let (o, r) = repo_segments(full_name)?;
+        let n = number.to_string();
+        let mut payload = json!({
+            "Do": match request.method {
+                PullMergeMethod::Merge => "merge",
+                PullMergeMethod::Squash => "squash",
+                PullMergeMethod::Rebase => "rebase",
+            }
+        });
+        if let Some(sha) = request
+            .expected_head_sha
+            .as_deref()
+            .filter(|s| !s.is_empty())
+        {
+            payload["head_commit_id"] = json!(sha);
+        }
+        self.api()
+            .send_json::<serde_json::Value, _>(
+                Method::POST,
+                &["repos", o, r, "pulls", &n, "merge"],
+                &payload,
+            )
+            .await?;
+        let sha = self
+            .raw_pull(full_name, number)
+            .await
+            .ok()
+            .and_then(|p| p.merge_commit_sha)
+            .filter(|s| !s.is_empty());
+        let mut result = PullMerged {
+            sha,
+            branch_deleted: false,
+            delete_error: None,
+        };
+        if request.delete_source_branch {
+            match pull.head.repo.as_ref().map(|r| r.full_name.as_str()) {
+                Some(head_repo) => match self.delete_branch(head_repo, &pull.head.r#ref).await {
+                    Ok(()) => result.branch_deleted = true,
+                    Err(e) => result.delete_error = Some(e.to_string()),
+                },
+                None => result.delete_error = Some("the source repository was deleted".into()),
+            }
+        }
+        Ok(result)
+    }
+
     async fn delete_branch(&self, full_name: &str, branch: &str) -> Result<(), ProviderError> {
         let (o, r) = repo_segments(full_name)?;
+        if self.is_gitea() {
+            // `DELETE /repos/{owner}/{repo}/branches/{branch}`: the name is one segment.
+            let url = self.api().url(&["repos", o, r, "branches", branch], &[]);
+            self.api()
+                .send::<serde_json::Value, ()>(Method::DELETE, url, None)
+                .await?;
+            return Ok(());
+        }
         let mut segs = vec!["repos", o, r, "git", "refs", "heads"];
         segs.extend(branch.split('/').filter(|s| !s.is_empty()));
         let url = self.api().url(&segs, &[]);
@@ -639,12 +716,15 @@ struct RawPull {
     #[serde(default)]
     draft: bool,
     merged_at: Option<String>,
+    /// Read after a merge on Gitea / Forgejo (their merge call answers nothing).
+    #[serde(default)]
+    merge_commit_sha: Option<String>,
     user: Option<RawUser>,
     head: RawRef,
     base: RawRef,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     labels: Vec<RawLabel>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     assignees: Vec<RawUser>,
     comments: Option<u32>,
     review_comments: Option<u32>,
@@ -789,7 +869,7 @@ struct RawIssue {
     #[serde(default)]
     draft: bool,
     user: Option<RawUser>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     labels: Vec<RawLabel>,
     comments: Option<u32>,
     created_at: Option<String>,
@@ -846,9 +926,9 @@ struct RawTeam {
 
 #[derive(Deserialize)]
 struct RawRequested {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     users: Vec<RawUser>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     teams: Vec<RawTeam>,
 }
 

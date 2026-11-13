@@ -5,6 +5,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- A push refused because a file is over the server's size limit no longer offers a plain Retry (which only waited for the same long upload and failed again). One click on **Move big files to LFS and push again** finds the big files in the commits not on the server yet, moves them to Git LFS and pushes again; **Take big files out of the commits** keeps them on your computer instead (and in `.gitignore`), for files too big even for LFS. Uncommitted changes are put aside and back by themselves, a backup is made first and the result has an Undo. The limit the server reported (GitHub, GitLab, Bitbucket, Azure DevOps) is remembered, so the next push is checked against it before uploading anything. The transfer queue offers the same fix.
+- **Publish**: a button next to Description asks the AI for one sentence about the project, from its name, README, manifest and file types (never its code).
+- **Ask AI** can now act: the answer ends with buttons for the fixes it recommends (the error's own fix, retry, fetch, pull, push, stash, LFS settings, accounts), so the problem is solved in the app instead of following steps by hand.
+- **Stage all** of many files (or very big ones) shows a progress bar with the file being processed and a Cancel, instead of a frozen panel.
+- While Publish pushes, **Run in background** closes the window and the push goes on in the transfer queue, so you can work in another project. When a push finishes in another tab, the status bar shows "Push done · project" and the message names the project with a button to open it.
+
+- **All repositories**: with more than one repository open, the new toolbar button (also in the command palette) lists every open repository with its branch, the commits to pull or push, uncommitted changes and stashes. **Fetch all** updates them in one go; **Pull all** fast-forwards only the repositories that are behind and have nothing uncommitted, and leaves the others alone.
+- **System notifications**: when the window is in the background, what finishes or fails (a push, an error, what a fetch brought) is also shown as a notification of the operating system. Turn it off in Settings.
+- **AI review**: a button next to the commit summary asks the AI to look for mistakes in the changes you are about to commit (bugs, leftover debug code, secrets, files committed by accident). It only runs when you click it, says what is sent and asks first, and never runs by itself before a commit or a push.
+- The diff view highlights the words that changed inside an edited line, so a renamed variable or a changed number stands out.
+- **Gitea / Forgejo** accounts (Codeberg or your own server), signed in with an access token. Experimental: push, pull and clone run as the account; pull requests, issues and CI use the parts of the API that follow GitHub's and may not all work.
+- **Bitbucket** and **Azure DevOps** accounts, signed in with an access token (Bitbucket: an API token and the email of your Atlassian account). Push, pull and clone run as the account, like for GitHub and GitLab; pull requests, issues and CI of these servers are not shown in the app yet.
+- **Find the commit that broke it** (bisect): right-click a commit that still worked, then answer "It works" / "It is broken" for the commits the app checks out, until the first broken commit is named.
+- **Find a lost commit** (reflog): everywhere HEAD has been, with a filter; create a branch on a commit to get it back after a deleted branch or a reset.
+- **Patch files**: save a commit or your uncommitted changes as a patch, and apply a patch file as changes or as commits after seeing what it contains.
+- **Sparse checkout**: keep only the folders you work on in a very big repository.
+- **Repository statistics**: commits, authors, commits per week over the last year, most active authors and most changed files.
+- The left panel lists the branches you worked on recently, also those switched to in a terminal (read from git's reflog).
+- After a background fetch, a short message says what is new (commits to pull, new or deleted branches), with a Pull button.
+- **Group tabs by account** (tab menu, command palette) puts the tabs of the same account next to each other.
+- An **Ask AI** chat opened again after a restart still offers its everyday action buttons (fetch, pull, push, stash, LFS, accounts) when its repository is open.
+
+### Changed
+
+- The file size limits learned from servers are kept in the app's database (and so in a full backup) instead of the webview's storage.
+
+### Fixed
+
+- Publishing a repository skipped the check before pushing: a file over the server's limit was uploaded for minutes before being refused. Publish now runs it like any other push.
+
 ## [1.2.1] - 2026-11-04
 
 ### Added

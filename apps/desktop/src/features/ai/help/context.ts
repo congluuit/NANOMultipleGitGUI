@@ -6,6 +6,7 @@ import type { RepoAccountContext, RepoRefs } from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
 import type { Notice } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
+import { actionsContext, helpActions } from "./actions";
 import type { HelpRequest } from "./store";
 
 /** `https://user:secret@host` and long token-looking words never leave the app. */
@@ -29,8 +30,7 @@ export function helpRequest(notice: Notice): HelpRequest {
   const lines: string[] = [`Error: ${notice.message}`];
   if (notice.reason) lines.push(`Error kind (app): ${notice.reason}`);
   if (notice.hint) lines.push(`App's explanation: ${notice.hint}`);
-  const offered = (notice.actions ?? []).map((a) => a.label).filter((l) => l !== askAiLabel());
-  if (offered.length) lines.push(`Buttons the app offers: ${offered.join(" | ")}`);
+  const actions = helpActions(notice, [askAiLabel()]);
   if (repoId !== undefined) {
     const refs = queryClient.getQueryData<RepoRefs>(repoKeys.refs(repoId));
     const ctx = queryClient.getQueryData<RepoAccountContext>(accountKeys.repoContext(repoId));
@@ -58,11 +58,14 @@ export function helpRequest(notice: Notice): HelpRequest {
     }
   }
   lines.push(`App language: ${i18n.language}`, `System: ${navigator.platform || "?"}`);
+  if (actions.length) lines.push("", actionsContext(actions));
   if (notice.detail) lines.push("", "Git output:", cut(notice.detail.trim(), 6000));
   return {
     title: notice.message,
     context: scrub(lines.join("\n")),
     repoName: tab?.name ?? null,
+    repoPath: tab?.path ?? "",
+    actions,
   };
 }
 

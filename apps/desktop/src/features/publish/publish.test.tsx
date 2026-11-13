@@ -23,11 +23,13 @@ import {
   validRepoName,
 } from "./model";
 import { usePublishDialog } from "./store";
+import { useGuardDialogs } from "@/features/guards/store";
 
 const ipc = vi.hoisted(() => ({
   publishCreateRepo: vi.fn(),
   publishAddRemote: vi.fn(),
   remotePush: vi.fn(),
+  pushGuard: vi.fn(),
 }));
 vi.mock("@/ipc", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/ipc")>();
@@ -87,6 +89,8 @@ beforeEach(() => {
   localStorage.clear();
   usePublishDialog.setState({ preset: null });
   for (const f of Object.values(ipc)) f.mockReset();
+  // Push Guard finds nothing to say unless a test sets it up.
+  ipc.pushGuard.mockResolvedValue({ status: "done", value: { findings: [] } });
 });
 
 describe("publish model", () => {
@@ -191,6 +195,31 @@ describe("publish flow", () => {
     );
     expect(step.status).toBe("createFailed");
     expect(ipc.publishAddRemote).not.toHaveBeenCalled();
+  });
+
+  it("runs Push Guard first and stops the push when the user cancels there", async () => {
+    ipc.publishCreateRepo.mockResolvedValue({ status: "done", value: created });
+    ipc.publishAddRemote.mockResolvedValue({
+      remote: "origin",
+      url: created.cloneHttps,
+      added: true,
+      renamedTo: null,
+    });
+    ipc.pushGuard.mockResolvedValue({
+      status: "done",
+      value: { findings: [{ kind: "heavyBlobs", block: 1, warn: 0 }] },
+    });
+    const step = publishNewRepo(
+      { repoId: 1, branch: "main", remoteName: "origin", accountId: "acc" },
+      { name: "app" },
+      "https",
+      () => {},
+    );
+    await waitFor(() => expect(useGuardDialogs.getState().push).not.toBeNull());
+    expect(ipc.pushGuard).toHaveBeenCalledWith(1, "origin", "main", null);
+    useGuardDialogs.getState().settlePush("cancel");
+    await expect(step).resolves.toMatchObject({ status: "pushSkipped" });
+    expect(ipc.remotePush).not.toHaveBeenCalled();
   });
 
   it("links a pasted URL and reports a failed push separately", async () => {

@@ -34,6 +34,8 @@ import {
   countdown,
   findProvider,
   instanceName,
+  fixedBaseUrl,
+  isGitOnly,
   isSelfHosted,
   methodsFor,
   normalizeBaseUrl,
@@ -90,6 +92,9 @@ export function AddAccountWizard({
   const [token, setToken] = useState("");
   const [tokenError, setTokenError] = useState<TokenProblem | null>(null);
   const [label, setLabel] = useState("");
+  // Bitbucket checks a token together with the email of the Atlassian account.
+  const [login, setLogin] = useState("");
+  const [loginError, setLoginError] = useState(false);
   const [result, setResult] = useState<Account | null>(null);
   const config = useAuthConfig(provider?.id ?? null);
 
@@ -137,7 +142,7 @@ export function AddAccountWizard({
         p = await commands.providerSave({
           kind,
           name: instanceName(kind, baseUrl),
-          baseUrl: normalizeBaseUrl(baseUrl),
+          baseUrl: fixedBaseUrl(kind) ?? normalizeBaseUrl(baseUrl),
         });
         refreshAccounts();
       } catch (e) {
@@ -227,13 +232,24 @@ export function AddAccountWizard({
     if (!provider) return;
     const problem = validateToken(token);
     setTokenError(problem);
-    if (problem) return;
+    const needsLogin = provider.kind === "bitbucket";
+    const noLogin = needsLogin && !login.trim();
+    setLoginError(noLogin);
+    if (problem || noLogin) return;
     setBusy(true);
     setError(null);
     try {
-      const account = reauth
-        ? await commands.authUpdateToken(reauth.id, token)
-        : await commands.authAddPat(provider.id, token, label.trim() || null);
+      const account = isGitOnly(provider.kind)
+        ? // Also when signing in again: the same account is updated (same server and user).
+          await commands.authAddGitToken(
+            provider.id,
+            login.trim() || null,
+            token,
+            label.trim() || null,
+          )
+        : reauth
+          ? await commands.authUpdateToken(reauth.id, token)
+          : await commands.authAddPat(provider.id, token, label.trim() || null);
       setToken("");
       finish(account);
     } catch (e) {
@@ -325,7 +341,11 @@ export function AddAccountWizard({
                   setUrlError(null);
                 }}
                 placeholder={
-                  kind === "gitlabSelfHosted" ? "https://gitlab.acme.vn" : "https://github.acme.vn"
+                  kind === "gitea"
+                    ? "https://codeberg.org"
+                    : kind === "gitlabSelfHosted"
+                      ? "https://gitlab.acme.vn"
+                      : "https://github.acme.vn"
                 }
                 aria-invalid={urlError !== null}
                 autoFocus
@@ -486,7 +506,30 @@ export function AddAccountWizard({
             {(provider.kind === "github" || provider.kind === "githubEnterprise") && (
               <p className="mt-1 text-[11px] text-muted-foreground">{t("auth.pat.fineGrained")}</p>
             )}
+            {isGitOnly(provider.kind) && (
+              <p className="mt-1 text-[11px] text-muted-foreground">{t("auth.pat.gitOnly")}</p>
+            )}
           </Callout>
+          {provider.kind === "bitbucket" && (
+            <Field
+              label={t("auth.pat.login")}
+              hint={t("auth.pat.loginHint")}
+              error={loginError && t("auth.pat.loginRequired")}
+            >
+              <TextInput
+                type="email"
+                autoComplete="off"
+                spellCheck={false}
+                value={login}
+                onChange={(e) => {
+                  setLogin(e.target.value);
+                  setLoginError(false);
+                }}
+                aria-invalid={loginError}
+                autoFocus
+              />
+            </Field>
+          )}
           <Field
             label={t("auth.pat.token")}
             error={tokenError && t(`auth.pat.error.${tokenError}`)}
@@ -501,7 +544,7 @@ export function AddAccountWizard({
                 setTokenError(null);
               }}
               aria-invalid={tokenError !== null}
-              autoFocus
+              autoFocus={provider.kind !== "bitbucket"}
             />
           </Field>
           {!reauth && (

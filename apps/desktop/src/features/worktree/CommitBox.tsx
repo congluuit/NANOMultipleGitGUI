@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { CommitAs, asAccountOf, settleOneShot, takeOneShot } from "@/features/accounts/switcher";
 import { AiSuggestButton } from "@/features/ai/AiSuggestButton";
+import { AiReviewButton } from "@/features/ai/review/AiReviewButton";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
 import { useIssueRefSuggest } from "@/features/issues/IssueRefSuggest";
@@ -155,6 +156,7 @@ export function CommitBox({
           {summarySuggest.popup}
         </div>
         <AiSuggestButton repoId={repoId} />
+        <AiReviewButton repoId={repoId} />
       </div>
       <div className="relative">
         <textarea

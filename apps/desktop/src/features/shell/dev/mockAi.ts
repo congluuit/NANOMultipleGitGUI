@@ -33,12 +33,18 @@ export function aiHandlers(): Record<string, Handler> {
           const now = Date.now();
           const start = a.start as { title: string; context: string; repoName: string | null };
           const old = chats.find((c) => c.id === a.chatId);
+          const context = old?.context ?? start.context;
+          // Like a real model: the buttons the app offered, by id, on the last line.
+          const ids = ["fix1", "fetch"].filter((id) => context.includes(`[${id}]`));
+          const answer = ids.length
+            ? [ANSWER, `ACTIONS: ${ids.join(", ")}`].join(String.fromCharCode(10))
+            : ANSWER;
           const messages: AiChatMessage[] = [
             ...(old?.messages ?? []),
             { role: "user", content: a.message as string, at: now },
             {
               role: "assistant",
-              content: old ? "Đúng vậy, cứ làm theo các bước trên." : ANSWER,
+              content: old ? "Đúng vậy, cứ làm theo các bước trên." : answer,
               at: now,
             },
           ];
@@ -58,6 +64,13 @@ export function aiHandlers(): Record<string, Handler> {
           chats = [chat, ...chats.filter((c) => c.id !== chat.id)];
           resolve(chat);
         }, 1200),
+      ),
+    ai_describe_repo: () =>
+      new Promise((resolve) =>
+        setTimeout(
+          () => resolve("Backend API quản lý đăng nhập và phiên làm việc cho ứng dụng của Acme"),
+          900,
+        ),
       ),
     ai_chat_delete: (a) => (chats = chats.filter((c) => c.id !== a.id)),
     ai_chat_delete_all: () => (chats = []),

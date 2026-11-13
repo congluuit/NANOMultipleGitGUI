@@ -147,6 +147,14 @@ pub fn failure_kind(stderr: &str) -> Option<FailureKind> {
     } else if any(&[
         "gh001: large files detected",
         "exceeds github's file size limit",
+        // GitLab: "You are attempting to check in one or more blobs which exceed the 100.0MiB
+        // limit" (push rules / instance limit), and git's own receive.maxInputSize.
+        "blobs which exceed the",
+        "pack exceeds maximum allowed size",
+        // Bitbucket, Azure DevOps.
+        "includes at least one file that is",
+        "exceed the maximum file size",
+        "exceeds the maximum file size",
     ]) {
         FileTooLarge
     } else if any(&[
@@ -841,6 +849,14 @@ mod tests {
             ),
             (
                 "remote: error: GH001: Large files detected. You may want to try Git Large File Storage\nremote: error: File big.bin is 120.00 MB; this exceeds GitHub's file size limit of 100.00 MB\n ! [remote rejected] main -> main (pre-receive hook declined)",
+                FailureKind::FileTooLarge,
+            ),
+            (
+                "remote: GitLab: You are attempting to check in one or more blobs which exceed the 100.0MiB limit:\nremote: - 4f7a1c (150.0 MiB)\n ! [remote rejected] main -> main (pre-receive hook declined)",
+                FailureKind::FileTooLarge,
+            ),
+            (
+                "remote: fatal: pack exceeds maximum allowed size\n ! [remote rejected] main -> main (unpacker error)",
                 FailureKind::FileTooLarge,
             ),
             (

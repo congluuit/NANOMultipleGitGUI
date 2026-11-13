@@ -16,7 +16,10 @@ import { expiryText, healthBadges } from "./health";
 import {
   countdown,
   findProvider,
+  fixedBaseUrl,
   instanceName,
+  isGitOnly,
+  isSelfHosted,
   methodsFor,
   normalizeBaseUrl,
   validateBaseUrl,
@@ -238,6 +241,31 @@ describe("wizard helpers", () => {
   it("offers PKCE for GitLab only, PAT everywhere", () => {
     expect(methodsFor("github")).toEqual(["device", "pat"]);
     expect(methodsFor("gitlabSelfHosted")).toEqual(["pkce", "device", "pat"]);
+  });
+
+  it("signs in to Gitea, Bitbucket and Azure DevOps with a token only", () => {
+    expect(methodsFor("gitea")).toEqual(["pat"]);
+    expect(methodsFor("bitbucket")).toEqual(["pat"]);
+    expect(methodsFor("azureDevops")).toEqual(["pat"]);
+    expect(isSelfHosted("gitea")).toBe(true);
+    // Cloud services with one address: no URL to type, the row is found by that address.
+    expect(isSelfHosted("bitbucket")).toBe(false);
+    expect(fixedBaseUrl("bitbucket")).toBe("https://bitbucket.org");
+    expect(fixedBaseUrl("azureDevops")).toBe("https://dev.azure.com");
+    expect(fixedBaseUrl("github")).toBeNull();
+    expect(isGitOnly("azureDevops")).toBe(true);
+    expect(isGitOnly("gitea")).toBe(false);
+    const bb = provider({
+      id: "prv_bb",
+      kind: "bitbucket",
+      baseUrl: "https://bitbucket.org",
+      builtin: false,
+    });
+    expect(findProvider([provider({}), bb], "bitbucket", "")?.id).toBe("prv_bb");
+    expect(findProvider([provider({})], "bitbucket", "")).toBeNull();
+    expect(instanceName("bitbucket", "")).toBe("Bitbucket");
+    expect(instanceName("azureDevops", "")).toBe("Azure DevOps");
+    expect(instanceName("gitea", "codeberg.org")).toBe("Gitea codeberg.org");
   });
 
   it("checks tokens and formats the countdown", () => {

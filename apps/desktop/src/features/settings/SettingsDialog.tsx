@@ -49,6 +49,8 @@ export function SettingsDialog() {
   const setCiEnabled = useSettings((s) => s.setCiEnabled);
   const authorAvatars = useSettings((s) => s.authorAvatars);
   const setAuthorAvatars = useSettings((s) => s.setAuthorAvatars);
+  const osNotifications = useSettings((s) => s.osNotifications);
+  const setOsNotifications = useSettings((s) => s.setOsNotifications);
   const uiScale = useSettings((s) => s.uiScale);
   const setUiScale = useSettings((s) => s.setUiScale);
   const confirmBranchSwitch = useSettings((s) => s.confirmBranchSwitch);
@@ -122,6 +124,13 @@ export function SettingsDialog() {
                 hint={t("settings.authorAvatarsHint")}
                 checked={authorAvatars}
                 onChange={setAuthorAvatars}
+              />
+              <SettingSwitch
+                id="settings-os-notifications"
+                label={t("settings.osNotifications")}
+                hint={t("settings.osNotificationsHint")}
+                checked={osNotifications}
+                onChange={setOsNotifications}
               />
               <SettingSwitch
                 id="settings-confirm-switch"

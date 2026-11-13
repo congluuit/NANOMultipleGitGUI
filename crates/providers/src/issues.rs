@@ -313,9 +313,9 @@ struct GhIssue {
     #[serde(default)]
     state: String,
     user: Option<GhUser>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     labels: Vec<GhLabel>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     assignees: Vec<GhUser>,
     #[serde(default)]
     comments: u32,
@@ -713,9 +713,9 @@ struct GlIssue {
     #[serde(default)]
     state: String,
     author: Option<GlUser>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     labels: Vec<GlLabel>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     assignees: Vec<GlUser>,
     #[serde(default)]
     user_notes_count: u32,

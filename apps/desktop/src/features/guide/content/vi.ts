@@ -136,6 +136,33 @@ export const guideVi: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "all",
+        title: "Xem mọi repo cùng lúc",
+        blocks: [
+          {
+            kind: "p",
+            text: "Khi mở nhiều hơn một repo, nút **Tất cả repo** trên thanh công cụ (hoặc bảng lệnh → **Tất cả repo…**) liệt kê mọi repo đang mở cùng nhánh, số commit cần pull hoặc push, thay đổi chưa commit và stash. Bấm vào một dòng để chuyển tới repo đó.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Fetch tất cả** hỏi từng server xem có gì mới, mỗi lượt ba repo.",
+              "**Pull tất cả** chỉ đụng tới repo đang chậm hơn server và không có thay đổi chưa commit, và chỉ fast-forward. Trường hợp nào cần bạn quyết định thì được để nguyên.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "sparse",
+        title: "Chỉ giữ một số thư mục (sparse checkout)",
+        blocks: [
+          {
+            kind: "p",
+            text: "Với repo rất lớn, bạn có thể chỉ giữ những thư mục mình làm việc: bảng lệnh → **Sparse checkout (chỉ giữ một số thư mục)…**, tích các thư mục rồi bấm **Giữ**. Các thư mục khác rời khỏi ổ đĩa nhưng vẫn còn trong repo, bấm **Tắt** để lấy lại mọi file.",
+          },
+        ],
+      },
     ],
   },
   {
@@ -152,7 +179,7 @@ export const guideVi: GuideTopic[] = [
             kind: "steps",
             items: [
               "Mở **Cài đặt** (bánh răng trên thanh công cụ) → **Quản lý tài khoản…** → tab **Tài khoản** → **Thêm tài khoản**.",
-              "Chọn tài khoản nằm ở đâu: GitHub.com, GitHub Enterprise, GitLab.com hoặc GitLab tự host.",
+              "Chọn tài khoản nằm ở đâu: GitHub.com, GitHub Enterprise, GitLab.com hoặc GitLab tự host. Gitea / Forgejo, Bitbucket và Azure DevOps đăng nhập bằng access token; với Bitbucket và Azure DevOps, app dùng tài khoản cho push, pull và clone, chưa hiển thị pull request hay issue.",
               "Chọn cách đăng nhập: gõ mã thiết bị ngắn trên trang web, đăng nhập qua trình duyệt, hoặc dán token cá nhân (PAT).",
             ],
           },
@@ -327,6 +354,34 @@ export const guideVi: GuideTopic[] = [
           {
             kind: "warn",
             text: "Phần thay đổi đã stage sẽ được gửi tới dịch vụ AI bạn chọn. Đừng dùng dịch vụ trên mạng cho code bạn không được phép chia sẻ; model chạy trên máy giữ mọi thứ trong máy bạn.",
+          },
+        ],
+      },
+      {
+        id: "ai-review",
+        title: "Nhờ AI xem lại thay đổi",
+        blocks: [
+          {
+            kind: "p",
+            text: "Khi đã bật AI, nút kính lúp cạnh ô tóm tắt (hoặc bảng lệnh → **AI xem lại thay đổi của tôi…**) nhờ AI tìm lỗi trong phần bạn sắp commit: bug, code debug còn sót, mật khẩu, file commit nhầm.",
+          },
+          {
+            kind: "warn",
+            text: "AI chỉ xem lại khi bạn yêu cầu, và lần đầu sẽ hỏi trước khi gửi bất cứ thứ gì. Nó không bao giờ tự chạy trước khi commit hay push và không chặn hai việc đó. AI có thể sai: hãy coi nó là một người xem lại thêm.",
+          },
+        ],
+      },
+      {
+        id: "patch",
+        title: "File patch",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "Chuột phải vào commit → **Lưu thành patch…** để ghi commit ra một file gửi cho người khác.",
+              "Bảng lệnh → **Lưu thay đổi chưa commit thành patch…** làm tương tự cho phần bạn chưa commit.",
+              "Bảng lệnh → **Áp file patch…** cho xem nội dung file trước, rồi áp thành thay đổi (bạn tự commit) hoặc thành các commit gốc.",
+            ],
           },
         ],
       },
@@ -588,6 +643,40 @@ export const guideVi: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "reflog",
+        title: "Tìm lại commit đã mất",
+        blocks: [
+          {
+            kind: "p",
+            text: "Lỡ xóa nhánh hoặc reset quá tay? Bảng lệnh → **Tìm lại commit đã mất (reflog)…** liệt kê mọi nơi HEAD từng đi qua. Tìm commit đó rồi bấm **Tạo nhánh** để tạo nhánh tại đó, công việc của bạn quay lại.",
+          },
+        ],
+      },
+      {
+        id: "bisect",
+        title: "Tìm commit gây lỗi",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Chuột phải vào một commit cũ còn chạy tốt → **Tìm commit gây lỗi → Ở đây vẫn chạy tốt**.",
+              "App checkout một commit ở giữa. Chạy thử project rồi bấm **Chạy tốt** hoặc **Bị lỗi** trên thanh màu xanh (**Không thử được** khi commit đó không build được).",
+              "Sau vài lượt, thanh này cho biết commit đầu tiên gây lỗi. Bấm **Kết thúc** để quay về vị trí ban đầu.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "stats",
+        title: "Thống kê repo",
+        blocks: [
+          {
+            kind: "p",
+            text: "Bảng lệnh → **Thống kê repo…** cho biết số commit và tác giả, số commit mỗi tuần trong một năm gần đây, tác giả hoạt động nhiều nhất và các file thay đổi nhiều nhất.",
+          },
+        ],
+      },
     ],
   },
   {
@@ -675,7 +764,7 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "tip",
-            text: "Lỡ commit file lớn nhưng chưa push? Push Guard có **Chuyển sang LFS** cho các commit chưa push.",
+            text: "Lỡ commit file lớn nhưng chưa push? Push Guard có **Chuyển sang LFS** cho các commit chưa push. Nếu server đã từ chối vì file quá lớn, đừng bấm thử lại: bấm **Chuyển file nặng sang LFS rồi push lại** trên thông báo lỗi, app tự tìm file, chuyển và push lại. File quá lớn cả với LFS thì chọn **Bỏ file nặng khỏi commit**, file vẫn nằm trên máy.",
           },
         ],
       },

@@ -4,6 +4,7 @@
 //! helpers keep working); every command carries an [`AccountContext`] so it runs as the account
 //! bound to the repository.
 
+pub mod bisect;
 pub mod blame;
 pub mod blob;
 pub mod branch;
@@ -22,14 +23,18 @@ pub mod index;
 mod job;
 pub mod merge;
 pub mod ops;
+pub mod patch;
 pub mod progress;
 pub mod rebase;
+pub mod reflog;
 pub mod refs;
 pub mod remote;
 pub mod repo;
 pub mod runner;
 pub mod signature;
+pub mod sparse;
 pub mod stash;
+pub mod stats;
 pub mod status;
 pub mod submodule;
 pub mod undo;

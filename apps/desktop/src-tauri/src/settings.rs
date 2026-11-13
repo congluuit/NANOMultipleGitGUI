@@ -33,6 +33,9 @@ pub struct AppSettings {
     pub ci_enabled: bool,
     /// Load author avatars for the commit graph from GitHub / Gravatar.
     pub author_avatars: bool,
+    /// Tell the operating system (toast / notification centre) when something finishes or
+    /// fails while the window is in the background.
+    pub os_notifications: bool,
 }
 
 impl Default for AppSettings {
@@ -42,6 +45,7 @@ impl Default for AppSettings {
             language: None,
             ci_enabled: false,
             author_avatars: true,
+            os_notifications: true,
         }
     }
 }
@@ -62,12 +66,16 @@ pub struct SettingsPatch {
     #[serde(default)]
     #[specta(optional)]
     pub author_avatars: Option<bool>,
+    #[serde(default)]
+    #[specta(optional)]
+    pub os_notifications: Option<bool>,
 }
 
 const KEY_THEME: &str = "theme";
 const KEY_LANGUAGE: &str = "language";
 const KEY_CI_ENABLED: &str = "ciEnabled";
 const KEY_AUTHOR_AVATARS: &str = "authorAvatars";
+const KEY_OS_NOTIFICATIONS: &str = "osNotifications";
 
 pub fn load(db: &Storage) -> AppResult<AppSettings> {
     let defaults = AppSettings::default();
@@ -80,6 +88,9 @@ pub fn load(db: &Storage) -> AppResult<AppSettings> {
         author_avatars: db
             .get_setting(KEY_AUTHOR_AVATARS)?
             .unwrap_or(defaults.author_avatars),
+        os_notifications: db
+            .get_setting(KEY_OS_NOTIFICATIONS)?
+            .unwrap_or(defaults.os_notifications),
     })
 }
 
@@ -95,6 +106,9 @@ pub fn apply(db: &Storage, patch: SettingsPatch) -> AppResult<AppSettings> {
     }
     if let Some(on) = patch.author_avatars {
         db.set_setting(KEY_AUTHOR_AVATARS, &on)?;
+    }
+    if let Some(on) = patch.os_notifications {
+        db.set_setting(KEY_OS_NOTIFICATIONS, &on)?;
     }
     load(db)
 }

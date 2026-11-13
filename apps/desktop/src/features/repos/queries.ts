@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { isTauri } from "@tauri-apps/api/core";
 import { commands, events } from "@/ipc";
 import { queryClient } from "@/lib/queryClient";
+import { isQuiet } from "@/stores/quietRepos";
 
 export const repoKeys = {
   refs: (id: number) => ["refs", id] as const,
@@ -49,8 +50,9 @@ export function useRepoChangeEvents() {
           void queryClient.invalidateQueries({ queryKey: repoKeys.refs(id) });
           void queryClient.invalidateQueries({ queryKey: repoKeys.graph(id) });
         }
-        // Status, diffs and editor contents (keys from features/worktree/queries.ts).
-        if (payload.refs || payload.index || payload.worktree) {
+        // Status, diffs and editor contents (keys from features/worktree/queries.ts). Not
+        // while a batch runs there (it refreshes once at the end).
+        if ((payload.refs || payload.index || payload.worktree) && !isQuiet(id)) {
           void queryClient.invalidateQueries({ queryKey: ["status", id] });
           void queryClient.invalidateQueries({ queryKey: ["diff", id] });
           void queryClient.invalidateQueries({ queryKey: ["contents", id] });

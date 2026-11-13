@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import type { LfsFailure, LfsTransferProgress, TransferKind, TransferProgress } from "@/ipc";
+import type {
+  FailureKind,
+  LfsFailure,
+  LfsTransferProgress,
+  TransferKind,
+  TransferProgress,
+} from "@/ipc";
 import { progressText } from "@/features/remote/plan";
 
 /** Kinds of transfers shown in the queue: git fetch/pull/push and LFS up/downloads. */
@@ -59,6 +65,39 @@ export function setRetry(opId: string, retry: (() => void) | null) {
 
 export const retryOf = (opId: string) => retries.get(opId) ?? null;
 
+/** A better way out than Retry for a failed item ("move the big files to LFS and push"). */
+export interface QueueFix {
+  label: string;
+  run: () => void;
+}
+
+const fixes = new Map<string, QueueFix>();
+
+export function setFix(opId: string, fix: QueueFix | null) {
+  if (fix) fixes.set(opId, fix);
+  else fixes.delete(opId);
+}
+
+export const fixOf = (opId: string) => fixes.get(opId) ?? null;
+
+/**
+ * Turns a refused transfer into a fix when retrying cannot help (registered by
+ * `features/recovery`, so this store does not depend on it).
+ */
+type FailureFixer = (
+  repoId: number,
+  reason: FailureKind,
+  message: string,
+  retry: () => void,
+) => QueueFix | null;
+let failureFixer: FailureFixer | null = null;
+
+export function setFailureFixer(next: FailureFixer | null) {
+  failureFixer = next;
+}
+
+export const fixForFailure: FailureFixer = (...args) => failureFixer?.(...args) ?? null;
+
 function trimFinished(items: Record<string, QueueItem>, order: string[]) {
   let finished = 0;
   const keep: string[] = [];
@@ -71,6 +110,7 @@ function trimFinished(items: Record<string, QueueItem>, order: string[]) {
       if (finished > MAX_FINISHED) {
         delete next[id];
         retries.delete(id);
+        fixes.delete(id);
         continue;
       }
     }
@@ -152,7 +192,10 @@ export const useTransferQueue = create<QueueState>()((set) => ({
         cancelling: false,
         finishedAt: Date.now(),
       };
-      if (status !== "failed" && status !== "cancelled") retries.delete(opId);
+      if (status !== "failed" && status !== "cancelled") {
+        retries.delete(opId);
+        fixes.delete(opId);
+      }
       return trimFinished({ ...s.items, [opId]: done }, s.order);
     }),
   dismiss: (opId) =>
@@ -161,6 +204,7 @@ export const useTransferQueue = create<QueueState>()((set) => ({
       const items = { ...s.items };
       delete items[opId];
       retries.delete(opId);
+      fixes.delete(opId);
       return { items, order: s.order.filter((id) => id !== opId) };
     }),
   clearFinished: () =>
@@ -169,7 +213,10 @@ export const useTransferQueue = create<QueueState>()((set) => ({
       for (const id of s.order) {
         const item = s.items[id];
         if (item?.status === "running") items[id] = item;
-        else retries.delete(id);
+        else {
+          retries.delete(id);
+          fixes.delete(id);
+        }
       }
       return { items, order: s.order.filter((id) => items[id]) };
     }),

@@ -8,6 +8,7 @@ import {
   errorMessage,
   type AccountSuggestion,
   type FixAuthorMode,
+  type LargeFileFix,
   type Outcome,
 } from "@/ipc";
 import { useUi } from "@/stores/ui";
@@ -40,7 +41,7 @@ async function refreshPush() {
   const push = useGuardDialogs.getState().push;
   if (!push) return;
   try {
-    const out = await commands.pushGuard(push.repoId, push.remote, push.branch);
+    const out = await commands.pushGuard(push.repoId, push.remote, push.branch, push.limitBytes);
     if (out.status === "done") useGuardDialogs.getState().updatePush({ report: out.value });
   } catch (e) {
     console.warn("push guard refresh failed", e);
@@ -62,16 +63,24 @@ async function fixAuthors(mode: FixAuthorMode) {
   setBusy(false);
 }
 
-async function migrate(paths: string[]) {
+/**
+ * "Chuyển sang LFS" / "Bỏ khỏi commit": uncommitted changes are put aside and back by the
+ * backend; says so when they had to stay in the stash, and which files `.gitignore` now keeps
+ * out.
+ */
+async function fixLargeFiles(paths: string[], mode: LargeFileFix) {
   const { push, setBusy, updatePush } = useGuardDialogs.getState();
   if (!push) return;
   setBusy(true);
   const out = await rewriteStep(() =>
-    commands.guardLfsMigrate(push.repoId, push.remote, push.branch, paths),
+    commands.guardFixLargeFiles(push.repoId, push.remote, push.branch, paths, mode),
   );
   invalidateRepo(push.repoId);
   if (out) {
-    updatePush({ rewrite: out });
+    updatePush({ rewrite: out.rewrite });
+    if (out.aside.kept) notify(i18n.t("largeFiles.stashKept"), "error");
+    else if (out.ignored.length)
+      notify(i18n.t("largeFiles.ignored", { count: out.ignored.length }));
     await refreshPush();
   }
   setBusy(false);
@@ -131,7 +140,8 @@ export function GuardDialogsHost() {
         rewrite={push?.rewrite ?? null}
         busy={busy}
         onFixAuthors={(mode) => void fixAuthors(mode)}
-        onMigrate={(paths) => void migrate(paths)}
+        onMigrate={(paths) => void fixLargeFiles(paths, "lfs")}
+        onDrop={(paths) => void fixLargeFiles(paths, "drop")}
         onUndo={(ref) => void undo(ref)}
         onPush={() => settlePush("proceed")}
         onCancel={() => settlePush("cancel")}

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { HelpAction } from "./actions";
 
 /** What a new chat is about: built from an error notice by `helpRequest`. */
 export interface HelpRequest {
@@ -6,6 +7,10 @@ export interface HelpRequest {
   /** Exactly what is sent to the AI service (shown before asking for consent). */
   context: string;
   repoName: string | null;
+  /** Folder of that repository ("" when the error was outside one). */
+  repoPath?: string;
+  /** What the app can run for this error (offered as buttons under the answers). */
+  actions?: HelpAction[];
 }
 
 interface AiHelpState {

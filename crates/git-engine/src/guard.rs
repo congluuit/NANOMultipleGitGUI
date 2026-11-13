@@ -973,6 +973,450 @@ pub fn lfs_migrate_import(
     })
 }
 
+// ----- drop files from unpushed commits ------------------------------------------------------
+
+/// Paths accepted by [`drop_paths_unpushed`]: repository-relative, no option syntax.
+fn validate_drop_path(path: &str) -> Result<String, OpError> {
+    let p = path.trim().replace('\\', "/");
+    let p = p.trim_start_matches("./").to_owned();
+    if p.is_empty()
+        || p.starts_with('-')
+        || p.starts_with('/')
+        || p.ends_with('/')
+        || p.chars().any(char::is_control)
+        || p.split('/').any(|s| s == ".." || s == ".git")
+    {
+        return Err(rejected(format!("invalid path: {path:?}")));
+    }
+    Ok(p)
+}
+
+/// Name, e-mail and date (`<unix-ts> <tz>`) of an `author` / `committer` header line.
+fn parse_person(value: &str) -> Option<(String, String, String)> {
+    let open = value.rfind(" <")?;
+    let close = value[open..].find('>')? + open;
+    let name = value[..open].to_owned();
+    let email = value[open + 2..close].to_owned();
+    let date = value[close + 1..].trim().to_owned();
+    Some((name, email, date))
+}
+
+/// Header fields of `git cat-file commit` output needed to write the same commit again, and the
+/// raw message (bytes after the first blank line, in the commit's own encoding).
+struct CommitMeta {
+    author: (String, String, String),
+    committer: (String, String, String),
+    encoding: Option<String>,
+    message: Vec<u8>,
+}
+
+fn parse_commit_object(raw: &[u8]) -> Option<CommitMeta> {
+    let split = raw.windows(2).position(|w| w == b"\n\n");
+    let (head, message) = match split {
+        Some(i) => (&raw[..i], raw[i + 2..].to_vec()),
+        None => (raw, Vec::new()),
+    };
+    let head = String::from_utf8_lossy(head);
+    let mut author = None;
+    let mut committer = None;
+    let mut encoding = None;
+    for line in head.lines() {
+        if let Some(v) = line.strip_prefix("author ") {
+            author = parse_person(v);
+        } else if let Some(v) = line.strip_prefix("committer ") {
+            committer = parse_person(v);
+        } else if let Some(v) = line.strip_prefix("encoding ") {
+            encoding = Some(v.trim().to_owned());
+        }
+    }
+    Some(CommitMeta {
+        author: author?,
+        committer: committer?,
+        encoding,
+        message,
+    })
+}
+
+/// `--index-info` input that puts `paths` back to how `parent` has them (or removes them when
+/// the parent has no such file), NUL-terminated.
+fn restore_paths_input(
+    git: &GitRunner,
+    repo: &Path,
+    parent: Option<&str>,
+    paths: &[String],
+) -> Result<Vec<u8>, OpError> {
+    let mut kept: HashMap<String, String> = HashMap::new();
+    if let Some(parent) = parent {
+        let mut args = vec![
+            "--literal-pathspecs".to_owned(),
+            "ls-tree".to_owned(),
+            "-z".to_owned(),
+            parent.to_owned(),
+            "--".to_owned(),
+        ];
+        args.extend(paths.iter().cloned());
+        let out = git.run(repo, &none(), &args)?;
+        for entry in out.stdout.split(|b| *b == 0).filter(|e| !e.is_empty()) {
+            let entry = String::from_utf8_lossy(entry);
+            // `<mode> blob <oid>\t<path>`
+            if let Some((meta, path)) = entry.split_once('\t') {
+                let fields: Vec<&str> = meta.split_whitespace().collect();
+                if fields.len() == 3 && fields[1] == "blob" {
+                    kept.insert(path.to_owned(), format!("{} {}", fields[0], fields[2]));
+                }
+            }
+        }
+    }
+    let zero = "0".repeat(40);
+    let mut input = Vec::new();
+    for path in paths {
+        let line = match kept.get(path) {
+            Some(entry) => format!("{entry}\t{path}"),
+            None => format!("0 {zero}\t{path}"),
+        };
+        input.extend_from_slice(line.as_bytes());
+        input.push(0);
+    }
+    Ok(input)
+}
+
+/// "Bỏ khỏi commit": takes `paths` out of every unpushed commit of the checked-out `branch` —
+/// a file added there disappears from those commits, a file that was already on the server goes
+/// back to the server's version — keeping author, committer, dates and messages. The files stay
+/// on disk (untracked afterwards, see [`ignore_paths`]). For files too big even for LFS, or when
+/// the server has no LFS. Same safety rules as the other rewrites (backup ref first, unpushed
+/// commits only, clean working tree).
+pub fn drop_paths_unpushed(
+    git: &GitRunner,
+    repo: &Path,
+    range: &PushRange,
+    paths: &[String],
+) -> Result<RewriteOutcome, OpError> {
+    if paths.is_empty() {
+        return Err(rejected("no files to take out of the commits"));
+    }
+    let mut paths = paths
+        .iter()
+        .map(|p| validate_drop_path(p))
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.sort();
+    paths.dedup();
+    let old_head = ensure_rewritable_state(git, repo, &range.branch)?;
+    let local_only = local_only_set(git, repo, &range.branch_ref())?;
+    let (pending, shared) = shared_in(git, repo, &range.rev_args(), &local_only)?;
+    if pending.is_empty() {
+        return Err(OpError::rejected(
+            FailureKind::NothingToCommit,
+            "there are no unpushed commits to rewrite",
+        ));
+    }
+    if shared > 0 {
+        return Err(shared_refusal(shared));
+    }
+    // Oldest first, with parents, so every parent is rewritten before its children.
+    let mut args = vec![
+        "rev-list".to_owned(),
+        "--reverse".to_owned(),
+        "--topo-order".to_owned(),
+        "--parents".to_owned(),
+    ];
+    args.extend(range.rev_args());
+    args.push("--".into());
+    let listing = git.run_text(repo, &none(), &args)?;
+    let backup_ref = create_backup(git, repo, &old_head, &range.branch, "drop-files")?;
+
+    let index_path = {
+        let rel = git.run_text(
+            repo,
+            &none(),
+            ["rev-parse", "--git-path", "nanomgg-drop.index"],
+        )?;
+        let p = Path::new(&rel);
+        if p.is_absolute() {
+            p.to_path_buf()
+        } else {
+            repo.join(p)
+        }
+    };
+    let temp = git
+        .clone()
+        .with_env("GIT_INDEX_FILE", index_path.to_string_lossy().into_owned());
+    let result = (|| -> Result<(String, u32), OpError> {
+        let mut map: HashMap<String, String> = HashMap::new();
+        let mut changed = 0u32;
+        for line in listing.lines() {
+            let mut it = line.split_whitespace();
+            let Some(commit) = it.next() else { continue };
+            let parents: Vec<String> = it
+                .map(|p| map.get(p).cloned().unwrap_or_else(|| p.to_owned()))
+                .collect();
+            let tree = git.run_text(repo, &none(), ["rev-parse", &format!("{commit}^{{tree}}")])?;
+            temp.run(repo, &none(), ["read-tree", &tree])
+                .map_err(classify)?;
+            let input =
+                restore_paths_input(git, repo, parents.first().map(String::as_str), &paths)?;
+            temp.run_with_input(
+                repo,
+                &none(),
+                ["update-index", "-z", "--index-info"],
+                &input,
+            )
+            .map_err(classify)?;
+            let new_tree = temp.run_text(repo, &none(), ["write-tree"])?;
+            let old_parents: Vec<&str> = line.split_whitespace().skip(1).collect();
+            if new_tree == tree && parents.iter().map(String::as_str).eq(old_parents) {
+                map.insert(commit.to_owned(), commit.to_owned());
+                continue;
+            }
+            let raw = git.run(repo, &none(), ["cat-file", "commit", commit])?;
+            let meta = parse_commit_object(&raw.stdout)
+                .ok_or_else(|| rejected(format!("could not read commit {commit}")))?;
+            let w = writer(git)
+                .with_env("GIT_AUTHOR_NAME", meta.author.0.clone())
+                .with_env("GIT_AUTHOR_EMAIL", meta.author.1.clone())
+                .with_env("GIT_AUTHOR_DATE", meta.author.2.clone())
+                .with_env("GIT_COMMITTER_NAME", meta.committer.0.clone())
+                .with_env("GIT_COMMITTER_EMAIL", meta.committer.1.clone())
+                .with_env("GIT_COMMITTER_DATE", meta.committer.2.clone());
+            let mut commit_args: Vec<String> = Vec::new();
+            if let Some(enc) = &meta.encoding {
+                commit_args.extend(["-c".to_owned(), format!("i18n.commitEncoding={enc}")]);
+            }
+            commit_args.extend(["commit-tree".to_owned(), new_tree]);
+            for p in &parents {
+                commit_args.extend(["-p".to_owned(), p.clone()]);
+            }
+            let out = w
+                .run_with_input(repo, &none(), &commit_args, &meta.message)
+                .map_err(classify)?;
+            let new = String::from_utf8_lossy(&out.stdout).trim().to_owned();
+            if new.is_empty() {
+                return Err(rejected(format!("could not rewrite commit {commit}")));
+            }
+            changed += 1;
+            map.insert(commit.to_owned(), new);
+        }
+        if changed == 0 {
+            return Err(OpError::rejected(
+                FailureKind::NothingToCommit,
+                "none of the unpushed commits contains these files",
+            ));
+        }
+        map.get(&old_head)
+            .cloned()
+            .map(|head| (head, changed))
+            .ok_or_else(|| rejected("the branch tip was not rewritten"))
+    })();
+    let _ = std::fs::remove_file(&index_path);
+    let (new_head, rewritten) = match result {
+        Ok(done) => done,
+        Err(e) => {
+            // The branch was not moved: the backup is not needed.
+            let _ = delete_backup(git, repo, &backup_ref);
+            return Err(e);
+        }
+    };
+    writer(git)
+        .run(
+            repo,
+            &none(),
+            [
+                "update-ref",
+                "-m",
+                "nanomgg: take large files out of unpushed commits",
+                &range.branch_ref(),
+                &new_head,
+                &old_head,
+            ],
+        )
+        .map_err(classify)?;
+    // The index follows the new tip; the working tree is left alone, so the files stay on disk.
+    writer(git)
+        .run(repo, &none(), ["reset", "-q"])
+        .map_err(classify)?;
+    Ok(RewriteOutcome {
+        branch: range.branch.clone(),
+        backup_ref,
+        old_head,
+        new_head,
+        rewritten,
+    })
+}
+
+/// What [`with_changes_put_aside`] did with uncommitted changes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+pub struct AsideOutcome {
+    /// Uncommitted changes were stashed before the rewrite.
+    pub stashed: bool,
+    /// They could not be put back cleanly and are still in the stash (`stash@{0}`).
+    pub kept: bool,
+}
+
+const ASIDE_MESSAGE: &str = "nanomgg: put aside while fixing large files";
+
+/// Paths of `git status --porcelain=v1 -z` entries (both sides of a rename).
+fn porcelain_paths(raw: &[u8]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut entries = raw.split(|b| *b == 0).filter(|e| !e.is_empty());
+    while let Some(entry) = entries.next() {
+        if entry.len() < 4 {
+            continue;
+        }
+        let xy = &entry[..2];
+        out.push(String::from_utf8_lossy(&entry[3..]).replace('\\', "/"));
+        if (xy.contains(&b'R') || xy.contains(&b'C'))
+            && let Some(old) = entries.next()
+        {
+            out.push(String::from_utf8_lossy(old).replace('\\', "/"));
+        }
+    }
+    out
+}
+
+/// Runs `rewrite` with uncommitted changes to tracked files put aside (`git stash`) and put
+/// back afterwards, so a rewrite of unpushed commits does not ask the user to commit first.
+/// Refused when a change touches one of `touched` (it would clash with what the rewrite
+/// changes). The stash stays when it cannot be put back cleanly ([`AsideOutcome::kept`]).
+pub fn with_changes_put_aside<T>(
+    git: &GitRunner,
+    repo: &Path,
+    touched: &[String],
+    rewrite: impl FnOnce() -> Result<T, OpError>,
+) -> Result<(T, AsideOutcome), OpError> {
+    ensure_idle(git, repo)?;
+    let status = git.run(
+        repo,
+        &none(),
+        [
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=no",
+            "--ignore-submodules",
+        ],
+    )?;
+    let dirty = porcelain_paths(&status.stdout);
+    if dirty.is_empty() {
+        return rewrite().map(|v| (v, AsideOutcome::default()));
+    }
+    let wanted: HashSet<String> = touched.iter().map(|p| p.replace('\\', "/")).collect();
+    if let Some(clash) = dirty.iter().find(|p| wanted.contains(*p)) {
+        return Err(OpError::rejected(
+            FailureKind::LocalChanges,
+            format!("commit or discard your changes to '{clash}' first"),
+        ));
+    }
+    writer(git)
+        .run(repo, &none(), ["stash", "push", "-q", "-m", ASIDE_MESSAGE])
+        .map_err(classify)?;
+    let result = rewrite();
+    let w = writer(git);
+    let back = w
+        .run(repo, &none(), ["stash", "pop", "-q", "--index"])
+        .is_ok()
+        || w.run(repo, &none(), ["stash", "pop", "-q"]).is_ok();
+    let aside = AsideOutcome {
+        stashed: true,
+        kept: !back,
+    };
+    match result {
+        Ok(v) => Ok((v, aside)),
+        Err(OpError::Rejected { kind, message }) if aside.kept => Err(OpError::Rejected {
+            kind,
+            message: format!("{message}\n(your uncommitted changes are kept in the stash)"),
+        }),
+        Err(e) => Err(e),
+    }
+}
+
+/// `.gitignore` pattern matching exactly `path` (anchored, special characters escaped).
+pub fn ignore_pattern(path: &str) -> String {
+    let mut out = String::from("/");
+    for c in path.chars() {
+        if matches!(c, '*' | '?' | '[' | ']' | '\\') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    if out.ends_with(' ') {
+        let trimmed = out.trim_end_matches(' ').len();
+        let spaces = out.len() - trimmed;
+        out.truncate(trimmed);
+        for _ in 0..spaces {
+            out.push_str("\\ ");
+        }
+    }
+    out
+}
+
+/// Adds `paths` that are not tracked (any more) to the repository's `.gitignore`, so a file
+/// taken out of the commits is not committed again by the next "Stage all". Returns the
+/// patterns added (none for files git already ignores or still tracks).
+pub fn ignore_paths(
+    git: &GitRunner,
+    repo: &Path,
+    paths: &[String],
+) -> Result<Vec<String>, OpError> {
+    let mut wanted = Vec::new();
+    for path in paths {
+        let path = validate_drop_path(path)?;
+        let tracked = git
+            .run_text(
+                repo,
+                &none(),
+                ["--literal-pathspecs", "ls-files", "--", &path],
+            )
+            .unwrap_or_default();
+        if !tracked.is_empty() {
+            continue;
+        }
+        let ignored = git
+            .run(
+                repo,
+                &none(),
+                ["check-ignore", "-q", "--no-index", "--", &path],
+            )
+            .is_ok();
+        if !ignored {
+            wanted.push(ignore_pattern(&path));
+        }
+    }
+    if wanted.is_empty() {
+        return Ok(wanted);
+    }
+    let file = repo.join(".gitignore");
+    let mut text = std::fs::read_to_string(&file).unwrap_or_default();
+    let existing: HashSet<&str> = text.lines().map(str::trim_end).collect();
+    let added: Vec<String> = wanted
+        .into_iter()
+        .filter(|p| !existing.contains(p.as_str()))
+        .collect();
+    if added.is_empty() {
+        return Ok(added);
+    }
+    let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    if !text.is_empty() && !text.ends_with('\n') {
+        text.push_str(eol);
+    }
+    const HEADER: &str = "# Large files kept out of git (NANO Multiple Git GUI)";
+    if !text.lines().any(|l| l.trim_end() == HEADER) {
+        if !text.is_empty() {
+            text.push_str(eol);
+        }
+        text.push_str(HEADER);
+        text.push_str(eol);
+    }
+    for p in &added {
+        text.push_str(p);
+        text.push_str(eol);
+    }
+    std::fs::write(&file, text)
+        .map_err(|e| rejected(format!("could not update .gitignore: {e}")))?;
+    Ok(added)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1159,6 +1603,134 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn drop_paths_takes_a_new_file_out_and_keeps_it_on_disk() {
+        let s = setup();
+        let w = &s.work;
+        let pushed = w.head();
+        std::fs::create_dir_all(w.path.join("assets")).unwrap();
+        std::fs::write(w.path.join("assets/big.bin"), pseudo_random(2 * MIB, 9)).unwrap();
+        w.write("notes.txt", "one\n");
+        w.git(&["add", "."]);
+        let personal = as_ctx("Ann", "ann@x.dev");
+        w.git
+            .run(
+                &w.path,
+                &personal,
+                ["commit", "-q", "-m", "add big + notes"],
+            )
+            .unwrap();
+        w.commit("later.txt", "x\n", "later");
+        let before = w.head();
+        let date_before = w.git(&["log", "-1", "--format=%ad|%an|%s", "HEAD~1"]);
+
+        let out = drop_paths_unpushed(&w.git, &w.path, &range(&s), &["assets\\big.bin".to_owned()])
+            .unwrap();
+        assert_eq!(out.old_head, before);
+        assert_eq!(out.rewritten, 2);
+        assert_eq!(w.head(), out.new_head);
+        assert_eq!(w.git(&["rev-parse", &out.backup_ref]), before);
+        // Gone from every unpushed commit, the rest of each commit kept.
+        assert_eq!(
+            w.git(&["ls-tree", "-r", "--name-only", "HEAD~1", "--", "assets"]),
+            ""
+        );
+        assert_eq!(w.git(&["show", "HEAD~1:notes.txt"]), "one");
+        assert_eq!(
+            w.git(&["log", "-1", "--format=%ad|%an|%s", "HEAD~1"]),
+            date_before
+        );
+        assert_eq!(w.git(&["rev-parse", "HEAD~2"]), pushed);
+        assert!(
+            heavy_blobs(&w.git, &w.path, &range(&s), MIB as u64)
+                .unwrap()
+                .is_empty()
+        );
+        // Still on disk, now untracked; .gitignore keeps it out of the next commit.
+        assert_eq!(
+            std::fs::metadata(w.path.join("assets/big.bin"))
+                .unwrap()
+                .len(),
+            2 * MIB as u64
+        );
+        let added = ignore_paths(&w.git, &w.path, &["assets/big.bin".to_owned()]).unwrap();
+        assert_eq!(added, vec!["/assets/big.bin".to_owned()]);
+        assert!(w.git(&["status", "--porcelain"]).contains(".gitignore"));
+        assert!(!w.git(&["status", "--porcelain"]).contains("big.bin"));
+        // A second time adds nothing.
+        assert!(
+            ignore_paths(&w.git, &w.path, &["assets/big.bin".to_owned()])
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn rewrites_with_uncommitted_changes_put_aside() {
+        let s = setup();
+        let w = &s.work;
+        std::fs::write(w.path.join("big.bin"), pseudo_random(MIB, 4)).unwrap();
+        w.git(&["add", "big.bin"]);
+        w.git(&["commit", "-q", "-m", "big"]);
+        // An unrelated uncommitted change, staged and unstaged.
+        w.write("pushed.txt", "edited\n");
+        let paths = vec!["big.bin".to_owned()];
+        let (out, aside) = with_changes_put_aside(&w.git, &w.path, &paths, || {
+            drop_paths_unpushed(&w.git, &w.path, &range(&s), &paths)
+        })
+        .unwrap();
+        assert_eq!(out.rewritten, 1);
+        assert_eq!(
+            aside,
+            AsideOutcome {
+                stashed: true,
+                kept: false
+            }
+        );
+        assert_eq!(w.read("pushed.txt"), "edited\n");
+        assert_eq!(w.git(&["stash", "list"]), "");
+
+        // A change to a file the rewrite touches is refused, nothing stashed.
+        w.write("big.bin", "changed\n");
+        w.git(&["add", "-f", "big.bin"]);
+        let err = with_changes_put_aside(&w.git, &w.path, &paths, || Ok(())).unwrap_err();
+        assert_eq!(err.kind(), Some(FailureKind::LocalChanges), "{err}");
+        assert_eq!(w.git(&["stash", "list"]), "");
+        let clean = with_changes_put_aside(&w.git, &w.path, &[], || Ok(1)).unwrap();
+        assert!(clean.1.stashed);
+    }
+
+    #[test]
+    fn drop_paths_puts_a_pushed_file_back_to_the_server_version() {
+        let s = setup();
+        let w = &s.work;
+        w.commit("data.bin", "small\n", "small data");
+        w.git(&["push", "-q", "origin", "main"]);
+        std::fs::write(w.path.join("data.bin"), pseudo_random(MIB, 5)).unwrap();
+        w.git(&["commit", "-q", "-am", "big data"]);
+        let out =
+            drop_paths_unpushed(&w.git, &w.path, &range(&s), &["data.bin".to_owned()]).unwrap();
+        assert_eq!(out.rewritten, 1);
+        assert_eq!(w.git(&["show", "HEAD:data.bin"]), "small");
+        // The big version stays in the working tree as a change.
+        assert!(w.git(&["status", "--porcelain"]).contains("data.bin"));
+        // Tracked files are never added to .gitignore.
+        assert!(
+            ignore_paths(&w.git, &w.path, &["data.bin".to_owned()])
+                .unwrap()
+                .is_empty()
+        );
+
+        // Nothing to do for a path no unpushed commit has.
+        w.git(&["checkout", "-q", "--", "data.bin"]);
+        w.commit("other.txt", "o\n", "other");
+        let err =
+            drop_paths_unpushed(&w.git, &w.path, &range(&s), &["nope.bin".to_owned()]).unwrap_err();
+        assert_eq!(err.kind(), Some(FailureKind::NothingToCommit), "{err}");
+        assert!(drop_paths_unpushed(&w.git, &w.path, &range(&s), &["../x".to_owned()]).is_err());
+        assert_eq!(ignore_pattern("#a [b]*.psd "), "/#a \\[b\\]\\*.psd\\ ");
     }
 
     #[test]

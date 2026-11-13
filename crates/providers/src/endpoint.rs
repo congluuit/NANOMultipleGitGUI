@@ -14,6 +14,14 @@ pub enum ProviderKind {
     GithubEnterprise,
     Gitlab,
     GitlabSelfHosted,
+    /// Gitea / Forgejo (Codeberg…): the REST API under `/api/v1` follows GitHub's shapes
+    /// for users, repositories, pull requests and issues. Access tokens only.
+    Gitea,
+    /// bitbucket.org. Git only: the account's token signs push / pull / clone, the app has
+    /// no client for its REST API (see [`ProviderKind::git_only`]).
+    Bitbucket,
+    /// Azure DevOps (dev.azure.com). Git only, like Bitbucket.
+    AzureDevops,
 }
 
 /// GitHub-flavoured or GitLab-flavoured API, regardless of hosting.
@@ -26,9 +34,20 @@ pub enum ProviderFamily {
 }
 
 impl ProviderKind {
+    /// The server is only used for git transfers: no pull request, issue, CI or repository
+    /// list. [`ApiClient`](crate::ApiClient) refuses every request to such a server, so its
+    /// [`family`](Self::family) is never acted on.
+    pub fn git_only(self) -> bool {
+        matches!(self, Self::Bitbucket | Self::AzureDevops)
+    }
+
     pub fn family(self) -> ProviderFamily {
         match self {
-            Self::Github | Self::GithubEnterprise => ProviderFamily::Github,
+            Self::Github
+            | Self::GithubEnterprise
+            | Self::Gitea
+            | Self::Bitbucket
+            | Self::AzureDevops => ProviderFamily::Github,
             Self::Gitlab | Self::GitlabSelfHosted => ProviderFamily::Gitlab,
         }
     }
@@ -87,14 +106,47 @@ impl ProviderEndpoint {
         })
     }
 
+    /// Gitea / Forgejo at `base_url` (API under `/api/v1`), e.g. `https://codeberg.org`.
+    pub fn gitea(base_url: &str) -> Result<Self, ProviderError> {
+        let base = normalize(base_url)?;
+        let api = join(&base, "api/v1/")?;
+        Ok(Self {
+            kind: ProviderKind::Gitea,
+            base_url: base,
+            api_url: api,
+        })
+    }
+
+    /// bitbucket.org (API `https://api.bitbucket.org/2.0`, used to check a token only).
+    pub fn bitbucket() -> Self {
+        Self {
+            kind: ProviderKind::Bitbucket,
+            base_url: Url::parse("https://bitbucket.org/").expect("static URL"),
+            api_url: Url::parse("https://api.bitbucket.org/2.0/").expect("static URL"),
+        }
+    }
+
+    /// Azure DevOps Services (`https://dev.azure.com`; the profile API that checks a token
+    /// lives on `app.vssps.visualstudio.com`).
+    pub fn azure_devops() -> Self {
+        Self {
+            kind: ProviderKind::AzureDevops,
+            base_url: Url::parse("https://dev.azure.com/").expect("static URL"),
+            api_url: Url::parse("https://app.vssps.visualstudio.com/").expect("static URL"),
+        }
+    }
+
     /// Builds the endpoint for `kind`; `base_url` is ignored for github.com / gitlab.com when
     /// `None`. Convenient when loading provider rows from storage.
     pub fn for_kind(kind: ProviderKind, base_url: Option<&str>) -> Result<Self, ProviderError> {
         match (kind, base_url) {
             (ProviderKind::Github, _) => Ok(Self::github()),
             (ProviderKind::Gitlab, _) => Ok(Self::gitlab()),
+            (ProviderKind::Bitbucket, _) => Ok(Self::bitbucket()),
+            (ProviderKind::AzureDevops, _) => Ok(Self::azure_devops()),
             (ProviderKind::GithubEnterprise, Some(b)) => Self::github_enterprise(b),
             (ProviderKind::GitlabSelfHosted, Some(b)) => Self::gitlab_self_hosted(b),
+            (ProviderKind::Gitea, Some(b)) => Self::gitea(b),
             (_, None) => Err(ProviderError::InvalidInput {
                 message: "a base URL is required for self-hosted providers".into(),
             }),

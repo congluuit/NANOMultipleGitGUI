@@ -50,6 +50,8 @@ mod stash;
 mod state;
 mod submodules;
 mod terminal;
+// Bisect, reflog, patches, sparse checkout, statistics, overview of every open repository.
+mod tools;
 mod undo;
 // Phase 3B.4: Check for Update (GitHub Releases).
 mod updater;
@@ -215,6 +217,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             auth::auth_pkce_wait,
             auth::auth_cancel,
             auth::auth_add_pat,
+            auth::auth_add_git_token,
             auth::auth_update_token,
             auth::auth_config,
             auth::auth_config_set,
@@ -256,6 +259,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             guards::push_guard,
             guards::guard_fix_authors,
             guards::guard_lfs_migrate,
+            guards::guard_fix_large_files,
             guards::guard_undo,
             guards::guard_backups,
             guards::guard_backup_delete,
@@ -373,6 +377,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             ai::ai_key_delete,
             ai::ai_test,
             ai::ai_generate,
+            ai::ai_describe_repo,
+            ai::ai_review,
             ai::ai_cancel,
             ai::ai_ollama_status,
             ai::ai_ollama_install,
@@ -393,6 +399,25 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             backup::backup_full_open,
             backup::backup_full_restore,
             backup::backup_restore_notice,
+            // Bisect, reflog, patch files, sparse checkout, statistics, all repositories.
+            tools::bisect_state,
+            tools::bisect_start,
+            tools::bisect_mark,
+            tools::bisect_reset,
+            tools::reflog_list,
+            tools::reflog_recent_branches,
+            tools::patch_save_commit,
+            tools::patch_save_changes,
+            tools::patch_inspect,
+            tools::patch_apply,
+            tools::sparse_state,
+            tools::sparse_set,
+            tools::sparse_disable,
+            tools::repo_stats,
+            tools::workspace_overview,
+            tools::server_limits,
+            tools::server_limit_learn,
+            tools::os_notify,
         ])
         .events(collect_events![
             repos::RepoChanged,
@@ -438,6 +463,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // Toasts for work that finished in the background; only our own command shows them.
+        .plugin(tauri_plugin_notification::init())
         // Phase 3B.4: no JS permission is granted; the app's own commands drive it.
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(builder.invoke_handler())

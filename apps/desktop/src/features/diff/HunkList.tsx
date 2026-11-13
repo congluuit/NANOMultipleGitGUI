@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { DiffRequest, Hunk, LineSelection, PatchAction } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { isSelected, selectRange, toggleLine, wholeHunk, type LineSel } from "./selection";
+import { hunkHighlights, splitByRanges } from "./wordDiff";
 
 /** Rendering every line of a huge diff as DOM would freeze the view. */
 const MAX_LINES = 8000;
@@ -34,6 +35,8 @@ export function HunkList({ hunks, selectable, selection, onSelection, side, onHu
   const { t } = useTranslation();
   const anchor = useRef<{ hunk: number; line: number } | null>(null);
   const { visible, truncated } = useMemo(() => limitLines(hunks, MAX_LINES), [hunks]);
+  // Words that changed inside edited lines, per hunk.
+  const marks = useMemo(() => hunks.map((h) => hunkHighlights(h.lines)), [hunks]);
 
   return (
     <div className="min-h-0 flex-1 overflow-auto font-mono text-[12px] leading-[18px]">
@@ -120,7 +123,24 @@ export function HunkList({ hunks, selectable, selection, onSelection, side, onHu
                     {SIGN[l.kind]}
                   </span>
                   <span className="pr-4 whitespace-pre [tab-size:4]">
-                    {l.text}
+                    {marks[hi]?.[li]
+                      ? splitByRanges(l.text, marks[hi][li]).map((p, pi) =>
+                          p.changed ? (
+                            <mark
+                              key={pi}
+                              data-word-change=""
+                              className={cn(
+                                "rounded-[2px] text-inherit",
+                                l.kind === "add" ? "bg-success/35" : "bg-danger/35",
+                              )}
+                            >
+                              {p.text}
+                            </mark>
+                          ) : (
+                            p.text
+                          ),
+                        )
+                      : l.text}
                     {l.noNewline && (
                       <span
                         className="ml-2 font-sans text-[10px] text-muted-foreground"

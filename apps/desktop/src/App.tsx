@@ -35,14 +35,21 @@ import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
 import { useThemeSync } from "@/theme/useThemeSync";
 import { useUiScale } from "@/features/settings/useUiScale";
+import { useOsNotifications } from "@/features/notifications/osNotify";
+import { syncServerLimits } from "@/features/guards/limits";
 
 export default function App() {
   useThemeSync();
   useUiScale();
   useRepoChangeEvents();
   useTransferEvents();
+  useOsNotifications();
   const language = useSettings((s) => s.language);
   const view = useUi((s) => s.view);
+
+  useEffect(() => {
+    void syncServerLimits();
+  }, []);
 
   useEffect(() => {
     void i18n.changeLanguage(language);

@@ -303,7 +303,7 @@ pub fn issue_from_branch(branch: &str) -> Option<String> {
 }
 
 /// Runs `git <args>`, reading at most `cap` bytes of stdout. `None` when git failed.
-fn git_capped(
+pub(crate) fn git_capped(
     git: &GitRunner,
     root: &Path,
     args: &[&str],

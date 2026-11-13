@@ -6,6 +6,7 @@ import {
   FolderGit2,
   FolderOpen,
   FolderPlus,
+  Group,
   History,
   Pin,
   PinOff,
@@ -66,6 +67,7 @@ import { cn } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 import { moveTab, orderTabs, usePinnedTabs } from "./pinnedTabs";
+import { groupTabsByAccount } from "./tabGroups";
 import { tabShortcutLabel, useTabShortcuts } from "./tabShortcuts";
 
 /** From this many tabs on, the tab list gets a filter box. */
@@ -235,6 +237,10 @@ function RepoTabItem({
         >
           {pinned ? <PinOff /> : <Pin />}
           {t(pinned ? "tabs.unpin" : "tabs.pin")}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => void groupTabsByAccount()}>
+          <Group />
+          {t("tabs.groupByAccount")}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={() => void closeRepository(tab.id)}>

@@ -6,6 +6,7 @@
 import i18n from "i18next";
 import { invalidateAccounts } from "@/features/accounts/queries";
 import type { ForkFailure } from "@/features/forks/actions";
+import { runPushGuard } from "@/features/guards/store";
 import { startTransfer } from "@/features/remote/transfers";
 import { repoKeys } from "@/features/repos/queries";
 import {
@@ -24,6 +25,8 @@ export type PublishStep =
   | { status: "createFailed"; failure: ForkFailure }
   /** The remote is in place but the push failed (details are in the notice bar). */
   | { status: "pushFailed"; repo: ForkRepo | null; change: ForkRemoteChange }
+  /** The remote is in place; the user stopped the push at the Push Guard (big files…). */
+  | { status: "pushSkipped"; repo: ForkRepo | null; change: ForkRemoteChange }
   | { status: "failed"; message: string };
 
 export interface PublishTarget {
@@ -35,8 +38,17 @@ export interface PublishTarget {
   accountId: string | null;
 }
 
-/** Pushes `branch` to `remote` with `--set-upstream` as a transfer-queue item. */
-export async function pushNewBranch(repoId: number, remote: string, branch: string) {
+/**
+ * Pushes `branch` to `remote` with `--set-upstream` as a transfer-queue item. Push Guard runs
+ * first, like for any push: a file over the server's limit is caught (and moved to LFS in the
+ * dialog) before minutes of uploading end in a refusal. `"skipped"`: stopped in that dialog.
+ */
+export async function pushNewBranch(
+  repoId: number,
+  remote: string,
+  branch: string,
+): Promise<"pushed" | "failed" | "skipped"> {
+  if ((await runPushGuard(repoId, remote, branch)) === "cancel") return "skipped";
   const out = await startTransfer(
     repoId,
     "push",
@@ -53,7 +65,7 @@ export async function pushNewBranch(repoId: number, remote: string, branch: stri
     }),
     `${remote}/${branch}`,
   );
-  return out !== undefined;
+  return out !== undefined ? "pushed" : "failed";
 }
 
 async function linkAndPush(
@@ -81,9 +93,8 @@ async function linkAndPush(
   onPhase("pushing");
   const pushed = await pushNewBranch(target.repoId, change.remote, target.branch);
   void queryClient.invalidateQueries({ queryKey: repoKeys.refs(target.repoId) });
-  return pushed
-    ? { status: "done", repo, change, pushed: true }
-    : { status: "pushFailed", repo, change };
+  if (pushed === "pushed") return { status: "done", repo, change, pushed: true };
+  return { status: pushed === "skipped" ? "pushSkipped" : "pushFailed", repo, change };
 }
 
 /** Creates an empty repository with `target.accountId`, links it and pushes. */

@@ -124,6 +124,17 @@ pub trait Provider: Send + Sync {
     ) -> impl Future<Output = Result<Option<ServerVersion>, ProviderError>> + Send;
 }
 
+/// Reads `null` as the default value (an empty list): Gitea / Forgejo answer `null` where
+/// GitHub answers `[]` (`"assignees": null`).
+pub(crate) fn null_as_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Default + serde::Deserialize<'de>,
+{
+    use serde::Deserialize;
+    Ok(Option::<T>::deserialize(deserializer)?.unwrap_or_default())
+}
+
 /// A GitHub or GitLab client chosen from the endpoint kind. This is what the app stores per
 /// account; it implements [`Provider`] by delegating.
 #[derive(Debug, Clone)]

@@ -122,7 +122,11 @@ export async function runOutcome<T>(
     if (out.status === "done") {
       const done = success?.(out.value);
       if (done) {
-        const notice: Notice = typeof done === "string" ? { kind: "info", message: done } : done;
+        // Tagged with the repository: when it finished in the background, the bar names it.
+        const notice: Notice =
+          typeof done === "string"
+            ? { kind: "info", message: done, repoId }
+            : { ...done, repoId: done.repoId ?? repoId };
         notify(notice);
         successHook?.(repoId, notice, startedAt);
       }
@@ -131,7 +135,7 @@ export async function runOutcome<T>(
     if (out.status === "rejected") {
       notify({ ...failureNotice(out.reason, out.message, repoId), repoId, retry });
     } else {
-      notify({ kind: "info", message: i18n.t("ops.cancelled") });
+      notify({ kind: "info", message: i18n.t("ops.cancelled"), repoId });
     }
   } catch (e) {
     notify({ kind: "error", message: errorMessage(e), repoId, retry });

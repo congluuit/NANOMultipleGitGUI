@@ -237,6 +237,9 @@ fn provider_kind(kind: nanomgg_accounts::ProviderKind) -> nanomgg_providers::Pro
         A::GithubEnterprise => P::GithubEnterprise,
         A::Gitlab => P::Gitlab,
         A::GitlabSelfHosted => P::GitlabSelfHosted,
+        A::Gitea => P::Gitea,
+        A::Bitbucket => P::Bitbucket,
+        A::AzureDevops => P::AzureDevops,
     }
 }
 

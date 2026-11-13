@@ -17,6 +17,54 @@ import {
   unstagePaths,
   useWorktreeStatus,
 } from "./queries";
+import {
+  cancelStaging,
+  needsProgress,
+  stageWithProgress,
+  useRepoStageProgress,
+} from "./stageProgress";
+
+/** Progress of a big "Stage all": files done, size-weighted bar, the file being hashed. */
+function StageProgressBar({ repoId }: { repoId: number }) {
+  const { t } = useTranslation();
+  const p = useRepoStageProgress(repoId);
+  if (!p) return null;
+  return (
+    <div
+      role="status"
+      aria-label={t("wip.staging", { done: p.doneFiles, total: p.files })}
+      className="shrink-0 space-y-1 border-b bg-primary/5 px-3 py-2 text-[11px]"
+    >
+      <div className="flex items-center gap-2">
+        <LoaderCircle className="size-3.5 shrink-0 animate-spin text-primary" />
+        <span className="min-w-0 truncate font-medium">
+          {t("wip.staging", { done: p.doneFiles, total: p.files })}
+        </span>
+        <span className="shrink-0 text-muted-foreground tabular-nums">{p.percent}%</span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          disabled={p.cancelling}
+          onClick={() => cancelStaging(repoId)}
+          className="shrink-0 rounded px-1.5 py-0.5 text-danger hover:bg-danger/10 disabled:opacity-50"
+        >
+          {p.cancelling ? t("wip.stageStopping") : t("common.cancel")}
+        </button>
+      </div>
+      <span className="block h-1.5 w-full overflow-hidden rounded bg-border">
+        <span
+          className="block h-full bg-primary transition-[width] duration-300"
+          style={{ width: `${Math.max(2, p.percent)}%` }}
+        />
+      </span>
+      {p.current && (
+        <p className="truncate font-mono text-muted-foreground" title={p.current}>
+          {p.current}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function WorkingTreePanel({ repoId }: { repoId: number }) {
   const { t } = useTranslation();
@@ -35,13 +83,20 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
       ? diff.path
       : null;
 
+  // Many files (or huge ones): staged in chunks with a progress bar instead of one silent wait.
   const stage = (entries: StatusEntry[]) =>
-    void runOp(repoId, () =>
-      commands.stageFiles(
-        repoId,
-        entries.map((e) => e.path),
-      ),
-    );
+    needsProgress(entries)
+      ? void stageWithProgress(repoId, entries)
+      : void runOp(repoId, () =>
+          commands.stageFiles(
+            repoId,
+            entries.map((e) => e.path),
+          ),
+        );
+  const stageAll = (entries: StatusEntry[]) =>
+    needsProgress(entries)
+      ? void stageWithProgress(repoId, entries)
+      : void runOp(repoId, () => commands.stageAll(repoId));
   const unstage = (entries: StatusEntry[]) =>
     void runOp(repoId, () => commands.unstageFiles(repoId, unstagePaths(entries)));
 
@@ -82,6 +137,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
           <RefreshCw className={status.isFetching ? "size-3.5 animate-spin" : "size-3.5"} />
         </button>
       </div>
+      <StageProgressBar repoId={repoId} />
       {status.isPending && (
         <div className="flex flex-1 items-center justify-center gap-2 text-xs text-muted-foreground">
           <LoaderCircle className="size-4 animate-spin" />
@@ -120,7 +176,7 @@ export function WorkingTreePanel({ repoId }: { repoId: number }) {
             activePath={activeIn("unstaged")}
             onOpen={(e) => openDiff(repoId, requestFor(e, false))}
             onPrimary={stage}
-            onPrimaryAll={() => void runOp(repoId, () => commands.stageAll(repoId))}
+            onPrimaryAll={() => stageAll(st.unstaged)}
             onDiscard={setDiscarding}
             menuExtra={(target) => (
               <FileViewMenuItems

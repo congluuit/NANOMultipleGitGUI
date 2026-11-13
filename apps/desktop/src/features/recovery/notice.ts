@@ -23,7 +23,6 @@ import { runOutcome } from "@/features/commits/outcome";
 import { useRefDialog } from "@/features/commits/store";
 import { openForkDialog } from "@/features/forks/store";
 import { repoKeys } from "@/features/repos/queries";
-import { useLfsManager } from "@/features/lfs/managerStore";
 import { useStashUi } from "@/features/stash/store";
 import { invalidateRepo } from "@/features/worktree/queries";
 import {
@@ -40,6 +39,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 import { detectProblem, type Problem } from "./detect";
+import { largeFileActions } from "./largeFiles";
 import { pullBeforePush } from "./pull";
 
 /** A notice with a fix to click stays long enough to read it. */
@@ -137,7 +137,14 @@ function problemActions(problem: Problem, notice: Notice, repoId: number | undef
     case "longPaths":
       return configFix(notice, repoId, "longPaths");
     case "postBuffer":
-      return configFix(notice, repoId, "postBuffer");
+      // A push dropped half-way is most often a push carrying big files: getting them out of
+      // the way works better than a bigger buffer (offered next to it).
+      return [
+        ...(repoId !== undefined && /send-pack|push/i.test(rawText(notice))
+          ? largeFileActions(repoId, notice).slice(0, 1)
+          : []),
+        ...configFix(notice, repoId, "postBuffer"),
+      ];
     case "dubiousOwnership":
       return [
         fixAction(
@@ -193,12 +200,8 @@ function reasonActions(notice: Notice, repoId: number | undefined): NoticeAction
         },
       ];
     case "fileTooLarge":
-      return [
-        {
-          label: i18n.t("recovery.openLfs"),
-          run: () => useLfsManager.getState().open(repoId, "patterns"),
-        },
-      ];
+      // Never "Retry": the same file would be refused again after the same long upload.
+      return largeFileActions(repoId, notice);
     case "connectionFailed":
       return retryAction(notice);
     case "staleLease":

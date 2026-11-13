@@ -7,6 +7,8 @@ import type { Notice } from "@/stores/ui";
  */
 export const NOTICE_SHORT_MS = 3_000;
 export const NOTICE_LONG_MS = 5_000;
+/** About a repository in another tab (it finished in the background): time to notice it. */
+export const NOTICE_OTHER_REPO_MS = 8_000;
 
 export function noticeDuration(notice: Notice): number {
   if (notice.durationMs) return notice.durationMs;

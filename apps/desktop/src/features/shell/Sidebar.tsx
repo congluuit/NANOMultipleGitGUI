@@ -11,6 +11,7 @@ import {
   GitCommitHorizontal,
   GitPullRequest,
   HardDrive,
+  History,
   Layers,
   LoaderCircle,
   Package,
@@ -26,6 +27,12 @@ import { useTranslation } from "react-i18next";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { LocalBranchItems, RemoteBranchItems, TagItems } from "@/features/commits/RefMenuItems";
 import { requestSwitch, switchBranch } from "@/features/branch-switch/actions";
+import {
+  mergeRecent,
+  recentChoices,
+  useRecentBranches,
+} from "@/features/branch-switch/recentBranches";
+import { useReflogRecentBranches } from "@/features/repo-tools/queries";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -274,6 +281,9 @@ function RailButton({
   );
 }
 
+/** Recent branches listed at the top of the sidebar. */
+const RECENT_SHOWN = 5;
+
 /** Branches, remotes, tags… of the active repo; `rail` renders the collapsed icon column. */
 export function Sidebar({ rail = false }: { rail?: boolean }) {
   const { t } = useTranslation();
@@ -302,9 +312,59 @@ export function Sidebar({ rail = false }: { rail?: boolean }) {
   // Phase 4.1: pull / merge requests of the repo's hosted project.
   const pullCount = usePullSidebarCount(repo && !repo.missing ? repo.id : null);
 
+  // Branches worked on lately (switched to in the app or, per git's reflog, anywhere else).
+  const recorded = useRecentBranches((s) => (repo ? s.byRepo[repo.id] : undefined));
+  const fromReflog = useReflogRecentBranches(repo && !repo.missing ? repo.id : -1).data;
+  const recent = recentChoices(
+    mergeRecent(recorded ?? [], fromReflog),
+    current,
+    (data?.local ?? []).map((b) => b.name),
+  )
+    .filter((name) => matchesFilter(name, filter))
+    .slice(0, RECENT_SHOWN);
+
   const sections: SectionDef[] = !data
     ? []
     : [
+        ...(recent.length > 0 && repo
+          ? [
+              {
+                id: "recent",
+                icon: History,
+                title: t("sidebar.recent"),
+                count: recent.length,
+                defaultOpen: true,
+                content: (
+                  <>
+                    {recent.map((name) => {
+                      const b = data.local.find((x) => x.name === name);
+                      return (
+                        <Item
+                          key={name}
+                          onClick={jumpTo(b?.oid)}
+                          onActivate={() => requestSwitch(repo.id, { kind: "local", name })}
+                          menu={
+                            b && (
+                              <LocalBranchItems
+                                repoId={repo.id}
+                                current={current}
+                                name={name}
+                                oid={b.oid}
+                              />
+                            )
+                          }
+                          title={t("branchSwitch.tip.local")}
+                        >
+                          <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{name}</span>
+                        </Item>
+                      );
+                    })}
+                  </>
+                ),
+              } satisfies SectionDef,
+            ]
+          : []),
         {
           id: "local",
           icon: HardDrive,

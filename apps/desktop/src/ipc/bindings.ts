@@ -366,6 +366,12 @@ export const commands = {
 	/**  Adds (or updates, same provider + username) an account from a personal access token. */
 	authAddPat: (providerId: string, token: string, label: string | null) => __TAURI_INVOKE<Account>("auth_add_pat", { providerId, token, label }),
 	/**
+	 *  Adds an account of a git-only server (Bitbucket, Azure DevOps) with an access token:
+	 *  push, pull and clone run as it. `username` is what the token is checked with (Bitbucket:
+	 *  the Atlassian account email; optional for Azure DevOps).
+	 */
+	authAddGitToken: (providerId: string, username: string | null, token: string, label: string | null) => __TAURI_INVOKE<Account>("auth_add_git_token", { providerId, username, token, label }),
+	/**
 	 *  Replaces the token of an existing account (re-authentication with a PAT). The token must
 	 *  belong to the same user.
 	 */
@@ -463,9 +469,10 @@ export const commands = {
 	commitGuard: (repoId: number) => __TAURI_INVOKE<CommitGuardReport>("commit_guard", { repoId }),
 	/**
 	 *  Push Guard report for pushing `branch` to `remote`. A `rejected` outcome means the names
-	 *  are invalid / the branch does not exist.
+	 *  are invalid / the branch does not exist. `limit_bytes`: a file size limit the server
+	 *  reported (blobs over it block the push).
 	 */
-	pushGuard: (repoId: number, remote: string, branch: string) => __TAURI_INVOKE<Outcome<PushGuardReport>>("push_guard", { repoId, remote, branch }),
+	pushGuard: (repoId: number, remote: string, branch: string, limitBytes: number | null) => __TAURI_INVOKE<Outcome<PushGuardReport>>("push_guard", { repoId, remote, branch, limitBytes }),
 	/**
 	 *  "Sửa tác giả" for unpushed commits of `branch` (checked out), as the identity that pushes
 	 *  to `remote`. Creates a backup ref first; refuses when a commit is already on a remote.
@@ -476,6 +483,12 @@ export const commands = {
 	 *  `branch` (checked out). Backup ref first; refuses when a commit is already on a remote.
 	 */
 	guardLfsMigrate: (repoId: number, remote: string, branch: string, paths: string[]) => __TAURI_INVOKE<Outcome<RewriteOutcome>>("guard_lfs_migrate", { repoId, remote, branch, paths }),
+	/**
+	 *  "Chuyển file nặng sang LFS" / "Bỏ khỏi commit" for unpushed commits of `branch` (checked
+	 *  out), in one click: uncommitted changes are put aside and back, a backup ref is made first,
+	 *  pushed commits are never touched.
+	 */
+	guardFixLargeFiles: (repoId: number, remote: string, branch: string, paths: string[], mode: LargeFileFix) => __TAURI_INVOKE<Outcome<LargeFileFixOutcome>>("guard_fix_large_files", { repoId, remote, branch, paths, mode }),
 	/**
 	 *  Undo a guard rewrite: restores the backup's branch to `backup_ref` (and backs up the
 	 *  current tip first, so the undo can itself be undone).
@@ -758,6 +771,19 @@ export const commands = {
 	 *  working-tree changes when nothing is staged). `app_language`: `vi` / `en`.
 	 */
 	aiGenerate: (repoId: number, requestId: string, appLanguage: string, unstaged: boolean) => __TAURI_INVOKE<AiSuggestion>("ai_generate", { repoId, requestId, appLanguage, unstaged }),
+	/**
+	 *  "Gợi ý mô tả" (Publish): one sentence describing the repository, from its name, README,
+	 *  manifest, file types and recent commit subjects (never its code). Same service, model and
+	 *  language setting as the commit messages; cancel with `ai_cancel(requestId)`.
+	 */
+	aiDescribeRepo: (repoId: number, requestId: string, appLanguage: string, name: string) => __TAURI_INVOKE<string>("ai_describe_repo", { repoId, requestId, appLanguage, name }),
+	/**
+	 *  "AI review": asks the AI service to look for mistakes in the staged changes (or, with
+	 *  `unstaged`, the working-tree changes when nothing is staged). Runs only on request, with
+	 *  the same cut diff, service and language as the commit message suggestion; cancel with
+	 *  `ai_cancel(requestId)`.
+	 */
+	aiReview: (repoId: number, requestId: string, appLanguage: string, unstaged: boolean) => __TAURI_INVOKE<AiReview>("ai_review", { repoId, requestId, appLanguage, unstaged }),
 	/**  Cancels a running `ai_generate` / `ai_test` / `ai_ollama_pull` / `ai_ollama_start`. */
 	aiCancel: (requestId: string) => __TAURI_INVOKE<boolean>("ai_cancel", { requestId }),
 	aiOllamaStatus: () => __TAURI_INVOKE<OllamaStatus>("ai_ollama_status"),
@@ -820,6 +846,50 @@ export const commands = {
 	/**  Copy of the replaced database. */
 	previousCopy: string | null,
 } | null>("backup_restore_notice"),
+	/**  The bisect in progress (`active: false` when there is none). */
+	bisectState: (repoId: number) => __TAURI_INVOKE<BisectState>("bisect_state", { repoId }),
+	/**  Starts a bisect between a broken commit (`bad`) and an older working one (`good`). */
+	bisectStart: (repoId: number, bad: string, good: string) => __TAURI_INVOKE<Outcome<BisectState>>("bisect_start", { repoId, bad, good }),
+	/**  Says whether the commit being tested works; git moves on to the next candidate. */
+	bisectMark: (repoId: number, mark: BisectMark) => __TAURI_INVOKE<Outcome<BisectState>>("bisect_mark", { repoId, mark }),
+	/**  Ends the bisect and returns to the branch it started from. */
+	bisectReset: (repoId: number) => __TAURI_INVOKE<Outcome<null>>("bisect_reset", { repoId }),
+	/**  Where HEAD has been, newest first. */
+	reflogList: (repoId: number, limit: number) => __TAURI_INVOKE<ReflogEntry[]>("reflog_list", { repoId, limit }),
+	/**
+	 *  Branches checked out recently according to the reflog (also on other machines' clones
+	 *  of this folder, before the app was installed), newest first.
+	 */
+	reflogRecentBranches: (repoId: number, limit: number) => __TAURI_INVOKE<string[]>("reflog_recent_branches", { repoId, limit }),
+	/**  Saves commit `oid` as a patch file at the absolute path `dest`. */
+	patchSaveCommit: (repoId: number, oid: string, dest: string) => __TAURI_INVOKE<Outcome<null>>("patch_save_commit", { repoId, oid, dest }),
+	/**  Saves the uncommitted (or staged) changes as a patch file at the absolute path `dest`. */
+	patchSaveChanges: (repoId: number, source: PatchSource, dest: string) => __TAURI_INVOKE<Outcome<null>>("patch_save_changes", { repoId, source, dest }),
+	/**  What the patch file contains and whether it applies right now. */
+	patchInspect: (repoId: number, file: string) => __TAURI_INVOKE<Outcome<PatchInfo>>("patch_inspect", { repoId, file }),
+	/**  Applies the patch file as changes or as commits; conflicts come back in the outcome. */
+	patchApply: (repoId: number, file: string, mode: ApplyMode) => __TAURI_INVOKE<Outcome<OpOutcome>>("patch_apply", { repoId, file, mode }),
+	sparseState: (repoId: number) => __TAURI_INVOKE<SparseState>("sparse_state", { repoId }),
+	/**  Keeps only `folders` on disk (cone mode). */
+	sparseSet: (repoId: number, folders: string[]) => __TAURI_INVOKE<Outcome<SparseState>>("sparse_set", { repoId, folders }),
+	/**  Turns sparse checkout off; every file comes back. */
+	sparseDisable: (repoId: number) => __TAURI_INVOKE<Outcome<SparseState>>("sparse_disable", { repoId }),
+	/**  Authors, weekly activity and most changed files of the history reachable from HEAD. */
+	repoStats: (repoId: number) => __TAURI_INVOKE<RepoStats>("repo_stats", { repoId }),
+	/**
+	 *  Branch, ahead / behind, uncommitted changes and stashes of every open repository (tab
+	 *  order). Reads only local state: run a fetch first to learn about new remote commits.
+	 */
+	workspaceOverview: () => __TAURI_INVOKE<RepoOverview[]>("workspace_overview"),
+	/**  File size limits learned from servers that refused a push, by host. */
+	serverLimits: () => __TAURI_INVOKE<{ [key in string]: number }>("server_limits"),
+	/**  Remembers the smallest file size limit `host` reported; returns every known limit. */
+	serverLimitLearn: (host: string, bytes: number) => __TAURI_INVOKE<{ [key in string]: number }>("server_limit_learn", { host, bytes }),
+	/**
+	 *  Shows an operating-system notification (when they are on in Settings). Returns whether
+	 *  it was shown. The UI calls this only while the window is in the background.
+	 */
+	osNotify: (title: string, body: string) => __TAURI_INVOKE<boolean>("os_notify", { title, body }),
 };
 
 /** Events */
@@ -1183,6 +1253,18 @@ export type AiPullProgress = {
 	done: boolean,
 };
 
+/**  Result of [`ai_review`]. */
+export type AiReview = {
+	text: string,
+	source: AiDiffSource,
+	/**  Number of changed files the review looked at. */
+	files: number,
+	/**  Part of the diff was left out to keep the request small. */
+	truncated: boolean,
+	provider: AiProvider,
+	model: string,
+};
+
 /**  Settings as the UI sees them: the config plus which keys are stored. */
 export type AiSettingsView = {
 	config: AiConfig,
@@ -1234,6 +1316,11 @@ export type AppSettings = {
 	ciEnabled: boolean,
 	/**  Load author avatars for the commit graph from GitHub / Gravatar. */
 	authorAvatars: boolean,
+	/**
+	 *  Tell the operating system (toast / notification centre) when something finishes or
+	 *  fails while the window is in the background.
+	 */
+	osNotifications: boolean,
 };
 
 /**  Result of one ticked suggestion. */
@@ -1255,9 +1342,23 @@ export type ApplyItem = {
 
 export type ApplyKind = "identity" | "rule" | "sshKey";
 
+export type ApplyMode = 
+/**  Put the changes in the working tree; nothing is committed. */
+"changes" | 
+/**  Recreate the commits of the patch (author, date, message) with `git am`. */
+"commits";
+
 export type ApplyStatus = "created" | 
 /**  Already in the app; nothing changed. */
 "existing" | "failed";
+
+/**  What [`with_changes_put_aside`] did with uncommitted changes. */
+export type AsideOutcome = {
+	/**  Uncommitted changes were stashed before the rewrite. */
+	stashed: boolean,
+	/**  They could not be put back cleanly and are still in the stash (`stash@{0}`). */
+	kept: boolean,
+};
 
 /**
  *  Errors of the auth commands. Serialized as `{ kind, message, ... }` (like [`AppError`]) so
@@ -1319,6 +1420,12 @@ export type AuthMethod = "oauth" | "pat" |
  *  re-validated, never refreshed by the app; the CLI's own config is never modified.
  */
 "importedCli";
+
+export type AuthorStat = {
+	name: string,
+	email: string,
+	commits: number,
+};
 
 /**  The autostash of the branch that was just checked out. */
 export type AutostashRestore = {
@@ -1414,6 +1521,26 @@ export type BindingSource =
 "manual" | 
 /**  Created when the repo was cloned through the app. */
 "clone";
+
+export type BisectMark = "good" | "bad" | 
+/**  This commit cannot be tested (does not build…). */
+"skip";
+
+export type BisectState = {
+	active: boolean,
+	/**  Commit being tested (HEAD). */
+	current: string | null,
+	currentSubject: string | null,
+	bad: string | null,
+	good: string[],
+	/**  Commits that can still be the first bad one (the bad commit included). */
+	remaining: number,
+	/**  The answer, once git has narrowed it down. */
+	firstBad: string | null,
+	firstBadSubject: string | null,
+	/**  Branch (or commit) to go back to when the bisect ends. */
+	start: string | null,
+};
 
 export type BlameCommit = {
 	oid: string,
@@ -2303,6 +2430,12 @@ export type FileHistoryPage = {
 	hasMore: boolean,
 };
 
+export type FileStat = {
+	path: string,
+	/**  Commits of the last year that touched the file. */
+	changes: number,
+};
+
 export type FileStatus = "added" | "modified" | "deleted" | "renamed" | "copied" | "typeChanged" | "unknown";
 
 export type FixAuthorMode = 
@@ -2907,6 +3040,21 @@ export type KeyChoice = {
 
 export type Language = "vi" | "en";
 
+/**  How [`guard_fix_large_files`] gets big files out of the way of a push. */
+export type LargeFileFix = 
+/**  `git lfs migrate import` over the unpushed commits. */
+"lfs" | 
+/**  Take the files out of the unpushed commits, keep them on disk, add them to `.gitignore`. */
+"drop";
+
+export type LargeFileFixOutcome = {
+	rewrite: RewriteOutcome,
+	/**  `.gitignore` patterns added ([`LargeFileFix::Drop`]). */
+	ignored: string[],
+	/**  What happened to uncommitted changes (stashed first, put back after). */
+	aside: AsideOutcome,
+};
+
 /**  Direction of an LFS transfer. */
 export type LfsDirection = "upload" | "download" | 
 /**  Writing downloaded objects into the working tree (smudge during `git lfs pull`). */
@@ -3351,6 +3499,31 @@ export type PatchAction =
 /**  Unstaged lines → removed from the working tree. */
 "discard";
 
+export type PatchFile = {
+	path: string,
+	added: number,
+	removed: number,
+	binary: boolean,
+};
+
+export type PatchInfo = {
+	/**  Commits the patch carries (`git format-patch` output); 0 for a plain diff. */
+	commits: number,
+	/**  Subjects of those commits, in order. */
+	subjects: string[],
+	files: PatchFile[],
+	/**  Whether the patch applies cleanly to the working tree as it is now. */
+	applies: boolean,
+	/**  git's explanation when it does not. */
+	problem: string | null,
+};
+
+export type PatchSource = 
+/**  Everything not committed yet (staged and unstaged, tracked files). */
+"uncommitted" | 
+/**  Only what is staged. */
+"staged";
+
 export type PermissionStatus = "allowed" | 
 /**  The provider says the account cannot push: block early. */
 "denied" | 
@@ -3471,7 +3644,13 @@ export type ProviderInput = {
 	largeFileBlockMb?: number | null,
 };
 
-export type ProviderKind = "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted";
+export type ProviderKind = "github" | "githubEnterprise" | "gitlab" | "gitlabSelfHosted" | 
+/**  Gitea / Forgejo instance (Codeberg…), signed in with an access token. */
+"gitea" | 
+/**  bitbucket.org, git transfers only (no pull requests / issues in the app). */
+"bitbucket" | 
+/**  Azure DevOps (dev.azure.com), git transfers only. */
+"azureDevops";
 
 /**  One object `git lfs prune` would delete. */
 export type PruneObject = {
@@ -4065,6 +4244,20 @@ export type RecentRepo = {
 	exists: boolean,
 };
 
+export type ReflogEntry = {
+	/**  Position in the reflog (0 = newest), as in `HEAD@{index}`. */
+	index: number,
+	oid: string,
+	/**  What moved HEAD: `commit`, `checkout`, `reset`, `rebase (finish)`, `pull`… */
+	action: string,
+	/**  The rest of the reflog message (`moving from a to b`, the commit subject…). */
+	message: string,
+	/**  Subject of the commit HEAD pointed to. */
+	subject: string,
+	/**  When HEAD moved, seconds since the Unix epoch (0 if unknown). */
+	time: number,
+};
+
 /**  What a [`RepoGraph::refresh`] had to do. */
 export type RefreshKind = 
 /**  First load, or history was rewritten (branch deleted, reset, rebase): read everything. */
@@ -4174,12 +4367,48 @@ export type RepoOperation = "merge" | "rebase" | "cherryPick" | "revert" | "bise
 /**  `git am` (patch series). */
 "applyMailbox";
 
+/**  State of one open repository, for the "All repositories" overview. */
+export type RepoOverview = {
+	repoId: number,
+	name: string,
+	path: string,
+	/**  The folder is gone (moved, deleted, unplugged drive). */
+	missing: boolean,
+	branch: string | null,
+	upstream: string | null,
+	ahead: number,
+	behind: number,
+	/**  Files with uncommitted changes (staged, unstaged and untracked). */
+	changes: number,
+	conflicts: number,
+	stashes: number,
+	operation: RepoOperation | null,
+	/**  Why the state could not be read. */
+	error: string | null,
+};
+
 export type RepoRefs = {
 	head: Head,
 	local: LocalBranch[],
 	remotes: Remote[],
 	tags: Tag[],
 	stashes: Stash[],
+};
+
+export type RepoStats = {
+	/**  Commits reachable from HEAD. */
+	totalCommits: number,
+	authorCount: number,
+	/**  Most active authors first (at most 20). */
+	authors: AuthorStat[],
+	/**  Commits per week over the last year, oldest week first (always 52 entries). */
+	weeks: number[],
+	/**  Start of the newest week, seconds since the Unix epoch. */
+	lastWeekStart: number,
+	/**  Files changed most often in the last year. */
+	files: FileStat[],
+	firstCommit: number | null,
+	lastCommit: number | null,
 };
 
 export type RepoTab = {
@@ -4343,6 +4572,7 @@ export type SettingsPatch = {
 	language?: Language | null,
 	ciEnabled?: boolean | null,
 	authorAvatars?: boolean | null,
+	osNotifications?: boolean | null,
 };
 
 /**  How much the app needs the tool: git blocks, git-lfs / OpenSSH warn, gh / glab are info only. */
@@ -4500,6 +4730,14 @@ export type SourceRef = {
 	file: string,
 	/**  1-based line number, when known. */
 	line: number | null,
+};
+
+export type SparseState = {
+	enabled: boolean,
+	/**  Folders kept on disk (files at the top level are always kept). */
+	folders: string[],
+	/**  Top-level folders of the current commit, to choose from. */
+	available: string[],
 };
 
 /**  Outcome of "Import from file". */

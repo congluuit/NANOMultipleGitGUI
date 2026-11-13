@@ -24,8 +24,8 @@ use nanomgg_accounts::{
     Account, AccountSecret, Identity, Provider, RemoteUrl, Resolved, SigningMethod,
 };
 use nanomgg_git_engine::guard::{
-    self, BackupRef, FixAuthorMode, HeavyBlob, PushRange, RestoreOutcome, RewriteOutcome,
-    UnpushedCommit,
+    self, AsideOutcome, BackupRef, FixAuthorMode, HeavyBlob, PushRange, RestoreOutcome,
+    RewriteOutcome, UnpushedCommit,
 };
 use nanomgg_git_engine::ops::OpError;
 use nanomgg_git_engine::{AccountContext, GitRunner};
@@ -34,7 +34,7 @@ use nanomgg_providers::Provider as _;
 use nanomgg_providers::{
     AccessLevel, ProviderClient, ProviderEmail, ProviderEndpoint, SecretToken,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, Manager};
 
@@ -790,6 +790,7 @@ pub(crate) fn push_facts(
     repo_id: i64,
     remote: &str,
     branch: &str,
+    limit_bytes: Option<u64>,
 ) -> AppResult<Result<PushFacts, OpError>> {
     let root = repo_root(st, repo_id)?;
     let range = match PushRange::resolve(&st.git, &root, remote, branch) {
@@ -807,7 +808,7 @@ pub(crate) fn push_facts(
         .find(|r| r.remote == remote)
         .and_then(|r| r.parsed.clone());
     let account = resolved.as_ref().and_then(|r| dir.account(&r.account_id));
-    let thresholds = dir.thresholds_for(account, parsed.as_ref());
+    let thresholds = with_server_limit(dir.thresholds_for(account, parsed.as_ref()), limit_bytes);
     let unpushed = match guard::unpushed(&st.git, &root, &range) {
         Ok(u) => u,
         Err(e) => return Ok(Err(e)),
@@ -838,6 +839,18 @@ pub(crate) fn push_facts(
         bound: resolved.is_some(),
         remote_url,
     }))
+}
+
+/// Thresholds lowered to a size limit the server reported (a push it refused, or one learned
+/// earlier): every blob over it blocks the push, so the guard catches it before uploading.
+pub(crate) fn with_server_limit(t: GuardThresholds, limit_bytes: Option<u64>) -> GuardThresholds {
+    match limit_bytes.filter(|l| *l > 0) {
+        Some(limit) => GuardThresholds {
+            warn_bytes: t.warn_bytes.min(limit),
+            block_bytes: Some(t.block_bytes.map_or(limit, |b| b.min(limit))),
+        },
+        None => t,
+    }
 }
 
 /// Push permission via the provider API; any failure → unknown (never blocks).
@@ -1000,7 +1013,8 @@ pub async fn commit_guard(app: AppHandle, repo_id: i64) -> AppResult<CommitGuard
 }
 
 /// Push Guard report for pushing `branch` to `remote`. A `rejected` outcome means the names
-/// are invalid / the branch does not exist.
+/// are invalid / the branch does not exist. `limit_bytes`: a file size limit the server
+/// reported (blobs over it block the push).
 #[tauri::command]
 #[specta::specta]
 pub async fn push_guard(
@@ -1008,9 +1022,14 @@ pub async fn push_guard(
     repo_id: i64,
     remote: String,
     branch: String,
+    limit_bytes: Option<u64>,
 ) -> AppResult<Outcome<PushGuardReport>> {
     let (r, b) = (remote.clone(), branch.clone());
-    let facts = match blocking(app.clone(), move |st| push_facts(st, repo_id, &r, &b)).await? {
+    let facts = match blocking(app.clone(), move |st| {
+        push_facts(st, repo_id, &r, &b, limit_bytes)
+    })
+    .await?
+    {
         Ok(f) => f,
         Err(e) => return outcome(Err(e)),
     };
@@ -1098,6 +1117,84 @@ pub async fn guard_lfs_migrate(
             tracing::info!(repo = repo_id, backup = %out.backup_ref, "push guard: lfs migrate import");
         }
         Ok(result)
+    })
+    .await?;
+    outcome(result)
+}
+
+/// How [`guard_fix_large_files`] gets big files out of the way of a push.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum LargeFileFix {
+    /// `git lfs migrate import` over the unpushed commits.
+    Lfs,
+    /// Take the files out of the unpushed commits, keep them on disk, add them to `.gitignore`.
+    Drop,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LargeFileFixOutcome {
+    pub rewrite: RewriteOutcome,
+    /// `.gitignore` patterns added ([`LargeFileFix::Drop`]).
+    pub ignored: Vec<String>,
+    /// What happened to uncommitted changes (stashed first, put back after).
+    pub aside: AsideOutcome,
+}
+
+/// "Chuyển file nặng sang LFS" / "Bỏ khỏi commit" for unpushed commits of `branch` (checked
+/// out), in one click: uncommitted changes are put aside and back, a backup ref is made first,
+/// pushed commits are never touched.
+#[tauri::command]
+#[specta::specta]
+pub async fn guard_fix_large_files(
+    app: AppHandle,
+    repo_id: i64,
+    remote: String,
+    branch: String,
+    paths: Vec<String>,
+    mode: LargeFileFix,
+) -> AppResult<Outcome<LargeFileFixOutcome>> {
+    let result = blocking(app, move |st| {
+        let (root, ctx) = rewrite_setup(st, repo_id, &remote)?;
+        let range = match PushRange::resolve(&st.git, &root, &remote, &branch) {
+            Ok(r) => r,
+            Err(e) => return Ok(Err(e)),
+        };
+        let mut touched = paths.clone();
+        if mode == LargeFileFix::Lfs {
+            touched.push(".gitattributes".into());
+        }
+        let result = guard::with_changes_put_aside(&st.git, &root, &touched, || match mode {
+            LargeFileFix::Lfs => guard::lfs_migrate_import(&st.git, &root, &ctx, &range, &paths),
+            LargeFileFix::Drop => guard::drop_paths_unpushed(&st.git, &root, &range, &paths),
+        });
+        let (rewrite, aside) = match result {
+            Ok(v) => v,
+            Err(e) => return Ok(Err(e)),
+        };
+        let ignored = if mode == LargeFileFix::Drop {
+            guard::ignore_paths(&st.git, &root, &paths).unwrap_or_else(|e| {
+                tracing::warn!(error = %e, "could not update .gitignore");
+                Vec::new()
+            })
+        } else {
+            Vec::new()
+        };
+        tracing::info!(
+            repo = repo_id,
+            ?mode,
+            files = paths.len(),
+            backup = %rewrite.backup_ref,
+            stashed = aside.stashed,
+            kept = aside.kept,
+            "push guard: large files fixed"
+        );
+        Ok(Ok(LargeFileFixOutcome {
+            rewrite,
+            ignored,
+            aside,
+        }))
     })
     .await?;
     outcome(result)

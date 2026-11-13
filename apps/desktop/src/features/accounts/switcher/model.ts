@@ -46,6 +46,9 @@ const KIND_NAMES: Record<ProviderKind, string> = {
   githubEnterprise: "GitHub Enterprise",
   gitlab: "GitLab",
   gitlabSelfHosted: "GitLab",
+  gitea: "Gitea",
+  bitbucket: "Bitbucket",
+  azureDevops: "Azure DevOps",
 };
 
 /** Name of the provider of `account` ("GitLab acme"), `null` while providers are unknown. */

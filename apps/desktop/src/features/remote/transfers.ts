@@ -6,7 +6,9 @@ import { cancelQueued } from "@/features/transfers/actions";
 import { useTransferQueueEvents } from "@/features/transfers/events";
 import type { Notice } from "@/stores/ui";
 import {
+  fixForFailure,
   selectRepoRunning,
+  setFix,
   setRetry,
   useTransferQueue,
   type QueueItem,
@@ -70,6 +72,12 @@ export async function startTransfer<T>(
     const done = success(out.value);
     queue.finish(opId, "done", { text: (typeof done === "string" ? done : done?.message) ?? "" });
   } else if (out?.status === "rejected") {
+    // Retrying cannot help some refusals (a file over the server's limit): offer the fix.
+    const fix = fixForFailure(repoId, out.reason, out.message, again);
+    if (fix) {
+      setFix(opId, fix);
+      setRetry(opId, null);
+    }
     queue.finish(opId, "failed", { error: failureText(out.reason, out.message) });
   } else if (out?.status === "cancelled") {
     queue.finish(opId, "cancelled", { text: i18n.t("ops.cancelled") });

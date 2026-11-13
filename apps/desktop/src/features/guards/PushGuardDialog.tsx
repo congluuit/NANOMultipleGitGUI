@@ -39,6 +39,8 @@ interface Props {
   busy?: boolean;
   onFixAuthors: (mode: FixAuthorMode) => void;
   onMigrate: (paths: string[]) => void;
+  /** Takes the files out of the unpushed commits, keeping them on disk. */
+  onDrop?: (paths: string[]) => void;
   onUndo: (backupRef: string) => void;
   onPush: () => void;
   onCancel: () => void;
@@ -114,6 +116,7 @@ export function PushGuardDialog({
   busy,
   onFixAuthors,
   onMigrate,
+  onDrop,
   onUndo,
   onPush,
   onCancel,
@@ -269,6 +272,24 @@ export function PushGuardDialog({
                     {t("guards.push.migrate")}
                   </Button>
                 </span>
+                {onDrop && (
+                  <span
+                    title={
+                      canMigrate(r)
+                        ? t("guards.push.dropDesc", { paths: migratePaths(r).join(", ") })
+                        : undefined
+                    }
+                  >
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      disabled={busy || !canMigrate(r)}
+                      onClick={() => onDrop(migratePaths(r))}
+                    >
+                      {t("guards.push.drop")}
+                    </Button>
+                  </span>
+                )}
               </div>
             </Section>
           )}

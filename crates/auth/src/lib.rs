@@ -41,7 +41,7 @@ pub use token::{
     TokenSet, TokenSummary, needs_refresh, refresh_access_token, refresh_github_token,
     refresh_gitlab_token,
 };
-pub use validate::{TokenInfo, TokenKind, validate_token};
+pub use validate::{TokenInfo, TokenKind, validate_git_token, validate_token};
 
 /// `bytes` random bytes from the OS, base64url without padding.
 pub(crate) fn random_urlsafe(bytes: usize) -> Result<String, AuthError> {

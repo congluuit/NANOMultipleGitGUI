@@ -99,7 +99,7 @@ pub fn build_prompt(
 }
 
 /// Drops `<think>…</think>` blocks (reasoning models served by Ollama / LM Studio).
-fn strip_think(s: &str) -> String {
+pub(crate) fn strip_think(s: &str) -> String {
     let mut out = s.to_owned();
     while let Some(start) = out.find("<think>") {
         match out[start..].find("</think>") {
@@ -118,7 +118,7 @@ fn strip_think(s: &str) -> String {
 }
 
 /// Content of the first ``` fence, or the text itself.
-fn strip_fences(s: &str) -> String {
+pub(crate) fn strip_fences(s: &str) -> String {
     let t = s.trim();
     let Some(start) = t.find("```") else {
         return t.to_owned();

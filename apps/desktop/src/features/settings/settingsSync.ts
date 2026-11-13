@@ -9,6 +9,9 @@ export function diffSettings(prev: SettingsValues, next: SettingsValues): Settin
   if (prev.language !== next.language) patch.language = next.language;
   if (prev.ciEnabled !== next.ciEnabled) patch.ciEnabled = next.ciEnabled;
   if (prev.authorAvatars !== next.authorAvatars) patch.authorAvatars = next.authorAvatars;
+  if (prev.osNotifications !== next.osNotifications) {
+    patch.osNotifications = next.osNotifications;
+  }
   return Object.keys(patch).length ? patch : null;
 }
 
@@ -26,6 +29,7 @@ export async function startSettingsSync(): Promise<() => void> {
       language: stored.language ?? detectLanguage(),
       ciEnabled: stored.ciEnabled,
       authorAvatars: stored.authorAvatars,
+      osNotifications: stored.osNotifications,
     });
   } catch (e) {
     console.error("Failed to load settings:", errorMessage(e));

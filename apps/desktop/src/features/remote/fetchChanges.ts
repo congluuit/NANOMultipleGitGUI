@@ -121,3 +121,33 @@ export async function fetchWithSummary<T>(
   if (notice) useUi.getState().showNotice(notice);
   return value;
 }
+
+/** Refs as last read (from the cache when possible), to compare with after a fetch. */
+export async function refsBeforeFetch(repoId: number): Promise<RepoRefs | null> {
+  return queryClient.getQueryData<RepoRefs>(repoKeys.refs(repoId)) ?? (await readRefs(repoId));
+}
+
+/**
+ * After a background fetch: the same "what's new" summary, shown only when it brought
+ * something and no other message is on screen (it never replaces one the user is reading).
+ * Returns whether it was shown.
+ */
+export async function backgroundFetchSummary(
+  repoId: number,
+  before: RepoRefs | null,
+  onPull?: () => void,
+): Promise<boolean> {
+  if (!before) return false;
+  const after = await readRefs(repoId);
+  const changes = after ? diffRefs(before, after) : null;
+  const notice = changes ? fetchChangesNotice(changes, onPull) : null;
+  if (!changes || !notice || useUi.getState().notice) return false;
+  useUi.getState().showNotice({
+    ...notice,
+    repoId,
+    message: i18n.t("remote.whatsNew.titleAuto", {
+      count: changes.updated.length + changes.added.length + changes.removed.length,
+    }),
+  });
+  return true;
+}

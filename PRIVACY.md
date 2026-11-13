@@ -23,7 +23,7 @@ The app only connects to services **you** configure or trigger:
 - the APIs of the GitHub / GitLab instances you sign in to (repositories, pull/merge requests, CI status, avatars),
 - GitHub Releases of this project, when checking for updates (auto-update can be disabled),
 - the official Git LFS / MinGit download locations, only when you ask the app to install them,
-- the AI service you choose for commit message suggestions (off by default): when you click ✨, the staged changes, branch name and recent commit titles are sent to that service (OpenAI, Anthropic, Google Gemini or the OpenAI-compatible address you entered). With Ollama the request goes to your own computer (`127.0.0.1`), and downloading Ollama or its models only happens when you ask for it.
+- the AI service you choose for commit message suggestions (off by default): when you click ✨, the staged changes, branch name and recent commit titles are sent to that service (OpenAI, Anthropic, Google Gemini or the OpenAI-compatible address you entered). With Ollama the request goes to your own computer (`127.0.0.1`), and downloading Ollama or its models only happens when you ask for it. The **AI review** button sends the same data, only when you click it and after it has asked you; it never runs by itself before a commit or a push.
 
 Export and backup files are encrypted with the password you choose and saved only where you put them.
 

@@ -141,7 +141,7 @@ For the module map, account resolution rules and data flows, read the **[Knowled
 
 The project operates no application servers and currently collects no telemetry. Settings and repository metadata stay on your computer; access tokens, refresh tokens, SSH passphrases and AI API keys use the operating-system keychain.
 
-Network access supports your configured Git remotes, provider APIs, avatars, update checks and requested tool downloads. If you enable cloud AI suggestions, requesting a message sends staged changes, the branch name and recent commit titles to the selected service. Ollama can run locally; check the endpoint you configure.
+Network access supports your configured Git remotes, provider APIs, avatars, update checks and requested tool downloads. If you enable cloud AI suggestions, requesting a message or an AI review sends staged changes, the branch name and recent commit titles to the selected service, and only when you ask for it. Ollama can run locally; check the endpoint you configure.
 
 Account exports and app backups use password-based encryption. These back up app data and selected credentials; **they do not replace backups of your Git repositories**.
 

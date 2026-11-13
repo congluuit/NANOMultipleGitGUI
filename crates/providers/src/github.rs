@@ -71,6 +71,12 @@ impl GithubClient {
         }
     }
 
+    /// Gitea / Forgejo: the same client, with the few calls that differ from GitHub's
+    /// (merge, branch deletion, commit statuses) taking their own path.
+    pub(crate) fn is_gitea(&self) -> bool {
+        self.api.endpoint().kind() == ProviderKind::Gitea
+    }
+
     fn kind_of(&self) -> ProviderKind {
         self.api.endpoint().kind()
     }
@@ -219,6 +225,8 @@ struct RawUser {
     id: u64,
     login: String,
     name: Option<String>,
+    /// Gitea / Forgejo name the display name `full_name`.
+    full_name: Option<String>,
     avatar_url: Option<String>,
     html_url: Option<String>,
     email: Option<String>,
@@ -229,7 +237,7 @@ impl From<RawUser> for ProviderUser {
         Self {
             id: u.id.to_string(),
             username: u.login,
-            display_name: u.name.filter(|n| !n.trim().is_empty()),
+            display_name: u.name.or(u.full_name).filter(|n| !n.trim().is_empty()),
             avatar_url: u.avatar_url,
             profile_url: u.html_url,
             email: u.email.filter(|e| !e.is_empty()),

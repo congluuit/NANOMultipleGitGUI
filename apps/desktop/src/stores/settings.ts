@@ -14,6 +14,8 @@ export interface SettingsValues {
   ciEnabled: boolean;
   /** Author avatars on the commit graph (loaded from GitHub / Gravatar). */
   authorAvatars: boolean;
+  /** Operating-system notifications while the window is in the background. */
+  osNotifications: boolean;
   /** Text and controls size (webview zoom). Kept on this computer only. */
   uiScale: UiScale;
   /** Ask before a double-click / Enter in the sidebar switches branches. */
@@ -25,6 +27,7 @@ interface SettingsState extends SettingsValues {
   setLanguage: (language: Language) => void;
   setCiEnabled: (on: boolean) => void;
   setAuthorAvatars: (on: boolean) => void;
+  setOsNotifications: (on: boolean) => void;
   setUiScale: (scale: UiScale) => void;
   setConfirmBranchSwitch: (on: boolean) => void;
 }
@@ -34,6 +37,7 @@ export const defaultSettings = (): SettingsValues => ({
   language: detectLanguage(),
   ciEnabled: false,
   authorAvatars: true,
+  osNotifications: true,
   uiScale: 1,
   confirmBranchSwitch: true,
 });
@@ -46,6 +50,7 @@ export const useSettings = create<SettingsState>()(
       setLanguage: (language) => set({ language }),
       setCiEnabled: (ciEnabled) => set({ ciEnabled }),
       setAuthorAvatars: (authorAvatars) => set({ authorAvatars }),
+      setOsNotifications: (osNotifications) => set({ osNotifications }),
       setUiScale: (uiScale) => set({ uiScale }),
       setConfirmBranchSwitch: (confirmBranchSwitch) => set({ confirmBranchSwitch }),
     }),

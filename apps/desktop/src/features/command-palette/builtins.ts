@@ -15,6 +15,7 @@ import {
   GitBranchPlus,
   GitCommitHorizontal,
   GitMerge,
+  Group,
   Hash,
   History,
   Languages,
@@ -32,7 +33,11 @@ import {
   X,
 } from "lucide-react";
 import { switchBranch } from "@/features/branch-switch/actions";
-import { recentBranchesOf, recentChoices } from "@/features/branch-switch/recentBranches";
+import {
+  mergeRecent,
+  recentBranchesOf,
+  recentChoices,
+} from "@/features/branch-switch/recentBranches";
 import { useRefDialog } from "@/features/commits/store";
 import { enableCustomMode } from "@/features/custom-theme/store";
 import { pushPlan } from "@/features/remote/plan";
@@ -43,11 +48,14 @@ import {
   openRepositoryWithDialog,
   reopenLastClosed,
 } from "@/features/repos/actions";
+import { groupTabsByAccount } from "@/features/shell/tabGroups";
 import { applyStash } from "@/features/stash/actions";
 import { useStashUi } from "@/features/stash/store";
 import { hasLocalChanges, topStash } from "@/features/stash/useStashToolbar";
 import { useTerminal } from "@/features/terminal/store";
+import { toolKeys } from "@/features/repo-tools/queries";
 import { LANGUAGES } from "@/i18n";
+import { queryClient } from "@/lib/queryClient";
 import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
@@ -140,6 +148,15 @@ function tabCommands(c: PaletteContext): PaletteCommand[] {
           checked: tab.id === activeId,
           run: () => useWorkspace.getState().setActive(tab.id),
         })),
+    },
+    {
+      id: "tab.groupByAccount",
+      title: t("tabs.groupByAccount"),
+      group,
+      icon: Group,
+      keywords: ["group tabs", "account", "sort tabs", "nhom tab"],
+      when: () => tabs.length > 2,
+      run: () => groupTabsByAccount(),
     },
     {
       id: "tab.next",
@@ -272,7 +289,10 @@ function branchCommands(c: PaletteContext): PaletteCommand[] {
   });
 
   const recent = recentChoices(
-    recentBranchesOf(id),
+    mergeRecent(
+      recentBranchesOf(id),
+      queryClient.getQueryData<string[]>(toolKeys.recentBranches(id)),
+    ),
     current,
     (refs?.local ?? []).map((b) => b.name),
   );

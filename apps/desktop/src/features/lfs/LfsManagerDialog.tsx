@@ -40,6 +40,7 @@ import {
   type LfsPattern,
   type PruneReport,
 } from "@/ipc";
+import { learnedLimit } from "@/features/guards/limits";
 import { useGuardDialogs } from "@/features/guards/store";
 import { pushNeedsReview } from "@/features/guards/model";
 import { useRepoRefs } from "@/features/repos/queries";
@@ -645,7 +646,8 @@ function MaintenanceTab({ repoId }: { repoId: number }) {
   const checkUnpushed = async () => {
     if (!head) return;
     const remote = head.upstream?.split("/")[0] ?? "origin";
-    const out = await run("guard", () => commands.pushGuard(repoId, remote, head.name));
+    const limitBytes = learnedLimit(repoId, remote);
+    const out = await run("guard", () => commands.pushGuard(repoId, remote, head.name, limitBytes));
     if (!out) return;
     if (out.status !== "done") {
       notify({ kind: "error", message: t("lfs.guardFailed") });
@@ -659,6 +661,7 @@ function MaintenanceTab({ repoId }: { repoId: number }) {
       repoId,
       remote,
       branch: head.name,
+      limitBytes,
       report: out.value,
       rewrite: null,
       resolve: () => undefined,

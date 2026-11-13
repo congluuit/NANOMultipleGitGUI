@@ -167,7 +167,13 @@ describe("enhanceNotice", () => {
     const consent = useAiHelp.getState().consent;
     expect(consent?.title).toBe("Local changes would be overwritten");
     expect(consent?.context).toMatch(/Current branch: main/);
-    expect(consent?.context).toMatch(/Buttons the app offers: Stash thay đổi trước$/m);
+    // The model may pick the app's own fix or everyday actions by id.
+    expect(consent?.context).toMatch(
+      /^\[fix1\] the app's own fix for this error: "Stash thay đổi trước"$/m,
+    );
+    expect(consent?.context).toMatch(/^\[fetch\] fetch: /m);
+    expect(consent?.context).not.toMatch(/Hỏi AI cách sửa/);
+    expect(consent?.actions?.map((a) => a.id)).toContain("stash");
     expect(consent?.context).not.toMatch(/ghp_/);
     expect(useAiHelp.getState().open).toBe(false);
     useAiHelp.setState({ consent: null });
@@ -189,6 +195,11 @@ describe("enhanceNotice", () => {
     expect(labels("unmergedFiles")).toEqual(["Mở file xung đột", "Hủy thao tác đang dở"]);
     expect(labels("secretDetected")).toEqual(["Hoàn tác commit cuối (giữ thay đổi)"]);
     expect(labels("permissionDenied")).toEqual(["Tạo bản fork để push"]);
+    // Never a plain Retry for a file over the server's limit: move it to LFS or take it out.
+    expect(labels("fileTooLarge")).toEqual([
+      "Chuyển file nặng sang LFS rồi push lại",
+      "Bỏ file nặng khỏi commit (giữ trên máy)",
+    ]);
 
     enhanceNotice({
       kind: "error",

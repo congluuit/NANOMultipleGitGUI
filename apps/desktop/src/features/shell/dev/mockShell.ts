@@ -7,6 +7,7 @@
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { accountHandlers } from "./mockAccounts";
 import { aiHandlers } from "./mockAi";
+import { toolHandlers } from "./mockTools";
 import type {
   DiffRequest,
   GraphRow,
@@ -196,6 +197,20 @@ const tool = (major: number, minor: number) => ({
 
 // The URL overrides of main.tsx (?lang=…&theme=…) win over the "saved" settings.
 const params = new URLSearchParams(location.search);
+
+// `&bigStatus`: 1800 more changed files, staged slowly, to see the "Stage all" progress bar.
+if (params.has("bigStatus")) {
+  for (let i = 0; i < 1800; i++) {
+    status.unstaged.push({ ...entry(`assets/textures/tex_${i}.png`, "added"), size: 400_000 });
+  }
+}
+const stageNow = (paths: string[]) => {
+  const moving = status.unstaged.filter((e) => paths.includes(e.path));
+  status.unstaged = status.unstaged.filter((e) => !paths.includes(e.path));
+  status.staged = [...status.staged, ...moving];
+};
+const later = <T>(ms: number, value: () => T) =>
+  new Promise<T>((resolve) => setTimeout(() => resolve(value()), ms));
 const settings = { theme: params.get("theme") ?? "light", language: params.get("lang") };
 
 const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
@@ -221,7 +236,14 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
   graph_rows: (a) => rows(a.offset as number, a.limit as number),
   graph_find: () => null,
   graph_search: () => [],
-  worktree_status: () => status,
+  worktree_status: () => ({ ...status }),
+  // Publish by URL: the remote is added at once, the push takes a while (to try "Run in
+  // background").
+  publish_add_remote: (a) => ({ remote: a.name, url: a.url, added: true, renamedTo: null }),
+  push_guard: () => ({ status: "done", value: { findings: [] } }),
+  remote_push: () => later(6000, () => ({ status: "done", value: { upToDate: false } })),
+  stage_files: (a) => later(250, () => stageNow(a.paths as string[]) ?? null),
+  stage_all: () => later(1500, () => stageNow(status.unstaged.map((e) => e.path)) ?? null),
   file_contents: (a) => {
     const r = a.request as DiffRequest;
     const f = files[r.path];
@@ -388,6 +410,7 @@ export function installShellMock() {
     params.get("accounts") === "gitlab"
       ? accountHandlers((cmd, args) => handlers[cmd]?.(args))
       : {};
+  Object.assign(extra, toolHandlers(params));
   if (params.has("ai")) Object.assign(extra, aiHandlers());
   mockIPC(
     (cmd, args) => {

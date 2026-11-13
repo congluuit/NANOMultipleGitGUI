@@ -653,6 +653,9 @@ fn provider_kind(kind: AccountProviderKind) -> ProviderKind {
         AccountProviderKind::GithubEnterprise => ProviderKind::GithubEnterprise,
         AccountProviderKind::Gitlab => ProviderKind::Gitlab,
         AccountProviderKind::GitlabSelfHosted => ProviderKind::GitlabSelfHosted,
+        AccountProviderKind::Gitea => ProviderKind::Gitea,
+        AccountProviderKind::Bitbucket => ProviderKind::Bitbucket,
+        AccountProviderKind::AzureDevops => ProviderKind::AzureDevops,
     }
 }
 

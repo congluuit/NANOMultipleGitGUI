@@ -90,6 +90,11 @@ impl DeviceFlowConfig {
             ProviderKind::Gitlab | ProviderKind::GitlabSelfHosted => {
                 Self::gitlab(endpoint, client_id, scopes)
             }
+            ProviderKind::Gitea | ProviderKind::Bitbucket | ProviderKind::AzureDevops => {
+                Err(AuthError::InvalidConfig {
+                    message: "accounts of this server sign in with an access token".into(),
+                })
+            }
         }
     }
 

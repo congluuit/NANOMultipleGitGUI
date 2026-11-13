@@ -93,7 +93,8 @@ pub(crate) fn hosted_remote(
 fn family_of(st: &AppState, account_id: &str) -> Option<ProviderFamily> {
     let account = st.storage.account(account_id).ok()??;
     let provider = st.storage.provider(&account.provider_id).ok()??;
-    Some(crate::auth::service::family(&provider))
+    // Git-only servers (Bitbucket, Azure DevOps) have no hosted features in the app.
+    (!provider.kind.git_only()).then(|| crate::auth::service::family(&provider))
 }
 
 /// API client of an account: its provider endpoint + keychain token, on the shared HTTP client.

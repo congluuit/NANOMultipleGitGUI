@@ -4,6 +4,7 @@
  */
 import { create } from "zustand";
 import { commands, type CommitGuardReport, type PushGuardReport, type RewriteOutcome } from "@/ipc";
+import { learnedLimit } from "./limits";
 import {
   commitNeedsReview,
   pushNeedsReview,
@@ -21,6 +22,8 @@ export interface PushReview {
   repoId: number;
   remote: string;
   branch: string;
+  /** Size limit the server reported (blobs over it block the push), if known. */
+  limitBytes: number | null;
   report: PushGuardReport;
   /** Last rewrite done from the dialog (shows the backup ref + Undo). */
   rewrite: RewriteOutcome | null;
@@ -94,15 +97,17 @@ export async function runCommitGuard(repoId: number): Promise<CommitGuardDecisio
  * Push Guard: resolves `"proceed"` when the push looks fine or the check could not run
  * (invalid names, errors — the push itself will report them); otherwise shows the dialog,
  * where the user can fix authors / move blobs to LFS (with backup + Undo) before pushing.
+ * `limitBytes`: a size limit the server reported; by default the one learned for its host.
  */
 export async function runPushGuard(
   repoId: number,
   remote: string,
   branch: string,
+  limitBytes: number | null = learnedLimit(repoId, remote),
 ): Promise<PushGuardDecision> {
   let report: PushGuardReport;
   try {
-    const out = await commands.pushGuard(repoId, remote, branch);
+    const out = await commands.pushGuard(repoId, remote, branch, limitBytes);
     if (out.status !== "done") return "proceed";
     report = out.value;
   } catch (e) {
@@ -111,6 +116,8 @@ export async function runPushGuard(
   }
   if (!pushNeedsReview(report)) return "proceed";
   return new Promise((resolve) => {
-    useGuardDialogs.getState().openPush({ repoId, remote, branch, report, rewrite: null, resolve });
+    useGuardDialogs
+      .getState()
+      .openPush({ repoId, remote, branch, limitBytes, report, rewrite: null, resolve });
   });
 }

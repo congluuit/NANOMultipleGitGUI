@@ -355,3 +355,175 @@ async fn gitlab_old_version_falls_back_to_user() {
     assert_eq!(info.scopes, None);
     assert_eq!(info.user.username, "hoang");
 }
+
+#[tokio::test]
+async fn gitea_token_is_validated_through_the_v1_api() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/user"))
+        .and(header("authorization", "Bearer gitea-token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "id": 42, "login": "hoang", "login_name": "", "full_name": "Hoang Nguyen",
+            "email": "h@codeberg.example", "avatar_url": "https://c/a.png",
+            "html_url": "https://c/hoang", "is_admin": false
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let endpoint = ProviderEndpoint::gitea(&server.uri()).unwrap();
+    assert_eq!(endpoint.kind(), ProviderKind::Gitea);
+    let info = validate_token(&http(), &endpoint, &SecretToken::new("gitea-token"))
+        .await
+        .unwrap();
+    assert_eq!(info.user.username, "hoang");
+    assert_eq!(info.user.display_name.as_deref(), Some("Hoang Nguyen"));
+    // Gitea does not report scopes in a header: they are simply unknown.
+    assert_eq!(info.scopes, None);
+    assert_eq!(info.token_kind, TokenKind::Unknown);
+
+    // Device sign-in is not offered for Gitea.
+    assert!(DeviceFlowConfig::for_endpoint(&endpoint, "client", None).is_err());
+}
+
+fn custom(kind: ProviderKind, server: &MockServer) -> ProviderEndpoint {
+    ProviderEndpoint::custom(kind, &server.uri(), &server.uri()).unwrap()
+}
+
+#[tokio::test]
+async fn bitbucket_token_is_checked_with_the_account_email() {
+    let server = MockServer::start().await;
+    // base64("me@acme.vn:bb-token")
+    Mock::given(method("GET"))
+        .and(path("/user"))
+        .and(header("authorization", "Basic bWVAYWNtZS52bjpiYi10b2tlbg=="))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "username": "hoangnv", "nickname": "Hoang", "display_name": "Hoang Nguyen",
+            "uuid": "{1-2-3}", "account_id": "557058:abc",
+            "links": {"avatar": {"href": "https://b/a.png"}, "html": {"href": "https://bitbucket.org/hoangnv/"}}
+        })))
+        .mount(&server)
+        .await;
+    let endpoint = custom(ProviderKind::Bitbucket, &server);
+    let token = SecretToken::new("bb-token");
+    let info = validate_git_token(&http(), &endpoint, Some("me@acme.vn"), &token)
+        .await
+        .unwrap();
+    assert_eq!(info.user.username, "hoangnv");
+    assert_eq!(info.user.display_name.as_deref(), Some("Hoang Nguyen"));
+    assert_eq!(info.user.email.as_deref(), Some("me@acme.vn"));
+    assert_eq!(info.scopes, None);
+
+    // The email is required, and a wrong token is refused.
+    let err = validate_git_token(&http(), &endpoint, None, &token)
+        .await
+        .unwrap_err();
+    assert!(matches!(err, AuthError::InvalidConfig { .. }), "{err}");
+    let wrong = SecretToken::new("nope");
+    let err = validate_git_token(&http(), &endpoint, Some("me@acme.vn"), &wrong)
+        .await
+        .unwrap_err();
+    assert!(!matches!(err, AuthError::InvalidConfig { .. }), "{err}");
+}
+
+#[tokio::test]
+async fn azure_devops_token_is_checked_against_the_profile() {
+    let server = MockServer::start().await;
+    // base64(":az-token")
+    Mock::given(method("GET"))
+        .and(path("/_apis/profile/profiles/me"))
+        .and(header("authorization", "Basic OmF6LXRva2Vu"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "id": "aaaa-bbbb", "displayName": "Hoang Nguyen", "publicAlias": "aaaa-bbbb",
+            "emailAddress": "hoang@acme.vn"
+        })))
+        .mount(&server)
+        .await;
+    // An invalid token gets the sign-in page instead of JSON.
+    Mock::given(method("GET"))
+        .and(path("/_apis/profile/profiles/me"))
+        .and(header("authorization", "Basic OmJhZA=="))
+        .respond_with(ResponseTemplate::new(203).set_body_string("<html>Sign in</html>"))
+        .mount(&server)
+        .await;
+    let endpoint = custom(ProviderKind::AzureDevops, &server);
+    let info = validate_git_token(&http(), &endpoint, None, &SecretToken::new("az-token"))
+        .await
+        .unwrap();
+    assert_eq!(info.user.username, "hoang@acme.vn");
+    assert_eq!(info.user.display_name.as_deref(), Some("Hoang Nguyen"));
+
+    let err = validate_git_token(&http(), &endpoint, None, &SecretToken::new("bad"))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            AuthError::Provider {
+                error: ProviderError::Unauthorized { .. }
+            }
+        ),
+        "{err}"
+    );
+}
+
+#[tokio::test]
+async fn git_only_servers_never_get_api_requests() {
+    let server = MockServer::start().await;
+    for kind in [ProviderKind::Bitbucket, ProviderKind::AzureDevops] {
+        let endpoint = custom(kind, &server);
+        assert!(kind.git_only());
+        let client =
+            nanomgg_providers::ProviderClient::new(http(), endpoint.clone(), SecretToken::new("t"));
+        let err = client
+            .api()
+            .get_json::<serde_json::Value>(&["user"], &[])
+            .await
+            .unwrap_err();
+        assert!(matches!(err, ProviderError::Unsupported { .. }), "{err}");
+        // Nor does the GitHub / GitLab token check run against them.
+        assert!(
+            validate_token(&http(), &endpoint, &SecretToken::new("t"))
+                .await
+                .is_err()
+        );
+    }
+    assert!(server.received_requests().await.unwrap().is_empty());
+    assert_eq!(ProviderEndpoint::bitbucket().web_host(), "bitbucket.org");
+    assert_eq!(ProviderEndpoint::azure_devops().web_host(), "dev.azure.com");
+}
+
+/// Talks to the real services (no account needed): each must refuse a wrong token the way
+/// the sign-in code expects. Run with `cargo test -p nanomgg-auth --test tokens -- --ignored`.
+#[tokio::test]
+#[ignore = "needs network access to bitbucket.org, dev.azure.com and codeberg.org"]
+async fn real_servers_refuse_a_wrong_token() {
+    let wrong = SecretToken::new("not-a-real-token");
+    let unauthorized = |result: Result<TokenInfo, AuthError>, who: &str| {
+        let err = result.expect_err(who);
+        assert!(
+            matches!(
+                &err,
+                AuthError::Provider {
+                    error: ProviderError::Unauthorized { .. }
+                }
+            ),
+            "{who}: {err}"
+        );
+    };
+    unauthorized(
+        validate_git_token(
+            &http(),
+            &ProviderEndpoint::bitbucket(),
+            Some("nobody@example.invalid"),
+            &wrong,
+        )
+        .await,
+        "bitbucket",
+    );
+    unauthorized(
+        validate_git_token(&http(), &ProviderEndpoint::azure_devops(), None, &wrong).await,
+        "azure devops",
+    );
+    let codeberg = ProviderEndpoint::gitea("https://codeberg.org").unwrap();
+    unauthorized(validate_token(&http(), &codeberg, &wrong).await, "codeberg");
+}

@@ -8,7 +8,7 @@ use nanomgg_accounts::{
 use nanomgg_auth::{
     AuthError, DeviceFlowConfig, Feature, LoopbackLogin, PkceConfig, TokenInfo, TokenSet,
     default_scopes, needs_refresh, poll_device_token, refresh_github_token, refresh_gitlab_token,
-    request_device_code, token_health, validate_token,
+    request_device_code, token_health, validate_git_token, validate_token,
 };
 use nanomgg_providers::Provider as _;
 use nanomgg_providers::{
@@ -50,6 +50,9 @@ pub fn endpoint_kind(kind: AccountProviderKind) -> ProviderKind {
         AccountProviderKind::GithubEnterprise => ProviderKind::GithubEnterprise,
         AccountProviderKind::Gitlab => ProviderKind::Gitlab,
         AccountProviderKind::GitlabSelfHosted => ProviderKind::GitlabSelfHosted,
+        AccountProviderKind::Gitea => ProviderKind::Gitea,
+        AccountProviderKind::Bitbucket => ProviderKind::Bitbucket,
+        AccountProviderKind::AzureDevops => ProviderKind::AzureDevops,
     }
 }
 
@@ -99,12 +102,48 @@ pub fn client_id(provider: &Provider) -> Option<String> {
 
 /// Scopes to tick when creating a PAT (same as the OAuth defaults).
 pub fn pat_scopes(provider: &Provider) -> Vec<String> {
+    match provider.kind {
+        AccountProviderKind::Bitbucket => {
+            return [
+                "read:user:bitbucket",
+                "read:repository:bitbucket",
+                "write:repository:bitbucket",
+            ]
+            .map(String::from)
+            .to_vec();
+        }
+        AccountProviderKind::AzureDevops => {
+            return ["Code (Read & write)", "User Profile (Read)"]
+                .map(String::from)
+                .to_vec();
+        }
+        _ => {}
+    }
+    if provider.kind == AccountProviderKind::Gitea {
+        // Gitea / Forgejo token permissions (read user, read and write the rest).
+        return [
+            "read:user",
+            "write:repository",
+            "write:issue",
+            "read:organization",
+        ]
+        .map(String::from)
+        .to_vec();
+    }
     default_scopes(family(provider))
 }
 
 /// Token creation page with the scopes pre-selected.
 pub fn pat_url(provider: &Provider) -> String {
     let base = provider.base_url.trim_end_matches('/');
+    match provider.kind {
+        AccountProviderKind::Gitea => return format!("{base}/user/settings/applications"),
+        AccountProviderKind::Bitbucket => {
+            return "https://id.atlassian.com/manage-profile/security/api-tokens".into();
+        }
+        AccountProviderKind::AzureDevops => return "https://dev.azure.com/".into(),
+        _ => {}
+    }
     let scopes = pat_scopes(provider).join(",");
     match family(provider) {
         ProviderFamily::Github => {
@@ -391,6 +430,44 @@ pub async fn add_pat(
     .await
 }
 
+/// Signs in to a git-only server (Bitbucket, Azure DevOps) with an access token. `login` is
+/// what the token is checked with (Bitbucket: the Atlassian account email). The account
+/// only signs push / pull / clone.
+pub async fn add_git_token(
+    st: &AppState,
+    rt: &AuthRuntime,
+    provider_id: &str,
+    login: Option<String>,
+    token: Zeroizing<String>,
+    label: Option<String>,
+) -> AuthResult<Account> {
+    let p = provider(st, provider_id)?;
+    if !p.kind.git_only() {
+        return Err(
+            AppError::InvalidInput("this server signs in with a regular token".into()).into(),
+        );
+    }
+    let endpoint = endpoint_for(&p)?;
+    let token = SecretToken::from(Zeroizing::new(token.trim().to_owned()));
+    let info = validate_git_token(&rt.http, &endpoint, login.as_deref(), &token).await?;
+    save_login(
+        st,
+        rt,
+        &p,
+        &endpoint,
+        &info,
+        Login {
+            method: AuthMethod::Pat,
+            access: &token,
+            refresh: None,
+            expires_at: None,
+            scopes: None,
+            label: label.map(|l| l.trim().to_owned()).filter(|l| !l.is_empty()),
+        },
+    )
+    .await
+}
+
 pub async fn update_token(
     st: &AppState,
     rt: &AuthRuntime,
@@ -401,7 +478,11 @@ pub async fn update_token(
     let p = provider(st, &acc.provider_id)?;
     let endpoint = endpoint_for(&p)?;
     let token = SecretToken::from(Zeroizing::new(token.trim().to_owned()));
-    let info = validate_token(&rt.http, &endpoint, &token).await?;
+    let info = if p.kind.git_only() {
+        validate_git_token(&rt.http, &endpoint, Some(&acc.username), &token).await?
+    } else {
+        validate_token(&rt.http, &endpoint, &token).await?
+    };
     if !info.user.username.eq_ignore_ascii_case(&acc.username) {
         return Err(AuthCommandError::WrongAccount {
             message: format!(
@@ -754,7 +835,15 @@ async fn revalidate(
             },
         })
     })?;
-    let info = validate_token(&rt.http, &endpoint, &SecretToken::from(token)).await?;
+    let info = match p.kind {
+        // The email a Bitbucket token is checked with is not kept: nothing to re-check here
+        // (a rejected token shows up at the next push or pull).
+        AccountProviderKind::Bitbucket => return Ok(()),
+        AccountProviderKind::AzureDevops => {
+            validate_git_token(&rt.http, &endpoint, None, &SecretToken::from(token)).await?
+        }
+        _ => validate_token(&rt.http, &endpoint, &SecretToken::from(token)).await?,
+    };
     let mut updated = acc.clone();
     updated.scopes = info.scopes.clone().unwrap_or_default();
     // OAuth tokens without expiry info keep what the token endpoint said.

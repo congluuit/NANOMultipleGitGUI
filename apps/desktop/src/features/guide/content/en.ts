@@ -137,6 +137,33 @@ export const guideEn: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "all",
+        title: "All repositories at once",
+        blocks: [
+          {
+            kind: "p",
+            text: "With more than one repository open, **All repos** in the toolbar (or command palette → **All repositories…**) lists every open repository with its branch, the commits to pull or push, uncommitted changes and stashes. Click a row to go to that repository.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Fetch all** asks every server what is new, three repositories at a time.",
+              "**Pull all** only touches repositories that are behind and have nothing uncommitted, and only fast-forwards. Anything that needs a decision is left for you.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "sparse",
+        title: "Keep only some folders (sparse checkout)",
+        blocks: [
+          {
+            kind: "p",
+            text: "In a very big repository you can keep only the folders you work on: command palette → **Sparse checkout (keep only some folders)…**, tick the folders, **Keep**. The other folders leave your disk but stay in the repository; **Turn off** brings every file back.",
+          },
+        ],
+      },
     ],
   },
   {
@@ -153,7 +180,7 @@ export const guideEn: GuideTopic[] = [
             kind: "steps",
             items: [
               "Open **Settings** (gear on the toolbar) → **Manage accounts…** → tab **Accounts** → **Add account**.",
-              "Choose where the account lives: GitHub.com, GitHub Enterprise, GitLab.com or a self-hosted GitLab.",
+              "Choose where the account lives: GitHub.com, GitHub Enterprise, GitLab.com or a self-hosted GitLab. Gitea / Forgejo, Bitbucket and Azure DevOps sign in with an access token; for Bitbucket and Azure DevOps the app uses the account for push, pull and clone and does not show pull requests or issues yet.",
               "Choose how to sign in: a short device code typed on the website, signing in with the browser, or pasting a personal access token (PAT).",
             ],
           },
@@ -328,6 +355,34 @@ export const guideEn: GuideTopic[] = [
           {
             kind: "warn",
             text: "The staged changes are sent to the AI service you chose. Do not use a cloud service for code you are not allowed to share; a local model keeps everything on your computer.",
+          },
+        ],
+      },
+      {
+        id: "ai-review",
+        title: "Ask AI to review your changes",
+        blocks: [
+          {
+            kind: "p",
+            text: "When AI is on, the magnifier button next to the summary box (or command palette → **AI review of my changes…**) asks the AI to look for mistakes in what you are about to commit: bugs, leftover debug code, secrets, files committed by accident.",
+          },
+          {
+            kind: "warn",
+            text: "The review only runs when you ask for it, and it asks before sending anything the first time. It never runs by itself before a commit or a push and never blocks them. An AI can be wrong: treat it as a second pair of eyes.",
+          },
+        ],
+      },
+      {
+        id: "patch",
+        title: "Patch files",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "Right-click a commit → **Save as patch…** writes the commit to a file you can send to someone.",
+              "Command palette → **Save uncommitted changes as a patch…** does the same for work you have not committed.",
+              "Command palette → **Apply a patch file…** shows what the file contains first, then applies it as changes (you commit them yourself) or as the original commits.",
+            ],
           },
         ],
       },
@@ -589,6 +644,40 @@ export const guideEn: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "reflog",
+        title: "Find a lost commit",
+        blocks: [
+          {
+            kind: "p",
+            text: "Deleted a branch or reset too far? Command palette → **Find a lost commit (reflog)…** lists everywhere HEAD has been. Find the commit, then **Branch** creates a branch on it and the work is back.",
+          },
+        ],
+      },
+      {
+        id: "bisect",
+        title: "Find the commit that broke something",
+        blocks: [
+          {
+            kind: "steps",
+            items: [
+              "Right-click an old commit where it still worked → **Find the commit that broke it → It still worked here**.",
+              "The app checks out a commit in the middle. Run your project and click **It works** or **It is broken** in the blue bar (**Cannot test** when that commit does not build).",
+              "After a few rounds the bar names the first broken commit. **Finish** takes you back to where you started.",
+            ],
+          },
+        ],
+      },
+      {
+        id: "stats",
+        title: "Repository statistics",
+        blocks: [
+          {
+            kind: "p",
+            text: "Command palette → **Repository statistics…** shows the number of commits and authors, commits per week over the last year, the most active authors and the files that change most.",
+          },
+        ],
+      },
     ],
   },
   {
@@ -676,7 +765,7 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "tip",
-            text: "Already committed a big file but not pushed? Push Guard offers **Move to LFS** for the unpushed commits.",
+            text: "Already committed a big file but not pushed? Push Guard offers **Move to LFS** for the unpushed commits. If the server already refused a file as too big, do not retry: click **Move big files to LFS and push again** on the error, and the app finds the files, moves them and pushes again. For a file too big even for LFS, choose **Take big files out of the commits**; it stays on your computer.",
           },
         ],
       },

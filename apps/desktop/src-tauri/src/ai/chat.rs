@@ -143,11 +143,19 @@ pub fn system_prompt(language: &str, context: &str) -> String {
          command only when the app cannot do it, inside a code block.\n\
          3. Before any step that can lose work (force push, reset --hard, deleting files or \
          branches), warn clearly and say how to stay safe.\n\
+         4. The facts may list \"Actions the app can run\" as `[id] what it does`. The user \
+         can run them with one click under your answer. When one or more of them fixes the \
+         problem, say in your steps what each of those does, and end your answer with one last \
+         line of exactly this form: {ACTIONS_PREFIX} id1, id2 (one to three ids from that \
+         list, the best first). Never invent an id; leave the line out when none fits.\n\
          Never ask for passwords, tokens or keys, and never tell the user to paste them \
          anywhere. If the facts are not enough, say exactly what to check.\n\n\
          Facts:\n{context}"
     )
 }
+
+/// Last line of an answer naming the app actions the model recommends (see [`system_prompt`]).
+pub const ACTIONS_PREFIX: &str = "ACTIONS:";
 
 pub fn language_of(app_language: &str) -> &'static str {
     if app_language.to_ascii_lowercase().starts_with("vi") {

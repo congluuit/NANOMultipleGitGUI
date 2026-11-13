@@ -27,7 +27,9 @@
     "copyPath": "Copy folder path",
     "pin": "Pin tab",
     "unpin": "Unpin tab",
-    "pinned": "Pinned"
+    "pinned": "Pinned",
+    "groupByAccount": "Group tabs by account",
+    "alreadyGrouped": "Tabs are already grouped by account."
   },
   "toolbar": {
     "fetch": "Fetch",
@@ -66,7 +68,8 @@
     "loading": "Loading…",
     "jumpTo": "Click to go to the commit",
     "publishRepo": "Publish to GitHub / GitLab…",
-    "addRemote": "Add remote by URL…"
+    "addRemote": "Add remote by URL…",
+    "recent": "Recent"
   },
   "graph": {
     "openRepo": "Open repository…",
@@ -150,7 +153,9 @@
     "confirmBranchSwitch": "Ask before switching branches by double-click",
     "confirmBranchSwitchHint": "Double-click or Enter on a branch in the sidebar shows a confirmation first, so a misclick never switches.",
     "donate": "If you like this idea, please support me via",
-    "donateThanks": "Scan with your banking app. Thank you! "
+    "donateThanks": "Scan with your banking app. Thank you! ",
+    "osNotifications": "System notifications",
+    "osNotificationsHint": "When the window is in the background, show a system notification for what finishes or fails (a push, a fetch summary, an error)."
   },
   "palette": {
     "title": "Palette & design tokens",
@@ -196,7 +201,8 @@
     "lfsMissing": "Git LFS is not installed. Large files in LFS repositories cannot be downloaded. Install git-lfs {{min}} or later (https://git-lfs.com).",
     "lfsOld": "Git LFS {{version}} is too old. {{min}} or later is required.",
     "recheck": "Check again",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "loading": "Loading…"
   },
   "details": {
     "title": "Commit details",
@@ -264,7 +270,11 @@
     "conflictCount_one": "{{count}} conflict",
     "undoShort": "Undo",
     "resolvedShort": "Resolved",
-    "unsavedTitle": "Edited in the app and not saved yet: open the file to save it. What gets committed is the version on disk."
+    "unsavedTitle": "Edited in the app and not saved yet: open the file to save it. What gets committed is the version on disk.",
+    "staging": "Staging {{done}}/{{total}} files",
+    "stageStopping": "Stopping…",
+    "stageStopped": "Stopped: {{done}} of {{total}} files staged",
+    "stagePartly": "{{done}} of {{total}} files were staged before the error; they stay staged."
   },
   "diff": {
     "title": "Diff",
@@ -637,7 +647,9 @@
       "behindHead": "Your current branch {{branch}} is {{count}} commits behind. Pull to get them",
       "behindHead_one": "Your current branch {{branch}} is {{count}} commit behind. Pull to get it",
       "more": "… and {{count}} more",
-      "pull": "Pull {{branch}}"
+      "pull": "Pull {{branch}}",
+      "titleAuto": "New on the server: {{count}} remote branches changed.",
+      "titleAuto_one": "New on the server: {{count}} remote branch changed."
     },
     "kind": {
       "fetch": "Fetch",
@@ -768,7 +780,10 @@
     "estimateFailed": "Could not estimate the LFS upload: {{message}}",
     "ignoreDiskSpace": "Download anyway",
     "diskWarning": "Only {{free}} free on the disk, about {{needed}} needed.",
-    "cancelled": "Transfer cancelled. Running it again transfers only what is missing."
+    "cancelled": "Transfer cancelled. Running it again transfers only what is missing.",
+    "openRepo": "Open",
+    "flashDone": "{{kind}} done · {{repo}}",
+    "flashFailed": "{{kind}} failed · {{repo}}"
   },
   "lfsErrors": {
     "noPermission": {
@@ -1173,13 +1188,19 @@
       "github": "GitHub.com",
       "githubEnterprise": "GitHub Enterprise",
       "gitlab": "GitLab.com",
-      "gitlabSelfHosted": "Self-hosted GitLab"
+      "gitlabSelfHosted": "Self-hosted GitLab",
+      "gitea": "Gitea / Forgejo",
+      "bitbucket": "Bitbucket",
+      "azureDevops": "Azure DevOps"
     },
     "kindHint": {
       "github": "A github.com account",
       "githubEnterprise": "Your company's GitHub server",
       "gitlab": "A gitlab.com account",
-      "gitlabSelfHosted": "Your own GitLab server"
+      "gitlabSelfHosted": "Your own GitLab server",
+      "gitea": "Codeberg or your own server (access token, experimental)",
+      "bitbucket": "bitbucket.org, for push, pull and clone (API token)",
+      "azureDevops": "dev.azure.com, for push, pull and clone (access token)"
     },
     "urlError": {
       "required": "Enter the server address",
@@ -1222,7 +1243,11 @@
         "required": "Paste the token here",
         "malformed": "The token must not contain spaces"
       },
-      "submit": "Check and save"
+      "submit": "Check and save",
+      "login": "Email of your Atlassian account",
+      "loginHint": "The email you sign in to Bitbucket with. It is only used to check the token.",
+      "loginRequired": "Enter the email of your Atlassian account",
+      "gitOnly": "Push, pull and clone run as this account. Pull requests, issues and CI of this server are not shown in the app yet."
     },
     "done": {
       "title": "Account added",
@@ -1548,7 +1573,7 @@
       "inCommits_one": "in {{count}} commit",
       "inCommits_other": "in {{count}} commits",
       "migrate": "Move to LFS",
-      "migrateDesc": "Runs git lfs migrate import on the unpushed commits only: {{paths}}",
+      "migrateDesc": "Runs git lfs migrate import on the unpushed commits only (uncommitted changes are put aside and back): {{paths}}",
       "sharedBlobsTitle": "Large files in already-pushed commits",
       "sharedBlobsDesc": "The app never rewrites shared history. To fix it: agree with your team, then run git lfs migrate import --everything (requires a force push), or remove the file from history with git filter-repo. Everyone will need to re-clone afterwards.",
       "backupDone": "Rewrote {{count}} commit(s). Backup: {{ref}}",
@@ -1557,7 +1582,9 @@
       "pushAnyway": "Push anyway",
       "push": "Push",
       "pushBlocked": "Cannot push: the account has no write access or a file exceeds the hard limit",
-      "rewriteFailed": "Could not rewrite: {{message}}"
+      "rewriteFailed": "Could not rewrite: {{message}}",
+      "drop": "Take out of the commits (keep on disk)",
+      "dropDesc": "Takes these files out of the unpushed commits, keeps them on disk and adds them to .gitignore. For files too big even for LFS, or a server without LFS: {{paths}}"
     }
   },
   "failureHelp": {
@@ -1587,7 +1614,7 @@
     "protectedBranch": "The repository owner protects this branch (no direct push, no force push or reviews required). Create a new branch, push it and open a Pull Request / Merge Request.",
     "emailPrivacy": "You enabled 'Block command line pushes that expose my email' on GitHub. Change the identity's email to your …@users.noreply.github.com address (see GitHub Settings → Emails), fix the author of the unpushed commits, then Push again.",
     "secretDetected": "An unpushed commit contains a password, API key or token. Remove it from the file, rewrite the commit (Amend, or reset before that commit and commit again), revoke/rotate the leaked secret, then Push again.",
-    "fileTooLarge": "GitHub does not accept files over 100 MB. Use Git LFS for that file: Push Guard offers 'Move to LFS' for unpushed commits.",
+    "fileTooLarge": "The server does not accept files over its size limit (GitHub: 100 MB). Retrying as is only waits for the same long upload and fails again. Click 'Move big files to LFS and push again': the app finds the big files in the unpushed commits, puts them in Git LFS and pushes again. If a file is too big even for LFS, choose 'Take big files out of the commits': the file stays on your computer.",
     "action": {
       "signIn": "Sign in to {{name}}",
       "reauth": "Sign in to {{account}} again",
@@ -1685,7 +1712,8 @@
     "technical": "Technical details (git output)",
     "autoHide": "Hides in {{count}} seconds",
     "autoHide_one": "Hides in {{count}} second",
-    "paused": "Paused while you are reading"
+    "paused": "Paused while you are reading",
+    "openRepo": "Open {{name}}"
   },
   "branchMenu": {
     "pull": "Pull (fast-forward if possible)",
@@ -2865,7 +2893,16 @@
     "submitNew": "Create repository",
     "submitNewPush": "Create and push",
     "submitUrl": "Add remote",
-    "submitUrlPush": "Add remote and push"
+    "submitUrlPush": "Add remote and push",
+    "describe": "Suggest a description with AI",
+    "describeSetup": "Suggest a description with AI (AI is off, click to set it up)",
+    "describeSendsTo": "The project's name, README and file types are sent to {{service}} (no code).",
+    "describing": "AI is writing a description…",
+    "background": "Run in background",
+    "backgroundTitle": "Close this window; the push goes on in the transfer queue in the status bar",
+    "backgroundStarted": "Pushing {{branch}} to {{remote}} in the background",
+    "backgroundHint": "You can switch to another project. Progress and the result show in the transfer queue in the status bar.",
+    "donePushSkipped": "The repository and the remote {{remote}} are ready, but nothing was pushed yet. Click Push when you are ready."
   },
   "issues": {
     "sidebar": "Issues",
@@ -4110,6 +4147,218 @@
       "preview": "What will be sent:",
       "remember": "Don't ask again",
       "confirm": "Send and ask AI"
+    },
+    "doIt": "Do it in the app",
+    "action": {
+      "retry": "Try the failed operation again",
+      "fetch": "Fetch",
+      "pull": "Pull (merge new commits)",
+      "push": "Push",
+      "stash": "Stash changes",
+      "lfs": "Open Git LFS settings",
+      "accounts": "Open accounts"
     }
+  },
+  "largeFiles": {
+    "toLfs": "Move big files to LFS and push again",
+    "drop": "Take big files out of the commits (keep them on disk)",
+    "scanning": "Looking for big files in the commits not pushed yet…",
+    "moving_one": "Moving {{count}} file to Git LFS: {{files}}",
+    "moving_other": "Moving {{count}} files to Git LFS: {{files}}",
+    "dropping_one": "Taking {{count}} file out of the unpushed commits: {{files}}",
+    "dropping_other": "Taking {{count}} files out of the unpushed commits: {{files}}",
+    "movedPushing_one": "Moved {{count}} file to Git LFS. Pushing again…",
+    "movedPushing_other": "Moved {{count}} files to Git LFS. Pushing again…",
+    "droppedPushing_one": "Took {{count}} file out of the unpushed commits. Pushing again…",
+    "droppedPushing_other": "Took {{count}} files out of the unpushed commits. Pushing again…",
+    "dropHint": "The files stay on your computer; they are just not sent to the server.",
+    "ignored_one": "Added {{count}} file to .gitignore so it is not committed again (remember to commit .gitignore).",
+    "ignored_other": "Added {{count}} files to .gitignore so they are not committed again (remember to commit .gitignore).",
+    "stashKept": "Your uncommitted changes could not be put back and are still in the Stash. Open Stash to get them back.",
+    "undo": "Undo",
+    "noBranch": "Could not tell which branch to push (detached HEAD, or no remote yet).",
+    "notFound": "No big file found in the commits not pushed yet",
+    "notFoundHint": "The server says a file is too big ({{files}}) but none of the unpushed commits has a file over the limit. It may be in a commit pushed earlier. Ask AI or open Push Guard for details.",
+    "failed": "Could not handle the big files"
+  },
+  "overview": {
+    "cmd": "All repositories…",
+    "button": "All repos",
+    "tooltip": "Every open repository at a glance: fetch all, pull all",
+    "title": "All repositories",
+    "description": "Branch, commits to pull or push and uncommitted changes of every open repository.",
+    "summary": "{{count}} repositories open. {{behind}} have commits to pull, {{ahead}} have commits to push, {{dirty}} have uncommitted changes.",
+    "summary_one": "{{count}} repository open. {{behind}} have commits to pull, {{ahead}} have commits to push, {{dirty}} have uncommitted changes.",
+    "fetchAll": "Fetch all",
+    "pullAll": "Pull all ({{count}})",
+    "pullAllTip": "Pulls only repositories that are behind and have nothing uncommitted, fast-forward only. The others are left alone.",
+    "refresh": "Refresh",
+    "col": {
+      "repo": "Repository",
+      "branch": "Branch",
+      "sync": "Server",
+      "state": "State"
+    },
+    "openTip": "Open {{path}}",
+    "detached": "detached HEAD",
+    "empty": "No repository is open.",
+    "note": "Commits to pull are as of the last fetch. Fetch all to see what is new on the servers.",
+    "missing": "Folder not found",
+    "unreadable": "Cannot be read",
+    "conflicts": "{{count}} conflicts",
+    "conflicts_one": "{{count}} conflict",
+    "changes": "{{count}} changed files",
+    "changes_one": "{{count}} changed file",
+    "stashes": "{{count}} stashes",
+    "stashes_one": "{{count}} stash",
+    "clean": "Nothing to commit",
+    "noUpstream": "Not on a server",
+    "inSync": "Up to date",
+    "behindTip": "{{count}} commits to pull",
+    "behindTip_one": "{{count}} commit to pull",
+    "aheadTip": "{{count}} commits to push",
+    "aheadTip_one": "{{count}} commit to push",
+    "done": {
+      "fetch": "Fetched.",
+      "pull": "Pulled."
+    },
+    "result": {
+      "fetch": "Fetched {{count}} repositories.",
+      "fetch_one": "Fetched {{count}} repository.",
+      "pull": "Pulled {{count}} repositories.",
+      "pull_one": "Pulled {{count}} repository.",
+      "fetchFailed": "Fetched {{done}} repositories, {{failed}} failed.",
+      "pullFailed": "Pulled {{done}} repositories, {{failed}} failed."
+    }
+  },
+  "reflog": {
+    "cmd": "Find a lost commit (reflog)…",
+    "title": "Where HEAD has been",
+    "description": "Every commit, checkout, reset and rebase git remembers, newest first. A commit that no branch points to any more is still here: create a branch on it to get it back.",
+    "filter": "Filter by action, message or commit id…",
+    "show": "Show",
+    "branch": "Branch",
+    "branchTip": "Create a branch on this commit",
+    "checkout": "Checkout",
+    "empty": "Nothing matches."
+  },
+  "stats": {
+    "cmd": "Repository statistics…",
+    "title": "Repository statistics",
+    "description": "From the history of the current branch.",
+    "commits": "Commits",
+    "authors": "Authors",
+    "firstCommit": "First commit",
+    "lastCommit": "Latest commit",
+    "none": "None yet",
+    "activity": "Commits per week, last 12 months",
+    "activityLabel": "{{count}} commits in the last 12 months",
+    "weekTip": "Week of {{date}}: {{count}} commits",
+    "weekTip_one": "Week of {{date}}: {{count}} commit",
+    "topAuthors": "Most active authors",
+    "topFiles": "Files changed most, last 12 months",
+    "noRecent": "No commits in the last 12 months."
+  },
+  "sparse": {
+    "cmd": "Sparse checkout (keep only some folders)…",
+    "title": "Sparse checkout",
+    "description": "Keep only the folders you work on. The others disappear from your disk but stay in the repository, and come back when you turn this off.",
+    "descriptionOn": "Sparse checkout is on: {{count}} folders are kept on disk.",
+    "descriptionOn_one": "Sparse checkout is on: {{count}} folder is kept on disk.",
+    "folders": "Folders to keep",
+    "all": "All",
+    "none": "None",
+    "noFolders": "This repository has no folders at the top level.",
+    "extra": "Other folders (one per line)",
+    "extraPlaceholder": "packages/app/src",
+    "note": "Files at the top level are always kept. Commit or stash your changes first: git refuses when a folder to remove has uncommitted changes.",
+    "disable": "Turn off (bring every file back)",
+    "apply": "Keep {{count}} folders",
+    "apply_one": "Keep {{count}} folder",
+    "keepsAllTip": "Every folder is selected: there is nothing to leave out.",
+    "applied": "Sparse checkout: {{count}} folders kept on disk.",
+    "applied_one": "Sparse checkout: {{count}} folder kept on disk.",
+    "disabled": "Sparse checkout is off. Every file is back."
+  },
+  "patch": {
+    "cmd": {
+      "apply": "Apply a patch file…",
+      "saveChanges": "Save uncommitted changes as a patch…"
+    },
+    "menu": {
+      "save": "Save as patch…"
+    },
+    "saveTitle": "Save patch",
+    "pickTitle": "Choose a patch file",
+    "saved": "Patch saved to {{file}}.",
+    "applied": "Patch applied. The changes are in your working tree, not committed.",
+    "appliedCommits": "Patch applied as commits.",
+    "applyTitle": "Apply patch",
+    "commits": "{{count}} commits in this patch",
+    "commits_one": "{{count}} commit in this patch",
+    "files": "{{count}} files changed",
+    "files_one": "{{count}} file changed",
+    "notClean": "This patch does not fit your files exactly. It will be merged where possible, and you may have conflicts to resolve.",
+    "asCommits": "Apply as {{count}} commits",
+    "asCommits_one": "Apply as {{count}} commit",
+    "asCommitsTip": "Recreates the commits with their author, date and message",
+    "asChanges": "Apply as changes",
+    "asChangesTip": "Puts the changes in your working tree; you review and commit them yourself"
+  },
+  "bisect": {
+    "cmd": "Find the commit that broke it (bisect)…",
+    "menu": {
+      "title": "Find the commit that broke it",
+      "goodHere": "It still worked here (start bisect)…",
+      "badHere": "It is broken here (start bisect)…"
+    },
+    "startTitle": "Find the commit that broke it",
+    "startDescription": "Give a commit where it is broken and an older one where it still worked. The app checks out commits in between; you test each one and say whether it works, until the first broken commit is found.",
+    "badLabel": "Broken commit",
+    "badHint": "A commit id, branch or tag. HEAD is where you are now.",
+    "goodLabel": "Last commit known to work",
+    "goodPlaceholder": "commit id, tag or branch",
+    "goodHint": "Must be older than the broken commit.",
+    "start": "Start",
+    "started": "Bisect started: {{count}} commits to narrow down. Test the app now, then say whether it works.",
+    "started_one": "Bisect started: {{count}} commit to narrow down. Test the app now, then say whether it works.",
+    "found": "Found it: {{oid}} {{subject}} is the first broken commit.",
+    "stopped": "Bisect ended. You are back where you started.",
+    "banner": {
+      "title": "Finding the broken commit.",
+      "testing": "Test {{oid}}",
+      "left": "about {{count}} more tests",
+      "left_one": "about {{count}} more test",
+      "good": "It works",
+      "goodTip": "This commit does not have the problem",
+      "bad": "It is broken",
+      "badTip": "This commit has the problem",
+      "skip": "Cannot test",
+      "skipTip": "This commit cannot be tested (it does not build, for example)",
+      "stop": "Stop",
+      "found": "First broken commit:",
+      "show": "Show commit",
+      "finish": "Finish"
+    }
+  },
+  "aiReview": {
+    "cmd": "AI review of my changes…",
+    "button": "AI review of the changes to commit",
+    "title": "AI review",
+    "consent": {
+      "cloud": "Your changes will be sent to {{service}} (model {{model}}).",
+      "local": "Your changes stay on this computer: {{service}} (model {{model}}).",
+      "what": "What is sent: the diff of the staged files (cut to keep it small), the file names and the branch name. Never a password or token.",
+      "never": "The review only runs when you ask for it here. It never runs by itself before a commit or a push, and it does not block them.",
+      "remember": "Don't ask again",
+      "confirm": "Review my changes"
+    },
+    "running": "{{service}} is reading your changes…",
+    "doneDescription": "{{count}} files reviewed by {{service}} (model {{model}}).",
+    "doneDescription_one": "{{count}} file reviewed by {{service}} (model {{model}}).",
+    "unstagedUsed": "Nothing was staged, so the review looked at your unstaged changes.",
+    "truncated": "The changes were too long to send in full: part of them was not reviewed.",
+    "disclaimer": "An AI can be wrong or miss things. Use this as a second pair of eyes, not as a guarantee.",
+    "again": "Review again"
   }
 }

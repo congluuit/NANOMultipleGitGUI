@@ -63,6 +63,11 @@ pub async fn validate_token(
             message: "empty token".into(),
         });
     }
+    if endpoint.kind().git_only() {
+        return Err(AuthError::InvalidConfig {
+            message: "this server signs in through `validate_git_token`".into(),
+        });
+    }
     let api = ApiClient::new(http.clone(), endpoint.clone(), token.clone());
     match endpoint.kind().family() {
         ProviderFamily::Github => validate_github(api, token).await,
@@ -182,6 +187,176 @@ async fn validate_gitlab(api: ApiClient) -> Result<TokenInfo, AuthError> {
         expires_at,
         token_kind,
         token_name,
+    })
+}
+
+/// Placeholder user name git accepts with a Bitbucket API token.
+const BITBUCKET_TOKEN_USER: &str = "x-bitbucket-api-token-auth";
+
+#[derive(Deserialize)]
+struct RawBitbucketUser {
+    username: Option<String>,
+    nickname: Option<String>,
+    display_name: Option<String>,
+    uuid: Option<String>,
+    account_id: Option<String>,
+    #[serde(default)]
+    links: RawBitbucketLinks,
+}
+
+#[derive(Deserialize, Default)]
+struct RawBitbucketLinks {
+    avatar: Option<RawLink>,
+    html: Option<RawLink>,
+}
+
+#[derive(Deserialize)]
+struct RawLink {
+    href: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawAzureProfile {
+    id: Option<String>,
+    display_name: Option<String>,
+    public_alias: Option<String>,
+    email_address: Option<String>,
+}
+
+fn non_empty(value: Option<String>) -> Option<String> {
+    value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty())
+}
+
+async fn basic_get<T: serde::de::DeserializeOwned>(
+    http: &reqwest::Client,
+    url: reqwest::Url,
+    user: &str,
+    token: &SecretToken,
+) -> Result<T, AuthError> {
+    let resp = http
+        .get(url)
+        .basic_auth(user, Some(token.expose().trim()))
+        .header(reqwest::header::ACCEPT, "application/json")
+        .send()
+        .await
+        .map_err(ProviderError::from)?;
+    let status = resp.status();
+    // Azure DevOps answers an invalid token with a redirect to its sign-in page (203 + HTML).
+    let json = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.contains("json"));
+    // (or, when redirects are not followed, with the redirect itself).
+    if status == reqwest::StatusCode::UNAUTHORIZED
+        || status.is_redirection()
+        || status == reqwest::StatusCode::NON_AUTHORITATIVE_INFORMATION
+        || (status.is_success() && !json)
+    {
+        return Err(ProviderError::Unauthorized {
+            message: "the server did not accept this token".into(),
+        }
+        .into());
+    }
+    if status == reqwest::StatusCode::FORBIDDEN {
+        return Err(ProviderError::Forbidden {
+            message: "the token may not read the account it belongs to".into(),
+            hint: None,
+        }
+        .into());
+    }
+    if !status.is_success() {
+        return Err(ProviderError::UnexpectedStatus {
+            status: status.as_u16(),
+            message: "could not check the token".into(),
+        }
+        .into());
+    }
+    let text = resp.text().await.map_err(ProviderError::from)?;
+    Ok(
+        serde_json::from_str(&text).map_err(|e| ProviderError::InvalidResponse {
+            message: e.to_string(),
+        })?,
+    )
+}
+
+/// Checks the token of a git-only server (Bitbucket, Azure DevOps) and says who owns it.
+/// The returned `username` is the one git sends with the token.
+///
+/// - Bitbucket: `GET /2.0/user` with Basic auth. `login` is what the token is used with on
+///   the API: the Atlassian account email for an API token (the Bitbucket user name for an
+///   older app password).
+/// - Azure DevOps: `GET /_apis/profile/profiles/me` with Basic auth and an empty user name
+///   (the token needs "User Profile: Read" next to "Code").
+pub async fn validate_git_token(
+    http: &reqwest::Client,
+    endpoint: &ProviderEndpoint,
+    login: Option<&str>,
+    token: &SecretToken,
+) -> Result<TokenInfo, AuthError> {
+    if token.is_empty() {
+        return Err(AuthError::InvalidConfig {
+            message: "empty token".into(),
+        });
+    }
+    let login = login.map(str::trim).filter(|l| !l.is_empty());
+    let user = match endpoint.kind() {
+        nanomgg_providers::ProviderKind::Bitbucket => {
+            let Some(login) = login else {
+                return Err(AuthError::InvalidConfig {
+                    message: "enter the email of your Atlassian account".into(),
+                });
+            };
+            let raw: RawBitbucketUser =
+                basic_get(http, endpoint.api(&["user"]), login, token).await?;
+            let username = non_empty(raw.username)
+                .or_else(|| non_empty(raw.nickname.clone()).filter(|n| !n.contains(' ')))
+                .unwrap_or_else(|| BITBUCKET_TOKEN_USER.to_owned());
+            ProviderUser {
+                id: non_empty(raw.account_id)
+                    .or(non_empty(raw.uuid))
+                    .unwrap_or_else(|| username.clone()),
+                display_name: non_empty(raw.display_name).or(non_empty(raw.nickname)),
+                avatar_url: raw.links.avatar.and_then(|l| non_empty(l.href)),
+                profile_url: raw.links.html.and_then(|l| non_empty(l.href)),
+                email: login.contains('@').then(|| login.to_owned()),
+                username,
+            }
+        }
+        nanomgg_providers::ProviderKind::AzureDevops => {
+            let mut url = endpoint.api(&["_apis", "profile", "profiles", "me"]);
+            url.set_query(Some("api-version=7.1"));
+            let raw: RawAzureProfile = basic_get(http, url, "", token).await?;
+            let email = non_empty(raw.email_address);
+            let username = email
+                .clone()
+                .or_else(|| login.map(str::to_owned))
+                .or_else(|| non_empty(raw.public_alias.clone()))
+                .ok_or_else(|| ProviderError::InvalidResponse {
+                    message: "the profile has no email address".into(),
+                })?;
+            ProviderUser {
+                id: non_empty(raw.id).unwrap_or_else(|| username.clone()),
+                display_name: non_empty(raw.display_name),
+                avatar_url: None,
+                profile_url: None,
+                email,
+                username,
+            }
+        }
+        _ => {
+            return Err(AuthError::InvalidConfig {
+                message: "this server signs in through `validate_token`".into(),
+            });
+        }
+    };
+    Ok(TokenInfo {
+        user,
+        scopes: None,
+        expires_at: None,
+        token_kind: TokenKind::Unknown,
+        token_name: None,
     })
 }
 

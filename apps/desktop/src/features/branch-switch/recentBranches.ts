@@ -44,3 +44,16 @@ export const useRecentBranches = create<RecentBranchesState>()(
 export function recentBranchesOf(repoId: number): string[] {
   return useRecentBranches.getState().byRepo[repoId] ?? [];
 }
+
+/**
+ * Recent branches for the UI: the ones switched to in the app first, then those git's own
+ * reflog remembers (switches made in a terminal or before the app was installed).
+ */
+export function mergeRecent(
+  recorded: readonly string[],
+  fromReflog: readonly string[] | undefined,
+): string[] {
+  const out = [...recorded];
+  for (const name of fromReflog ?? []) if (!out.includes(name)) out.push(name);
+  return out.slice(0, RECENT_BRANCHES_LIMIT);
+}

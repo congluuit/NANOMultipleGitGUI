@@ -24,6 +24,7 @@ import { useTerminal } from "@/features/terminal/store";
 import { useTerminalShortcut } from "@/features/terminal/useTerminalShortcut";
 import { UndoButtons } from "@/features/undo/UndoButtons";
 import { MyWorkButton } from "@/features/mywork/MyWorkButton";
+import { OverviewButton } from "@/features/repo-tools/OverviewButton";
 import { ToolButton } from "./ToolButton";
 import { useToolbarOverflowLayout } from "./toolbarOverflow";
 import { ToolbarOverflowMenu } from "./ToolbarOverflowMenu";
@@ -79,6 +80,7 @@ export function Toolbar() {
       <BranchDropHost />
       <ToolbarOverflowMenu />
       <div className="flex-1" data-toolbar-flex="" />
+      <OverviewButton />
       <MyWorkButton />
       <ToolButton
         id="sidebar"

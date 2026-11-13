@@ -106,7 +106,8 @@ describe("outcome helpers", () => {
         (v) => `ok ${v}`,
       ),
     ).resolves.toBe(7);
-    expect(useUi.getState().notice).toEqual({ kind: "info", message: "ok 7" });
+    // Tagged with the repository, so a notice from a background tab can name it.
+    expect(useUi.getState().notice).toEqual({ kind: "info", message: "ok 7", repoId: 1 });
 
     const rejected: Outcome<number> = { status: "rejected", reason: "localChanges", message: "" };
     await expect(runOutcome(1, () => Promise.resolve(rejected))).resolves.toBeUndefined();

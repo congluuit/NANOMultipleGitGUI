@@ -15,6 +15,7 @@ const ipc = vi.hoisted(() => ({
   providerSave: vi.fn(),
   authConfig: vi.fn(),
   authAddPat: vi.fn(),
+  authAddGitToken: vi.fn(),
   authUpdateToken: vi.fn(),
   authDeviceStart: vi.fn(),
   authDeviceWait: vi.fn(),
@@ -160,6 +161,58 @@ describe("AddAccountWizard", () => {
     expect(screen.getByText(/@lan/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Xong" }));
     expect(onDone).toHaveBeenCalledWith(account);
+  });
+
+  it("adds a Bitbucket account with the Atlassian email and a token", async () => {
+    const user = userEvent.setup();
+    const bitbucket: Provider = {
+      ...selfHosted,
+      id: "prv_bb",
+      kind: "bitbucket",
+      name: "Bitbucket",
+      baseUrl: "https://bitbucket.org",
+      apiUrl: "https://api.bitbucket.org/2.0",
+    };
+    ipc.providerSave.mockResolvedValue(bitbucket);
+    ipc.authConfig.mockResolvedValue(
+      config({
+        providerId: "prv_bb",
+        hasClientId: false,
+        deviceFlow: false,
+        patScopes: ["read:user:bitbucket", "write:repository:bitbucket"],
+      }),
+    );
+    ipc.authAddGitToken.mockResolvedValue({ ...account, providerId: "prv_bb" });
+    wrap(<AddAccountWizard providers={[github]} onDone={() => {}} onCancel={() => {}} />);
+
+    await user.click(screen.getByRole("radio", { name: /Bitbucket/ }));
+    // A cloud service: no server address to type.
+    expect(screen.queryByLabelText("Địa chỉ máy chủ")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Tiếp tục" }));
+    expect(ipc.providerSave).toHaveBeenCalledWith({
+      kind: "bitbucket",
+      name: "Bitbucket",
+      baseUrl: "https://bitbucket.org",
+    });
+
+    // Token is the only way in.
+    const methods = within(
+      await screen.findByRole("list", { name: "Chọn cách đăng nhập" }),
+    ).getAllByRole("button");
+    expect(methods).toHaveLength(1);
+    await user.click(methods[0]!);
+    expect(screen.getByText(/Pull request, issue và CI/)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Token"), "bb-token");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra và lưu" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("email tài khoản Atlassian");
+    expect(ipc.authAddGitToken).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Email tài khoản Atlassian"), "me@acme.vn");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra và lưu" }));
+    expect(ipc.authAddGitToken).toHaveBeenCalledWith("prv_bb", "me@acme.vn", "bb-token", null);
+    expect(ipc.authAddPat).not.toHaveBeenCalled();
+    expect(await screen.findByText("Đã thêm tài khoản")).toBeInTheDocument();
   });
 
   it("shows the device code and cancels the flow", async () => {

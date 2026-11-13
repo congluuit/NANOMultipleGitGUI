@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToolStatus } from "@/features/repos/queries";
-import { useUi, type Notice } from "@/stores/ui";
-import { noticeDuration } from "./noticeDuration";
+import { useUi, type Notice, type NoticeAction } from "@/stores/ui";
+import { useWorkspace } from "@/stores/workspace";
+import { NOTICE_OTHER_REPO_MS, noticeDuration } from "./noticeDuration";
 import { toolProblems } from "./toolProblems";
 
 function Bar({
@@ -124,7 +125,33 @@ export function NoticeBar() {
 function NoticeView({ notice }: { notice: Notice }) {
   const { t } = useTranslation();
   const showNotice = useUi((s) => s.showNotice);
-  const total = noticeDuration(notice);
+  // About a repository in another tab (a push that finished in the background): name it and
+  // offer to go there.
+  const other = useWorkspace((s) =>
+    notice.repoId !== undefined && notice.repoId !== s.activeId
+      ? (s.tabs.find((x) => x.id === notice.repoId) ?? null)
+      : null,
+  );
+  const actions: NoticeAction[] | undefined = other
+    ? [
+        ...(notice.actions ?? []),
+        {
+          label: t("notice.openRepo", { name: other.name }),
+          run: () => {
+            useWorkspace.getState().setActive(other.id);
+            useUi.getState().setView("workspace");
+          },
+        },
+      ]
+    : notice.actions;
+  const repoChip = other ? (
+    <span className="mr-1.5 inline-block rounded border border-current/30 px-1 font-mono text-[11px] font-normal">
+      {other.name}
+    </span>
+  ) : null;
+  const total = other
+    ? Math.max(noticeDuration(notice), NOTICE_OTHER_REPO_MS)
+    : noticeDuration(notice);
   const [left, setLeft] = useState(total);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -140,7 +167,7 @@ function NoticeView({ notice }: { notice: Notice }) {
     if (left === 0 && useUi.getState().notice === notice) showNotice(null);
   }, [left, notice, showNotice]);
 
-  const rich = Boolean(notice.hint || notice.detail || notice.actions?.length);
+  const rich = Boolean(notice.hint || notice.detail || actions?.length);
   const seconds = Math.ceil(left / 1000);
   return (
     <Bar
@@ -171,13 +198,16 @@ function NoticeView({ notice }: { notice: Notice }) {
     >
       {rich ? (
         <div className="grid min-w-0 flex-1 gap-1 py-0.5">
-          <span className="font-medium break-words">{notice.message}</span>
+          <span className="font-medium break-words">
+            {repoChip}
+            {notice.message}
+          </span>
           {notice.hint && (
             <span className="whitespace-pre-line text-foreground/90">{notice.hint}</span>
           )}
-          {notice.actions?.length ? (
+          {actions?.length ? (
             <span className="flex flex-wrap gap-1.5">
-              {notice.actions.map((a) => (
+              {actions.map((a) => (
                 <Button key={a.label} size="xs" variant="outline" onClick={a.run}>
                   {a.label}
                 </Button>
@@ -194,7 +224,10 @@ function NoticeView({ notice }: { notice: Notice }) {
           )}
         </div>
       ) : (
-        <span className="break-all">{notice.message}</span>
+        <span className="break-all">
+          {repoChip}
+          {notice.message}
+        </span>
       )}
     </Bar>
   );

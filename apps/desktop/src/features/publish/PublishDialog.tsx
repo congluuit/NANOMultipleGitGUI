@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, CloudUpload, LoaderCircle, UserPlus } from "lucide-react";
+import { Check, CloudUpload, LoaderCircle, Minimize2, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +33,10 @@ import { NamespaceSelect } from "@/features/forks/NamespaceSelect";
 import { useRepoRefs } from "@/features/repos/queries";
 import type { Account, ForkRemoteChange, ForkRepo } from "@/ipc";
 import { cn } from "@/lib/utils";
+import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 import { publishNewRepo, publishToUrl, type PublishPhase, type PublishStep } from "./actions";
+import { DescriptionField } from "./DescriptionField";
 import {
   firstSteps,
   plausibleRemoteUrl,
@@ -153,9 +155,23 @@ export function PublishDialog({
     change: ForkRemoteChange;
     pushed: boolean;
     pushFailed: boolean;
+    pushSkipped?: boolean;
   } | null>(null);
   const running = phase !== null;
   const locked = running || result !== null;
+  // The push runs in the transfer queue: the dialog may go away while it uploads, so the
+  // user can work in another repository meanwhile (the queue reports when it is done).
+  const canBackground = phase === "pushing";
+
+  const runInBackground = () => {
+    useUi.getState().showNotice({
+      kind: "info",
+      repoId,
+      message: t("publish.backgroundStarted", { branch: branch ?? "", remote: remoteName }),
+      hint: t("publish.backgroundHint"),
+    });
+    onClose();
+  };
 
   const nameInvalid = !validRepoName(name.trim());
   const urlInvalid = !plausibleRemoteUrl(url);
@@ -172,6 +188,15 @@ export function PublishDialog({
         return;
       case "pushFailed":
         setResult({ repo: step.repo, change: step.change, pushed: false, pushFailed: true });
+        return;
+      case "pushSkipped":
+        setResult({
+          repo: step.repo,
+          change: step.change,
+          pushed: false,
+          pushFailed: false,
+          pushSkipped: true,
+        });
         return;
       case "failed":
         setProblem({ text: step.message, action: null });
@@ -252,10 +277,15 @@ export function PublishDialog({
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open && !running) onClose();
+        if (open) return;
+        if (canBackground) runInBackground();
+        else if (!running) onClose();
       }}
     >
-      <DialogContent className="sm:max-w-lg" onEscapeKeyDown={(e) => running && e.preventDefault()}>
+      <DialogContent
+        className="sm:max-w-lg"
+        onEscapeKeyDown={(e) => running && !canBackground && e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CloudUpload className="size-4" />
@@ -402,13 +432,15 @@ export function PublishDialog({
               <label htmlFor="publish-description" className="font-semibold">
                 {t("publish.descriptionLabel")}
               </label>
-              <input
+              <DescriptionField
                 id="publish-description"
+                repoId={repoId}
+                name={name}
                 value={description}
                 placeholder={t("publish.descriptionPlaceholder")}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={setDescription}
                 disabled={locked}
-                className={inputClass}
+                inputClassName={inputClass}
               />
 
               <span className="font-semibold">{t("publish.visibility")}</span>
@@ -543,7 +575,7 @@ export function PublishDialog({
           <div
             className={cn(
               "rounded-md border p-2 text-xs",
-              result.pushFailed
+              result.pushFailed || result.pushSkipped
                 ? "border-warning/40 bg-warning/10"
                 : "border-success/40 bg-success/10",
             )}
@@ -551,16 +583,18 @@ export function PublishDialog({
           >
             {result.pushFailed
               ? t("publish.donePushFailed", { remote: result.change.remote })
-              : result.pushed
-                ? t("publish.done", {
-                    name: result.repo?.fullName ?? result.change.url,
-                    remote: result.change.remote,
-                    branch: branch ?? "",
-                  })
-                : t("publish.doneNoPush", {
-                    name: result.repo?.fullName ?? result.change.url,
-                    remote: result.change.remote,
-                  })}{" "}
+              : result.pushSkipped
+                ? t("publish.donePushSkipped", { remote: result.change.remote })
+                : result.pushed
+                  ? t("publish.done", {
+                      name: result.repo?.fullName ?? result.change.url,
+                      remote: result.change.remote,
+                      branch: branch ?? "",
+                    })
+                  : t("publish.doneNoPush", {
+                      name: result.repo?.fullName ?? result.change.url,
+                      remote: result.change.remote,
+                    })}{" "}
             {result.repo && /^https:\/\//i.test(result.repo.webUrl) && (
               <button
                 type="button"
@@ -574,9 +608,21 @@ export function PublishDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" size="sm" disabled={running} onClick={onClose}>
-            {result ? t("publish.close") : t("common.cancel")}
-          </Button>
+          {canBackground ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={runInBackground}
+              title={t("publish.backgroundTitle")}
+            >
+              <Minimize2 />
+              {t("publish.background")}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" disabled={running} onClick={onClose}>
+              {result ? t("publish.close") : t("common.cancel")}
+            </Button>
+          )}
           {!result && (
             <Button size="sm" disabled={!canSubmit} onClick={() => void submit()}>
               <CloudUpload />

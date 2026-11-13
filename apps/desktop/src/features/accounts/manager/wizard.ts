@@ -10,15 +10,31 @@ export const PROVIDER_CHOICES: readonly ProviderKind[] = [
   "githubEnterprise",
   "gitlab",
   "gitlabSelfHosted",
+  "gitea",
+  "bitbucket",
+  "azureDevops",
 ];
 
+/** Servers the app only signs git transfers for (no pull requests, issues or CI). */
+export const isGitOnly = (kind: ProviderKind) => kind === "bitbucket" || kind === "azureDevops";
+
+const FIXED_BASE_URLS: Partial<Record<ProviderKind, string>> = {
+  bitbucket: "https://bitbucket.org",
+  azureDevops: "https://dev.azure.com",
+};
+
+/** Base URL of a cloud service that is not a built-in provider row (created on first use). */
+export const fixedBaseUrl = (kind: ProviderKind): string | null => FIXED_BASE_URLS[kind] ?? null;
+
 export const isSelfHosted = (kind: ProviderKind) =>
-  kind === "githubEnterprise" || kind === "gitlabSelfHosted";
+  kind === "githubEnterprise" || kind === "gitlabSelfHosted" || kind === "gitea";
 
 export const isGitlab = (kind: ProviderKind) => kind === "gitlab" || kind === "gitlabSelfHosted";
 
 /** Sign-in methods offered for a provider kind, recommended first. */
 export function methodsFor(kind: ProviderKind): AuthMethodChoice[] {
+  // Gitea / Forgejo: access token only (no OAuth app is registered there).
+  if (kind === "gitea" || isGitOnly(kind)) return ["pat"];
   return isGitlab(kind) ? ["pkce", "device", "pat"] : ["device", "pat"];
 }
 
@@ -69,20 +85,26 @@ export function findProvider(
   kind: ProviderKind,
   baseUrl: string,
 ): Provider | null {
-  if (!isSelfHosted(kind)) return providers.find((p) => p.kind === kind && p.builtin) ?? null;
-  const url = normalizeBaseUrl(baseUrl);
+  const fixed = fixedBaseUrl(kind);
+  if (!isSelfHosted(kind) && !fixed) {
+    return providers.find((p) => p.kind === kind && p.builtin) ?? null;
+  }
+  const url = fixed ?? normalizeBaseUrl(baseUrl);
   return providers.find((p) => p.kind === kind && sameUrl(p.baseUrl, url)) ?? null;
 }
 
 /** Default name of a new instance: "GitLab git.acme.vn". */
 export function instanceName(kind: ProviderKind, baseUrl: string): string {
+  if (kind === "bitbucket") return "Bitbucket";
+  if (kind === "azureDevops") return "Azure DevOps";
   let host = baseUrl;
   try {
     host = new URL(normalizeBaseUrl(baseUrl)).host;
   } catch {
     // keep the raw input
   }
-  return `${isGitlab(kind) ? "GitLab" : "GitHub Enterprise"} ${host}`;
+  const name = kind === "gitea" ? "Gitea" : isGitlab(kind) ? "GitLab" : "GitHub Enterprise";
+  return `${name} ${host}`;
 }
 
 /** Remaining time of a device code as `m:ss`; `null` once expired. */

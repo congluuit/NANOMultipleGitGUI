@@ -61,6 +61,12 @@ pub enum ProviderKind {
     GithubEnterprise,
     Gitlab,
     GitlabSelfHosted,
+    /// Gitea / Forgejo instance (Codeberg…), signed in with an access token.
+    Gitea,
+    /// bitbucket.org, git transfers only (no pull requests / issues in the app).
+    Bitbucket,
+    /// Azure DevOps (dev.azure.com), git transfers only.
+    AzureDevops,
 }
 
 db_enum!(ProviderKind {
@@ -68,9 +74,17 @@ db_enum!(ProviderKind {
     GithubEnterprise => "github_enterprise",
     Gitlab => "gitlab",
     GitlabSelfHosted => "gitlab_self_hosted",
+    Gitea => "gitea",
+    Bitbucket => "bitbucket",
+    AzureDevops => "azure_devops",
 });
 
 impl ProviderKind {
+    /// Only git transfers run as accounts of this kind (see the providers crate).
+    pub fn git_only(self) -> bool {
+        matches!(self, Self::Bitbucket | Self::AzureDevops)
+    }
+
     pub fn is_github(self) -> bool {
         matches!(self, Self::Github | Self::GithubEnterprise)
     }
@@ -92,6 +106,9 @@ impl ProviderKind {
             Self::Github => "https://api.github.com".to_owned(),
             Self::GithubEnterprise => format!("{base}/api/v3"),
             Self::Gitlab | Self::GitlabSelfHosted => format!("{base}/api/v4"),
+            Self::Gitea => format!("{base}/api/v1"),
+            Self::Bitbucket => "https://api.bitbucket.org/2.0".to_owned(),
+            Self::AzureDevops => "https://app.vssps.visualstudio.com".to_owned(),
         }
     }
 }

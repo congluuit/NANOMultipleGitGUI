@@ -52,6 +52,8 @@ export function invalidateRepo(repoId: number) {
   invalidateWorktree(repoId);
   void queryClient.invalidateQueries({ queryKey: repoKeys.refs(repoId) });
   void queryClient.invalidateQueries({ queryKey: repoKeys.graph(repoId) });
+  // Reflog views: HEAD moved (recent branches, "find a lost commit").
+  void queryClient.invalidateQueries({ queryKey: ["reflog", repoId] });
 }
 
 /** Runs a repository operation, reporting failures in the notice bar. */

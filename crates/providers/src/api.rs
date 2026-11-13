@@ -170,6 +170,13 @@ impl ApiClient {
         url: Url,
         body: Option<&B>,
     ) -> Result<ApiResponse<T>, ProviderError> {
+        // Bitbucket / Azure DevOps accounts only sign git transfers: nothing shaped for
+        // another server's API is ever sent there.
+        if self.endpoint.kind().git_only() {
+            return Err(ProviderError::Unsupported {
+                message: "this server is used for push, pull and clone only".into(),
+            });
+        }
         if !self.is_own_url(&url) {
             return Err(ProviderError::InvalidInput {
                 message: "refusing to send the token outside the provider base URL".into(),

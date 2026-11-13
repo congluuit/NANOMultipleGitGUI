@@ -399,6 +399,24 @@ pub async fn auth_add_pat(
     service::add_pat(&st, &rt, &provider_id, token, label).await
 }
 
+/// Adds an account of a git-only server (Bitbucket, Azure DevOps) with an access token:
+/// push, pull and clone run as it. `username` is what the token is checked with (Bitbucket:
+/// the Atlassian account email; optional for Azure DevOps).
+#[tauri::command]
+#[specta::specta]
+pub async fn auth_add_git_token(
+    app: AppHandle,
+    provider_id: String,
+    username: Option<String>,
+    token: String,
+    label: Option<String>,
+) -> AuthResult<Account> {
+    let token = Zeroizing::new(token);
+    let st = app.state::<AppState>();
+    let rt = app.state::<AuthRuntime>();
+    service::add_git_token(&st, &rt, &provider_id, username, token, label).await
+}
+
 /// Replaces the token of an existing account (re-authentication with a PAT). The token must
 /// belong to the same user.
 #[tauri::command]

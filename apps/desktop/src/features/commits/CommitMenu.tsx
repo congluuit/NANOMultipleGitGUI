@@ -1,7 +1,9 @@
 import {
   ArrowDownToLine,
+  Bug,
   Cherry,
   Copy,
+  FileDiff,
   GitBranch,
   GitBranchPlus,
   Link,
@@ -22,6 +24,8 @@ import {
 } from "@/components/ui/context-menu";
 import { parseRefs } from "@/features/graph/draw";
 import { RebaseCommitItems } from "@/features/rebase/MenuItems";
+import { saveCommitPatch } from "@/features/repo-tools/actions";
+import { openTool } from "@/features/repo-tools/store";
 import { useRepoRefs } from "@/features/repos/queries";
 import { commands, type GraphRow, type Head } from "@/ipc";
 import { useHostedRemotes } from "@/features/issues/queries";
@@ -172,6 +176,31 @@ export function CommitMenuContent({ repoId, row }: { repoId: number; row: GraphR
           {t("branchMenu.copyCommitLink", { remote: hosted.remote })}
         </ContextMenuItem>
       )}
+      <ContextMenuItem onSelect={() => void saveCommitPatch(repoId, row.hash, row.subject)}>
+        <FileDiff />
+        {t("patch.menu.save")}
+      </ContextMenuItem>
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>
+          <Bug />
+          {t("bisect.menu.title")}
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-72">
+          <ContextMenuItem
+            disabled={isHead}
+            onSelect={() =>
+              openTool({ kind: "bisectStart", repoId, good: row.hash, bad: head?.oid ?? null })
+            }
+          >
+            {t("bisect.menu.goodHere")}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onSelect={() => openTool({ kind: "bisectStart", repoId, good: null, bad: row.hash })}
+          >
+            {t("bisect.menu.badHere")}
+          </ContextMenuItem>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
       <ContextMenuSeparator />
       <TagHereItems repoId={repoId} oid={row.hash} />
     </ContextMenuContent>

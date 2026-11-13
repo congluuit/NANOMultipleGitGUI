@@ -621,7 +621,9 @@ async fn push_guard_end_to_end_permission_blobs_and_fix() {
         .run(&root, &work_ctx, ["commit", "-q", "-m", "big"])
         .unwrap();
 
-    let facts = push_facts(&w.st, id, "origin", "main").unwrap().unwrap();
+    let facts = push_facts(&w.st, id, "origin", "main", None)
+        .unwrap()
+        .unwrap();
     assert_eq!(facts.identity.as_ref().unwrap().email, "hoang@acme.dev");
     assert_eq!(facts.thresholds.warn_bytes, MIB);
     let permission = check_permission(
@@ -643,7 +645,9 @@ async fn push_guard_end_to_end_permission_blobs_and_fix() {
     assert!(report.blocked && report.is_current && report.rewritable);
 
     // Network failure → unknown, not blocking.
-    let facts = push_facts(&w.st, id, "origin", "main").unwrap().unwrap();
+    let facts = push_facts(&w.st, id, "origin", "main", None)
+        .unwrap()
+        .unwrap();
     let dead = ApiAccess {
         account_id: "x".into(),
         account_label: "X".into(),
@@ -677,7 +681,9 @@ async fn push_guard_end_to_end_permission_blobs_and_fix() {
         .unwrap()
         .unwrap();
     assert_eq!(out.rewritten, 2);
-    let facts = push_facts(&w.st, id, "origin", "main").unwrap().unwrap();
+    let facts = push_facts(&w.st, id, "origin", "main", None)
+        .unwrap()
+        .unwrap();
     let report = build_push_report(facts, "origin", "main", PushPermission::unknown("offline"));
     assert!(report.author_mismatch.is_empty());
     let backups = guard::list_backups(&w.st.git, &root).unwrap();
@@ -686,6 +692,10 @@ async fn push_guard_end_to_end_permission_blobs_and_fix() {
     assert_eq!(w.git(&root, &["rev-parse", "HEAD"]), before);
 
     // Invalid names come back as a rejection, not an error.
-    assert!(push_facts(&w.st, id, "origin", "nope").unwrap().is_err());
-    assert!(push_facts(&w.st, id, "-x", "main").unwrap().is_err());
+    assert!(
+        push_facts(&w.st, id, "origin", "nope", None)
+            .unwrap()
+            .is_err()
+    );
+    assert!(push_facts(&w.st, id, "-x", "main", None).unwrap().is_err());
 }

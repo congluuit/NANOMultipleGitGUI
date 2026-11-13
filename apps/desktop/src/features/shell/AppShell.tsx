@@ -11,6 +11,8 @@ import { FirstStepsBanner } from "@/features/publish/FirstStepsBanner";
 import { MissingRepo } from "@/features/repos/MissingRepo";
 import { WelcomeScreen } from "@/features/repos/WelcomeScreen";
 import { TerminalHost } from "@/features/terminal/TerminalHost";
+import { BisectBanner } from "@/features/repo-tools/Bisect";
+import { ToolsHost } from "@/features/repo-tools/ToolsHost";
 import { WorkingTreePanel } from "@/features/worktree/WorkingTreePanel";
 import {
   UnboundBanner,
@@ -67,6 +69,7 @@ export function AppShell() {
         <>
           <Toolbar />
           {!repo.missing && <OperationBanner key={`operationBanner-${repo.id}`} repoId={repo.id} />}
+          {!repo.missing && <BisectBanner key={`bisectBanner-${repo.id}`} repoId={repo.id} />}
           {!repo.missing && <FirstStepsBanner key={`firstSteps-${repo.id}`} repoId={repo.id} />}
           <PanelRow hasRight={!repo.missing}>
             <SidePanel id="sidebar" rail={<Sidebar rail />}>
@@ -149,6 +152,7 @@ export function AppShell() {
       <UnsavedQuitGuard />
       <QuickOpen />
       <FilesHost />
+      <ToolsHost />
     </div>
   );
 }

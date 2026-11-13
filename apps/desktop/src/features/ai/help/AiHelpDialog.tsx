@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, MessageSquareText, Send, Trash2 } from "lucide-react";
+import { LoaderCircle, MessageSquareText, Play, Send, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,14 @@ import { errorFix, isAiError, modelOf, newRequestId, sendsCodeAway, serviceName 
 import { useAiConfig, useAiSettings } from "../queries";
 import { openAiSettings } from "../store";
 import { aiErrorText } from "../suggest";
+import { useWorkspace } from "@/stores/workspace";
+import {
+  chatActions,
+  rememberChatActions,
+  splitActions,
+  suggested,
+  type HelpAction,
+} from "./actions";
 import { Answer } from "./Answer";
 import { chatKeys, useAiChats } from "./queries";
 import { type HelpRequest, rememberConsent, startHelpChat, useAiHelp } from "./store";
@@ -119,6 +127,7 @@ function AiHelpDialog() {
         chat,
         ...old.filter((c) => c.id !== chat.id),
       ]);
+      if (start?.actions) rememberChatActions(chat.id, start.actions, start.repoPath);
       useAiHelp.getState().select(chat.id);
     } catch (e) {
       if (!(isAiError(e) && e.kind === "cancelled")) setFailed({ message: text, error: e });
@@ -157,6 +166,14 @@ function AiHelpDialog() {
   };
 
   const title = active?.title ?? draft?.title ?? t("aiHelp.title");
+  const tabs = useWorkspace((s) => s.tabs);
+  const actions = active ? chatActions(active.id, tabs) : [];
+  const lastAnswer = active ? active.messages.map((m) => m.role).lastIndexOf("assistant") : -1;
+  const runAction = (a: HelpAction) => {
+    // The result shows in the notice bar and the repository: get out of the way.
+    useAiHelp.getState().setOpen(false);
+    a.run();
+  };
   const context = active?.context ?? draft?.context;
   const question = pending?.message ?? failed?.message;
   const canWrite = Boolean(active || draft);
@@ -245,7 +262,13 @@ function AiHelpDialog() {
                 </div>
               )}
               {active?.messages.map((m, i) => (
-                <Bubble key={i} role={m.role} text={m.content} />
+                <Bubble
+                  key={i}
+                  role={m.role}
+                  text={m.content}
+                  actions={i === lastAnswer && !pending ? actions : []}
+                  onRun={runAction}
+                />
               ))}
               {question && <Bubble role="user" text={question} />}
               {pending && (
@@ -320,14 +343,49 @@ function AiHelpDialog() {
   );
 }
 
-function Bubble({ role, text }: { role: "user" | "assistant"; text: string }) {
-  return role === "user" ? (
-    <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-3 py-1.5 text-xs whitespace-pre-wrap text-primary-foreground">
-      {text}
-    </div>
-  ) : (
+function Bubble({
+  role,
+  text,
+  actions = [],
+  onRun,
+}: {
+  role: "user" | "assistant";
+  text: string;
+  /** Buttons the app can run; the answer's `ACTIONS:` line picks which ones show. */
+  actions?: readonly HelpAction[];
+  onRun?: (action: HelpAction) => void;
+}) {
+  const { t } = useTranslation();
+  if (role === "user") {
+    return (
+      <div className="ml-auto w-fit max-w-[85%] rounded-lg bg-primary px-3 py-1.5 text-xs whitespace-pre-wrap text-primary-foreground">
+        {text}
+      </div>
+    );
+  }
+  const { text: answer, ids } = splitActions(text);
+  const picks = suggested(actions, ids);
+  return (
     <div className="max-w-[95%] rounded-lg border bg-muted/30 px-3 py-2">
-      <Answer text={text} />
+      <Answer text={answer} />
+      {picks.length > 0 && (
+        <div className="mt-2 grid gap-1.5 border-t pt-2" role="group" aria-label={t("aiHelp.doIt")}>
+          <span className="text-[11px] text-muted-foreground">{t("aiHelp.doIt")}</span>
+          <span className="flex flex-wrap gap-1.5">
+            {picks.map((a, i) => (
+              <Button
+                key={a.id}
+                size="xs"
+                variant={i === 0 ? "default" : "outline"}
+                onClick={() => onRun?.(a)}
+              >
+                <Play className="size-3" />
+                {a.label}
+              </Button>
+            ))}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

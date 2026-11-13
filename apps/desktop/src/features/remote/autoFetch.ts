@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { commands } from "@/ipc";
 import { selectRepoRunning, useTransferQueue } from "@/features/transfers/store";
 import { invalidateRepo } from "@/features/worktree/queries";
+import { backgroundFetchSummary, refsBeforeFetch } from "./fetchChanges";
 import { newOpId } from "./plan";
 
 /** Background fetch period while the repository is open. */
@@ -28,8 +29,9 @@ export const useLastFetch = create<LastFetchState>((set) => ({
  * remotes of the open repository on open, every few minutes and when the window regains focus.
  *
  * Only remotes bound to an account with a stored token are fetched — their credentials come from
- * the app's helper, so a background fetch can never pop up a password prompt. Silent: no queue
- * item, no notice; a failure simply leaves the counts as they were.
+ * the app's helper, so a background fetch can never pop up a password prompt. Quiet: no queue
+ * item; a failure simply leaves the counts as they were. When it brought something new, a
+ * short summary says so (unless another message is on screen).
  */
 export function useAutoFetch(repoId: number) {
   useEffect(() => {
@@ -45,11 +47,17 @@ export function useAutoFetch(repoId: number) {
         const remotes = (await commands.hostedRemoteList(repoId)).filter(
           (r) => r.accountId !== null && r.hasToken,
         );
+        if (remotes.length === 0) return;
+        const before = await refsBeforeFetch(repoId);
         for (const r of remotes) {
           if (stopped) return;
           await commands.remoteFetch(repoId, newOpId("autofetch"), r.remote, false, true, null);
         }
-        if (remotes.length > 0) invalidateRepo(repoId);
+        invalidateRepo(repoId);
+        // Tell what the fetch brought (new commits to pull, new or deleted branches).
+        await backgroundFetchSummary(repoId, before, () => {
+          void import("@/features/command-palette/actions").then((m) => m.pull(repoId, "merge"));
+        });
       } catch (e) {
         console.debug("background fetch skipped", e);
       }

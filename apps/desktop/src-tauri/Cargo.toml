@@ -22,6 +22,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 # Opens https links (OAuth pages, token pages) in the system browser.
 tauri-plugin-opener = "2"
+# OS notifications for work that finished while the window was in the background.
+tauri-plugin-notification = "2"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

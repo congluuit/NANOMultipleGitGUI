@@ -7,6 +7,7 @@ const base: SettingsValues = {
   language: "vi",
   ciEnabled: false,
   authorAvatars: true,
+  osNotifications: true,
   uiScale: 1,
   confirmBranchSwitch: true,
 };

@@ -877,6 +877,77 @@ async fn generate_end_to_end_with_a_mock_service() {
     assert_eq!(s.model, "gpt-4.1-mini");
 }
 
+#[tokio::test]
+async fn review_end_to_end_with_a_mock_service() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/v1/chat/completions"))
+        .respond_with(|req: &Request| {
+            let body: Value = serde_json::from_slice(&req.body).unwrap();
+            let system = body["messages"][0]["content"].as_str().unwrap();
+            assert!(system.contains("code reviewer"), "{system}");
+            let user = body["messages"][1]["content"].as_str().unwrap();
+            assert!(user.contains("+console.log(password)"), "{user}");
+            assert!(user.contains("Vietnamese"), "{user}");
+            assert!(user.contains("leftover debug"), "{user}");
+            ResponseTemplate::new(200).set_body_json(json!({
+                "choices": [{ "message": { "content": "<think>checking</think>\n1. login.js: debug log left in. Remove it." } }]
+            }))
+        })
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = repo();
+    let d = tmp.path();
+    std::fs::write(d.join("login.js"), "console.log(password)\n").unwrap();
+    let db = tempfile::tempdir().unwrap();
+    let storage = Storage::open(&db.path().join("app.db")).unwrap();
+    let secrets = MemorySecretStore::default();
+    let e = endpoints(&server);
+    let run = async |storage: &Storage, unstaged: bool| {
+        review_impl(
+            &http(),
+            storage,
+            &secrets,
+            &e,
+            GitRunner::default(),
+            d.to_path_buf(),
+            "vi",
+            unstaged,
+            &CancellationToken::new(),
+        )
+        .await
+    };
+
+    // AI is off by default: nothing is read, nothing is sent.
+    let r = run(&storage, false).await;
+    assert!(matches!(r, Err(AiError::NotEnabled { .. })), "{r:?}");
+
+    save_config(&storage, &secrets, cfg(AiProvider::Openai)).unwrap();
+    config::store_key(&secrets, AiProvider::Openai, FAKE_KEY).unwrap();
+    // Nothing staged: the review does not fall back to other changes by itself.
+    let r = run(&storage, false).await;
+    assert!(
+        matches!(
+            r,
+            Err(AiError::NothingStaged {
+                has_unstaged: true,
+                ..
+            })
+        ),
+        "{r:?}"
+    );
+    assert!(server.received_requests().await.unwrap().is_empty());
+
+    git(d, &["add", "login.js"]);
+    let review = run(&storage, false).await.unwrap();
+    assert_eq!(review.text, "1. login.js: debug log left in. Remove it.");
+    assert_eq!(review.source, AiDiffSource::Staged);
+    assert_eq!(review.files, 1);
+    assert!(!review.truncated);
+    assert_eq!(review.provider, AiProvider::Openai);
+}
+
 // ----- Ollama management -----------------------------------------------------------------------
 
 #[tokio::test]

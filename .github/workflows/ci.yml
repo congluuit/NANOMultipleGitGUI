@@ -34,6 +34,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm --filter @nanomgg/desktop build
+      # End-to-end tests of the interface in a real browser (web build with the fake backend).
+      - run: pnpm --filter @nanomgg/desktop exec playwright install --with-deps chromium
+      - run: pnpm --filter @nanomgg/desktop test:e2e
       - run: pnpm --filter @nanomgg/installer build
 
   rust:
