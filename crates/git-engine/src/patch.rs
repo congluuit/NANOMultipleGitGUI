@@ -241,6 +241,8 @@ pub fn apply(
         ],
         ApplyMode::Commits => vec![
             "am".as_ref(),
+            // Without it `git am` drops the CR of CRLF files and the patch no longer fits.
+            "--keep-cr".as_ref(),
             "--3way".as_ref(),
             "--whitespace=nowarn".as_ref(),
             file.as_os_str(),
@@ -283,6 +285,35 @@ mod tests {
         assert!(out.conflicts.is_empty());
         assert_eq!(repo.git(&["log", "-1", "--format=%s"]), "add a file");
         assert_eq!(repo.read("a.txt"), "one\ntwo\n");
+    }
+
+    #[test]
+    fn a_commit_with_crlf_lines_applies_back() {
+        let repo = TestRepo::new();
+        repo.git(&["config", "core.autocrlf", "false"]);
+        // Every line ends with CR LF (byte 13, byte 10), as Windows editors write them.
+        let crlf = |lines: &[&str]| -> String {
+            lines
+                .iter()
+                .map(|l| format!("{l}{}{}", char::from(13u8), char::from(10u8)))
+                .collect()
+        };
+        let before = crlf(&["one", "two"]);
+        let after = crlf(&["one", "two", "three"]);
+        assert!(after.as_bytes().contains(&13));
+        let base = repo.commit("notes.txt", &before, "crlf file");
+        let oid = repo.commit("notes.txt", &after, "add a line");
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("crlf.patch");
+        save_commit(&repo.git, &repo.path, &oid, &file).unwrap();
+        repo.git(&["reset", "-q", "--hard", &base]);
+
+        let out = apply(&repo.git, &repo.path, &repo.ctx, &file, ApplyMode::Commits).unwrap();
+        assert!(out.conflicts.is_empty(), "{out:?}");
+        assert!(out.pending.is_none(), "{out:?}");
+        assert_eq!(repo.git(&["log", "-1", "--format=%s"]), "add a line");
+        let bytes = std::fs::read(repo.path.join("notes.txt")).unwrap();
+        assert_eq!(bytes, after.as_bytes());
     }
 
     #[test]

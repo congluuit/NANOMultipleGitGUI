@@ -22,3 +22,9 @@ export const useTools = create<ToolsState>()((set) => ({
 
 export const openTool = (dialog: ToolDialog) => useTools.getState().open(dialog);
 export const closeTool = () => useTools.getState().open(null);
+
+// Dev builds only: automated tests of the real app open a tool that normally starts from a
+// native file dialog (which a test cannot drive). Dropped from release builds.
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as unknown as { __nanomggOpenTool?: typeof openTool }).__nanomggOpenTool = openTool;
+}

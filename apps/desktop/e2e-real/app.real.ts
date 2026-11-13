@@ -8,6 +8,8 @@
  *
  * `NANOMGG_REAL_GITEA_URL` / `NANOMGG_REAL_GITEA_TOKEN` (optional) also sign in to a real
  * Gitea / Forgejo server through the "Add account" wizard.
+ * `NANOMGG_REAL_OLLAMA_URL` / `NANOMGG_REAL_OLLAMA_MODEL` (optional) run the AI review with a
+ * real model.
  */
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -90,6 +92,24 @@ async function runCommand(query: string, title: string | RegExp) {
 
 const dialog = () => page.getByRole("dialog");
 
+interface AppWindow {
+  __TAURI_INTERNALS__: {
+    invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+  };
+  __nanomggOpenTool: (tool: Record<string, unknown>) => void;
+}
+
+/** Calls a command of the real backend from inside the app's page. */
+const invoke = <T>(cmd: string, args: Record<string, unknown> = {}) =>
+  page.evaluate(
+    ([c, a]) =>
+      (globalThis as unknown as AppWindow).__TAURI_INTERNALS__.invoke(
+        c as string,
+        a as Record<string, unknown>,
+      ),
+    [cmd, args] as const,
+  ) as Promise<T>;
+
 test.describe.configure({ mode: "serial" });
 
 test("opens the repository and lists recent branches from git's reflog", async () => {
@@ -146,6 +166,50 @@ test("all repositories: fetch all reports the round", async () => {
   await page.keyboard.press("Escape");
 });
 
+test("AI review: off until set up, asks first, then a real model answers", async () => {
+  const url = process.env.NANOMGG_REAL_OLLAMA_URL;
+  const model = process.env.NANOMGG_REAL_OLLAMA_MODEL;
+  test.skip(!url || !model, "set NANOMGG_REAL_OLLAMA_URL and NANOMGG_REAL_OLLAMA_MODEL");
+  test.setTimeout(300_000);
+  // The user turns AI on (here through the same command the settings window uses).
+  const { config } = await invoke<{ config: Record<string, unknown> & { models: object } }>(
+    "ai_settings",
+  );
+  const withAi = (enabled: boolean) => ({
+    config: {
+      ...config,
+      enabled,
+      provider: "ollama",
+      ollamaUrl: url,
+      models: { ...config.models, ollama: model },
+    },
+  });
+  await invoke("ai_settings_save", withAi(true));
+  await page.reload();
+  await expect(page.getByRole("toolbar")).toBeVisible({ timeout: 30_000 });
+  git("add", "src/calc.js");
+
+  const button = page.getByTestId("ai-review");
+  await expect(button).toBeVisible({ timeout: 20_000 });
+  await button.click();
+  // Nothing is sent yet: the window says what would be sent and waits for a yes.
+  await expect(dialog().getByText(/never runs by itself/)).toBeVisible();
+  await expect(dialog().getByText(/stay on this computer/)).toBeVisible();
+  await expect(dialog().getByTestId("ai-review-text")).toHaveCount(0);
+
+  await dialog().getByRole("button", { name: "Review my changes" }).click();
+  const text = dialog().getByTestId("ai-review-text");
+  await expect(text).toBeVisible({ timeout: 240_000 });
+  const review = await text.innerText();
+  console.log(`--- AI review in the real app (${model}) ---\n${review}\n---`);
+  expect(review.trim().length).toBeGreaterThan(20);
+  await dialog().getByRole("button", { name: "Close" }).first().click();
+  await expect(dialog()).toBeHidden();
+
+  git("reset", "-q");
+  await invoke("ai_settings_save", withAi(false));
+});
+
 test("sparse checkout removes a folder from disk and brings it back", async () => {
   await runCommand("sparse", /Sparse checkout/);
   await dialog().getByRole("checkbox", { name: "assets" }).uncheck();
@@ -196,6 +260,41 @@ test("bisect finds the commit that broke the sample", async () => {
   await page.getByRole("button", { name: "Finish" }).click();
   await expect(found).toBeHidden({ timeout: 20_000 });
   expect(git("branch", "--show-current")).toBe("main");
+});
+
+test("a commit saved as a patch file is applied back as a commit", async () => {
+  const sha = git("rev-parse", "HEAD");
+  const subject = git("log", "-1", "--format=%s");
+  const file = path.join(ROOT, "last-commit.patch");
+  const { activeId } = await invoke<{ activeId: number }>("workspace_state");
+  const saved = await invoke<{ status: string }>("patch_save_commit", {
+    repoId: activeId,
+    oid: sha,
+    dest: file,
+  });
+  expect(saved.status).toBe("done");
+  expect(readFileSync(file, "utf8")).toContain(`Subject: [PATCH] ${subject}`);
+
+  // Take the commit away, then bring it back from the file through the app's window.
+  git("reset", "-q", "--hard", "HEAD~1");
+  expect(git("log", "-1", "--format=%s")).not.toBe(subject);
+  await page.evaluate(
+    ([id, f]) =>
+      (globalThis as unknown as AppWindow).__nanomggOpenTool({
+        kind: "patchApply",
+        repoId: id,
+        file: f,
+      }),
+    [activeId, file] as const,
+  );
+  await expect(dialog().getByRole("heading", { name: "Apply patch" })).toBeVisible();
+  await expect(dialog().getByText("1 commit in this patch")).toBeVisible();
+  await expect(dialog().getByText(subject)).toBeVisible();
+  await expect(dialog().getByText("guide.md")).toBeVisible();
+  await dialog().getByRole("button", { name: "Apply as 1 commit" }).click();
+  await expect(page.getByText("Patch applied as commits.")).toBeVisible({ timeout: 20_000 });
+  expect(git("log", "-1", "--format=%s")).toBe(subject);
+  expect(git("status", "--porcelain")).toBe("");
 });
 
 test("settings offer the system notification switch", async () => {
