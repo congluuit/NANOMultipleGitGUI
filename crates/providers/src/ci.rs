@@ -215,7 +215,8 @@ struct RawCheckRun {
 
 #[derive(Deserialize)]
 struct RawCombined {
-    #[serde(default)]
+    // Gitea / Forgejo answer `null` for a commit without statuses.
+    #[serde(default, deserialize_with = "crate::null_as_default")]
     statuses: Vec<RawStatus>,
 }
 

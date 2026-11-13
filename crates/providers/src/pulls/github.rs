@@ -192,12 +192,23 @@ impl GithubClient {
         let n = number.to_string();
         let reviews_segs = ["repos", o, r, "pulls", &n, "reviews"];
         let requested_segs = ["repos", o, r, "pulls", &n, "requested_reviewers"];
-        let (reviews, requested) = tokio::join!(
-            self.get_all::<RawReview>(&reviews_segs, MAX_PAGES),
-            self.api().get_json::<RawRequested>(&requested_segs, &[])
-        );
+        let (reviews, requested) = if self.is_gitea() {
+            // No `requested_reviewers` call there: the pull request itself lists them.
+            let pull_segs = ["repos", o, r, "pulls", &n];
+            let (reviews, pull) = tokio::join!(
+                self.get_all::<RawReview>(&reviews_segs, MAX_PAGES),
+                self.api().get_json::<RawGiteaRequested>(&pull_segs, &[])
+            );
+            (reviews, pull.map(|p| RawRequested::from(p.body)))
+        } else {
+            let (reviews, requested) = tokio::join!(
+                self.get_all::<RawReview>(&reviews_segs, MAX_PAGES),
+                self.api().get_json::<RawRequested>(&requested_segs, &[])
+            );
+            (reviews, requested.map(|r| r.body))
+        };
         let (reviews, _) = reviews?;
-        let requested = requested?.body;
+        let requested = requested?;
         // Latest verdict per reviewer; a plain comment never hides an earlier verdict.
         let mut by_user: BTreeMap<String, (PullUser, PullReviewerState)> = BTreeMap::new();
         for review in reviews {
@@ -310,11 +321,21 @@ impl GithubClient {
         let issue_segs = ["repos", o, r, "issues", &n, "comments"];
         let review_segs = ["repos", o, r, "pulls", &n, "reviews"];
         let line_segs = ["repos", o, r, "pulls", &n, "comments"];
-        let (general, reviews, lines) = tokio::join!(
-            self.get_all::<RawIssueComment>(&issue_segs, MAX_PAGES),
-            self.get_all::<RawReview>(&review_segs, MAX_PAGES),
-            self.get_all::<RawLineComment>(&line_segs, MAX_PAGES)
-        );
+        let (general, reviews, lines) = if self.is_gitea() {
+            // Line comments are only listed per review there; the conversation and the
+            // reviews' own text are shown.
+            let (general, reviews) = tokio::join!(
+                self.get_all::<RawIssueComment>(&issue_segs, MAX_PAGES),
+                self.get_all::<RawReview>(&review_segs, MAX_PAGES)
+            );
+            (general, reviews, Ok((Vec::new(), false)))
+        } else {
+            tokio::join!(
+                self.get_all::<RawIssueComment>(&issue_segs, MAX_PAGES),
+                self.get_all::<RawReview>(&review_segs, MAX_PAGES),
+                self.get_all::<RawLineComment>(&line_segs, MAX_PAGES)
+            )
+        };
         let mut out: Vec<PullComment> = general?.0.into_iter().map(Into::into).collect();
         for review in reviews?.0 {
             let state = review_state(&review.state);
@@ -419,6 +440,8 @@ impl GithubClient {
         let (o, r) = repo_segments(full_name)?;
         let n = number.to_string();
         let event = match event {
+            // Gitea / Forgejo name the verdict by its result.
+            PullReviewEvent::Approve if self.is_gitea() => "APPROVED",
             PullReviewEvent::Approve => "APPROVE",
             PullReviewEvent::RequestChanges => "REQUEST_CHANGES",
             PullReviewEvent::Comment => "COMMENT",
@@ -664,8 +687,9 @@ fn clean_list(v: &[String]) -> Vec<&str> {
 fn review_state(state: &str) -> Option<PullReviewerState> {
     Some(match state {
         "APPROVED" => PullReviewerState::Approved,
-        "CHANGES_REQUESTED" => PullReviewerState::ChangesRequested,
-        "COMMENTED" => PullReviewerState::Commented,
+        // The second name of each pair is Gitea / Forgejo's.
+        "CHANGES_REQUESTED" | "REQUEST_CHANGES" => PullReviewerState::ChangesRequested,
+        "COMMENTED" | "COMMENT" => PullReviewerState::Commented,
         "DISMISSED" => PullReviewerState::Dismissed,
         // PENDING: the token owner's own unsubmitted draft review.
         _ => return None,
@@ -922,6 +946,36 @@ struct RawReview {
 struct RawTeam {
     slug: String,
     name: Option<String>,
+}
+
+/// The reviewer fields of a Gitea / Forgejo pull request.
+#[derive(Deserialize)]
+struct RawGiteaRequested {
+    #[serde(default, deserialize_with = "crate::null_as_default")]
+    requested_reviewers: Vec<RawUser>,
+    #[serde(default, deserialize_with = "crate::null_as_default")]
+    requested_reviewers_teams: Vec<RawGiteaTeam>,
+}
+
+#[derive(Deserialize)]
+struct RawGiteaTeam {
+    name: String,
+}
+
+impl From<RawGiteaRequested> for RawRequested {
+    fn from(p: RawGiteaRequested) -> Self {
+        Self {
+            users: p.requested_reviewers,
+            teams: p
+                .requested_reviewers_teams
+                .into_iter()
+                .map(|t| RawTeam {
+                    name: Some(t.name.clone()),
+                    slug: t.name,
+                })
+                .collect(),
+        }
+    }
 }
 
 #[derive(Deserialize)]

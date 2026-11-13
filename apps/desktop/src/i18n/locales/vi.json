@@ -1198,7 +1198,7 @@
       "githubEnterprise": "Máy chủ GitHub riêng của công ty",
       "gitlab": "Tài khoản gitlab.com",
       "gitlabSelfHosted": "Máy chủ GitLab riêng",
-      "gitea": "Codeberg hoặc server riêng (access token, thử nghiệm)",
+      "gitea": "Codeberg hoặc server riêng (access token)",
       "bitbucket": "bitbucket.org, dùng cho push, pull và clone (API token)",
       "azureDevops": "dev.azure.com, dùng cho push, pull và clone (access token)"
     },

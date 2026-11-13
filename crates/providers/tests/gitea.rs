@@ -223,3 +223,71 @@ async fn creates_and_merges_a_pull_request_the_gitea_way() {
     let requests = server.received_requests().await.unwrap();
     assert!(requests.iter().all(|r| r.method.as_str() != "PUT"));
 }
+
+#[tokio::test]
+async fn reviews_comments_and_empty_ci_follow_gitea_shapes() {
+    let server = MockServer::start().await;
+    // Requested reviewers come from the pull request itself; states have Gitea's names.
+    let mut pull = pull_json(7, false);
+    pull["requested_reviewers"] = json!([{"id": 3, "login": "carol"}]);
+    pull["requested_reviewers_teams"] = json!([{"id": 9, "name": "core"}]);
+    Mock::given(method("GET"))
+        .and(path("/api/v1/repos/acme/app/pulls/7"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(pull))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/repos/acme/app/pulls/7/reviews"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+            {"id": 1, "user": {"id": 2, "login": "bob"}, "body": "Please fix", "state": "REQUEST_CHANGES",
+             "submitted_at": "2026-11-13T09:10:00+01:00", "html_url": "https://c/r/1"},
+            {"id": 2, "user": {"id": 4, "login": "dave"}, "body": "", "state": "APPROVED",
+             "submitted_at": "2026-11-13T09:20:00+01:00", "html_url": "https://c/r/2"}
+        ])))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/repos/acme/app/issues/7/comments"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!([
+            {"id": 11, "user": {"id": 1, "login": "alice"}, "body": "Thanks",
+             "created_at": "2026-11-13T09:05:00+01:00", "updated_at": "2026-11-13T09:05:00+01:00",
+             "html_url": "https://c/c/11"}
+        ])))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/api/v1/repos/acme/app/commits/aaa1111/status"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(
+            json!({"state": "", "sha": "aaa1111", "total_count": 0, "statuses": null}),
+        ))
+        .mount(&server)
+        .await;
+    let c = gitea(&server);
+
+    let reviews = c.pull_reviews("acme/app", 7).await.unwrap();
+    let state = |name: &str| {
+        reviews
+            .reviewers
+            .iter()
+            .find(|r| r.user.username == name)
+            .map(|r| r.state)
+    };
+    assert_eq!(state("bob"), Some(PullReviewerState::ChangesRequested));
+    assert_eq!(state("dave"), Some(PullReviewerState::Approved));
+    assert_eq!(state("carol"), Some(PullReviewerState::Requested));
+    assert_eq!(reviews.teams, ["core"]);
+
+    let comments = c.pull_comments("acme/app", 7).await.unwrap();
+    let bodies: Vec<&str> = comments.iter().map(|m| m.body.as_str()).collect();
+    assert_eq!(bodies, ["Thanks", "Please fix", ""]);
+
+    let ci = c.ci_status("acme/app", "aaa1111", true).await.unwrap();
+    assert!(ci.jobs.is_empty());
+
+    // Neither of the GitHub-only calls was made.
+    let requests = server.received_requests().await.unwrap();
+    assert!(requests.iter().all(|r| {
+        let p = r.url.path();
+        !p.ends_with("/requested_reviewers") && !p.ends_with("/pulls/7/comments")
+    }));
+}

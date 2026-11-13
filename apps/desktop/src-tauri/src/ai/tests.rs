@@ -948,6 +948,74 @@ async fn review_end_to_end_with_a_mock_service() {
     assert_eq!(review.provider, AiProvider::Openai);
 }
 
+/// The whole review with a real model. Ignored: needs an Ollama server with a model, e.g.
+/// `NANOMGG_TEST_OLLAMA_URL=http://127.0.0.1:11434 NANOMGG_TEST_OLLAMA_MODEL=qwen2.5-coder:1.5b
+/// cargo test -p nanomgg --lib -- --ignored --nocapture review_with_a_real_ollama_model`.
+#[tokio::test]
+#[ignore = "needs an Ollama server with a model (NANOMGG_TEST_OLLAMA_URL / _MODEL)"]
+async fn review_with_a_real_ollama_model() {
+    let url = std::env::var("NANOMGG_TEST_OLLAMA_URL").expect("NANOMGG_TEST_OLLAMA_URL");
+    let model = std::env::var("NANOMGG_TEST_OLLAMA_MODEL").expect("NANOMGG_TEST_OLLAMA_MODEL");
+    let tmp = repo();
+    let d = tmp.path();
+    std::fs::write(
+        d.join("login.js"),
+        "export function login(user, password) {
+  console.log('password is', password);
+  if (user = 'admin') {
+    return true;
+  }
+  return check(user, password);
+}
+",
+    )
+    .unwrap();
+    git(d, &["add", "login.js"]);
+    let db = tempfile::tempdir().unwrap();
+    let storage = Storage::open(&db.path().join("app.db")).unwrap();
+    let secrets = MemorySecretStore::default();
+    let mut config = cfg(AiProvider::Ollama);
+    config.ollama_url = url;
+    config.models.ollama = model.clone();
+    save_config(&storage, &secrets, config).unwrap();
+    let client = build_http_client(&HttpConfig {
+        timeout: Duration::from_secs(300),
+        ..HttpConfig::default()
+    })
+    .unwrap();
+    let started = std::time::Instant::now();
+    let review = review_impl(
+        &client,
+        &storage,
+        &secrets,
+        &Endpoints::default(),
+        GitRunner::default(),
+        d.to_path_buf(),
+        "en",
+        false,
+        &CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    println!(
+        "--- review by {} in {:.1}s ---
+{}
+---",
+        review.model,
+        started.elapsed().as_secs_f32(),
+        review.text
+    );
+    assert_eq!(review.provider, AiProvider::Ollama);
+    assert_eq!(review.model, model);
+    assert_eq!(review.files, 1);
+    assert!(review.text.len() > 20, "{}", review.text);
+    assert!(
+        review.text.to_lowercase().contains("login"),
+        "{}",
+        review.text
+    );
+}
+
 // ----- Ollama management -----------------------------------------------------------------------
 
 #[tokio::test]

@@ -1198,7 +1198,7 @@
       "githubEnterprise": "Your company's GitHub server",
       "gitlab": "A gitlab.com account",
       "gitlabSelfHosted": "Your own GitLab server",
-      "gitea": "Codeberg or your own server (access token, experimental)",
+      "gitea": "Codeberg or your own server (access token)",
       "bitbucket": "bitbucket.org, for push, pull and clone (API token)",
       "azureDevops": "dev.azure.com, for push, pull and clone (access token)"
     },
