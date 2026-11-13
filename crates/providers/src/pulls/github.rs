@@ -224,12 +224,15 @@ impl GithubClient {
                 }
             }
         }
-        // Re-requested reviewers are pending again.
+        // Re-requested reviewers are pending again. Gitea / Forgejo keep everyone who was ever
+        // asked in that list, also after their review: there a review wins.
+        let reviewed_wins = self.is_gitea();
         for user in requested.users {
-            by_user.insert(
-                user.login.to_ascii_lowercase(),
-                (user.into(), PullReviewerState::Requested),
-            );
+            let key = user.login.to_ascii_lowercase();
+            if reviewed_wins && by_user.contains_key(&key) {
+                continue;
+            }
+            by_user.insert(key, (user.into(), PullReviewerState::Requested));
         }
         let reviewers: Vec<PullReviewer> = by_user
             .into_values()
@@ -322,13 +325,29 @@ impl GithubClient {
         let review_segs = ["repos", o, r, "pulls", &n, "reviews"];
         let line_segs = ["repos", o, r, "pulls", &n, "comments"];
         let (general, reviews, lines) = if self.is_gitea() {
-            // Line comments are only listed per review there; the conversation and the
-            // reviews' own text are shown.
+            // Line comments are listed per review there.
             let (general, reviews) = tokio::join!(
                 self.get_all::<RawIssueComment>(&issue_segs, MAX_PAGES),
                 self.get_all::<RawReview>(&review_segs, MAX_PAGES)
             );
-            (general, reviews, Ok((Vec::new(), false)))
+            let mut lines = Vec::new();
+            if let Ok((reviews, _)) = &reviews {
+                for review in reviews.iter().filter(|r| r.comments_count.unwrap_or(1) > 0) {
+                    let id = review.id.to_string();
+                    let segs = ["repos", o, r, "pulls", &n, "reviews", &id, "comments"];
+                    // A review without line comments answers an empty list (or 404 on old
+                    // servers): neither is a reason to hide the conversation.
+                    if let Ok((mut found, _)) =
+                        self.get_all::<RawLineComment>(&segs, MAX_PAGES).await
+                    {
+                        found
+                            .iter_mut()
+                            .for_each(RawLineComment::place_from_positions);
+                        lines.append(&mut found);
+                    }
+                }
+            }
+            (general, reviews, Ok((lines, false)))
         } else {
             tokio::join!(
                 self.get_all::<RawIssueComment>(&issue_segs, MAX_PAGES),
@@ -387,6 +406,40 @@ impl GithubClient {
                 .await?
                 .body
                 .into()),
+            PullCommentTarget::Reply { .. } if self.is_gitea() => Err(ProviderError::Unsupported {
+                message: "Gitea / Forgejo have no API to answer in a line thread; add a new \
+                          comment on the line instead"
+                    .into(),
+            }),
+            PullCommentTarget::Line {
+                path, line, side, ..
+            } if self.is_gitea() => {
+                // A line comment is a review of kind "comment" with one comment in it.
+                let place = match side {
+                    PullSide::Old => "old_position",
+                    PullSide::New => "new_position",
+                };
+                let review = self
+                    .api()
+                    .send_json::<RawReview, _>(
+                        Method::POST,
+                        &["repos", o, r, "pulls", &n, "reviews"],
+                        &json!({
+                            "event": "COMMENT",
+                            "comments": [{ "path": path, "body": body, place: line }]
+                        }),
+                    )
+                    .await?
+                    .body;
+                let id = review.id.to_string();
+                let segs = ["repos", o, r, "pulls", &n, "reviews", &id, "comments"];
+                let (mut found, _) = self.get_all::<RawLineComment>(&segs, 1).await?;
+                let mut comment = found.pop().ok_or_else(|| ProviderError::InvalidResponse {
+                    message: "the server did not return the new comment".into(),
+                })?;
+                comment.place_from_positions();
+                Ok(comment.into())
+            }
             PullCommentTarget::Reply { thread_id } => {
                 let id = thread_id.trim();
                 if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
@@ -935,6 +988,9 @@ impl RawIssue {
 #[derive(Deserialize)]
 struct RawReview {
     id: u64,
+    /// Gitea / Forgejo: number of line comments of the review.
+    #[serde(default)]
+    comments_count: Option<u32>,
     user: Option<RawUser>,
     body: Option<String>,
     state: String,
@@ -1061,6 +1117,33 @@ struct RawLineComment {
     side: Option<String>,
     in_reply_to_id: Option<u64>,
     diff_hunk: Option<String>,
+    /// Gitea / Forgejo: line in the new file (0 when the comment is on a removed line).
+    #[serde(default)]
+    position: Option<u32>,
+    /// Gitea / Forgejo: line in the old file.
+    #[serde(default)]
+    original_position: Option<u32>,
+}
+
+impl RawLineComment {
+    /// Gitea / Forgejo give `position` / `original_position` instead of `line` / `side`.
+    fn place_from_positions(&mut self) {
+        match (
+            self.position.filter(|p| *p > 0),
+            self.original_position.filter(|p| *p > 0),
+        ) {
+            (Some(new), _) => {
+                self.line = Some(new);
+                self.side = Some("RIGHT".into());
+            }
+            (None, Some(old)) => {
+                self.line = Some(old);
+                self.original_line = Some(old);
+                self.side = Some("LEFT".into());
+            }
+            (None, None) => {}
+        }
+    }
 }
 
 impl From<RawLineComment> for PullComment {

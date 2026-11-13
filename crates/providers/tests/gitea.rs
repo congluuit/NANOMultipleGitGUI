@@ -229,7 +229,8 @@ async fn reviews_comments_and_empty_ci_follow_gitea_shapes() {
     let server = MockServer::start().await;
     // Requested reviewers come from the pull request itself; states have Gitea's names.
     let mut pull = pull_json(7, false);
-    pull["requested_reviewers"] = json!([{"id": 3, "login": "carol"}]);
+    // The server keeps reviewers in this list after they reviewed (dave approved).
+    pull["requested_reviewers"] = json!([{"id": 3, "login": "carol"}, {"id": 4, "login": "dave"}]);
     pull["requested_reviewers_teams"] = json!([{"id": 9, "name": "core"}]);
     Mock::given(method("GET"))
         .and(path("/api/v1/repos/acme/app/pulls/7"))

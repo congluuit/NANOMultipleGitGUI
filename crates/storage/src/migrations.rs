@@ -28,6 +28,8 @@ pub(crate) const MIGRATIONS: &[&str] = &[
     // v4: `auth_method = 'imported_cli'` (tokens copied from gh / glab, PLAN 3B.1). Rebuilds
     // `accounts`; needs foreign keys off (see `migrate`).
     include_str!("migrations/v4_imported_cli.sql"),
+    // v5: provider kinds 'gitea', 'bitbucket' and 'azure_devops'. Rebuilds `providers`.
+    include_str!("migrations/v5_more_providers.sql"),
 ];
 
 pub const LATEST_VERSION: u32 = MIGRATIONS.len() as u32;
@@ -78,4 +80,92 @@ fn apply(tx: &Transaction<'_>, from: u32) -> Result<()> {
     }
     tx.pragma_update(None, "user_version", LATEST_VERSION)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A database as version 4 of the schema left it, with a provider and an account in it.
+    fn v4_database() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "foreign_keys", true).unwrap();
+        for sql in &MIGRATIONS[..4] {
+            conn.execute_batch(sql).unwrap();
+        }
+        conn.pragma_update(None, "user_version", 4).unwrap();
+        conn.execute_batch(
+            "INSERT INTO providers (id, kind, name, base_url, api_url, large_file_warn_mb, builtin, created_at)
+               VALUES ('prv_1', 'gitlab_self_hosted', 'GitLab acme', 'https://git.acme.vn', 'https://git.acme.vn/api/v4', 50, 0, 7);
+             INSERT INTO accounts (id, provider_id, username, auth_method, color, created_at, updated_at)
+               VALUES ('acc_1', 'prv_1', 'lan', 'pat', '#1c7ed6', 1, 1);",
+        )
+        .unwrap();
+        conn
+    }
+
+    #[test]
+    fn v5_accepts_the_new_provider_kinds_and_keeps_existing_rows() {
+        let mut conn = v4_database();
+        // Before: the old CHECK refuses the new kinds.
+        let insert = "INSERT INTO providers (id, kind, name, base_url, api_url, large_file_warn_mb, builtin, created_at)
+                      VALUES (?1, ?2, ?1, ?3, ?3, 50, 0, 0)";
+        assert!(
+            conn.execute(insert, ["prv_bb", "bitbucket", "https://bitbucket.org"])
+                .is_err()
+        );
+
+        assert_eq!(migrate(&mut conn).unwrap(), LATEST_VERSION);
+        for (id, kind, url) in [
+            ("prv_bb", "bitbucket", "https://bitbucket.org"),
+            ("prv_az", "azure_devops", "https://dev.azure.com"),
+            ("prv_gt", "gitea", "https://codeberg.org"),
+        ] {
+            conn.execute(insert, [id, kind, url]).unwrap();
+        }
+        assert!(
+            conn.execute(insert, ["prv_x", "svn", "https://x.test"])
+                .is_err()
+        );
+
+        // Rows, the built-in providers and the account's reference survived the rebuild.
+        let (kind, created): (String, i64) = conn
+            .query_row(
+                "SELECT kind, created_at FROM providers WHERE id = 'prv_1'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!((kind.as_str(), created), ("gitlab_self_hosted", 7));
+        let builtin: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM providers WHERE builtin = 1",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(builtin, 2);
+        let owner: String = conn
+            .query_row(
+                "SELECT p.name FROM accounts a JOIN providers p ON p.id = a.provider_id WHERE a.id = 'acc_1'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(owner, "GitLab acme");
+        // Foreign keys are back on and still protect a provider that has accounts.
+        let fk: i64 = conn
+            .query_row("PRAGMA foreign_keys", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(fk, 1);
+        assert!(
+            conn.execute("DELETE FROM providers WHERE id = 'prv_1'", [])
+                .is_err()
+        );
+        // The base URL stays unique whatever the case.
+        assert!(
+            conn.execute(insert, ["prv_dup", "gitea", "HTTPS://CODEBERG.ORG"])
+                .is_err()
+        );
+    }
 }

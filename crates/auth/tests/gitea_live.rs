@@ -191,6 +191,136 @@ async fn real_gitea_account_round_trip() {
         .await,
     );
 
+    // A second user (needs an admin token): comments on a line and approves.
+    let reviewer = format!("rev{stamp}");
+    let password = format!("Rv-{stamp}-{}x", std::process::id());
+    let made: Result<_, _> = c
+        .api()
+        .send_json::<Value, _>(
+            Method::POST,
+            &["admin", "users"],
+            &json!({"username": reviewer, "email": format!("{reviewer}@example.test"),
+                    "password": password, "must_change_password": false}),
+        )
+        .await;
+    if steps.check("create a second user", made).is_some() {
+        let added: Result<_, _> = c
+            .api()
+            .send_json::<Value, _>(
+                Method::PUT,
+                &["repos", &user, &name, "collaborators", &reviewer],
+                &json!({"permission": "write"}),
+            )
+            .await;
+        steps.check("add the second user to the repository", added);
+        let token_url = endpoint.api(&["users", &reviewer, "tokens"]);
+        let answer: Value = http
+            .post(token_url)
+            .basic_auth(&reviewer, Some(&password))
+            .json(&json!({"name": "live-test", "scopes": ["all"]}))
+            .send()
+            .await
+            .expect("ask for the second user's token")
+            .json()
+            .await
+            .expect("token answer");
+        let second = answer["sha1"].as_str().unwrap_or_default().to_owned();
+        steps.expect("the second user got a token", !second.is_empty());
+        let info2 = validate_token(&http, &endpoint, &SecretToken::new(second.clone())).await;
+        steps.expect(
+            "the second user signs in",
+            info2.is_ok_and(|i| i.user.username == reviewer),
+        );
+        let c2 = ProviderClient::new(http.clone(), endpoint.clone(), SecretToken::new(second));
+        let line = steps.check(
+            "comment on a line of the diff",
+            c2.pull_comment(
+                &full,
+                number,
+                &PullCommentTarget::Line {
+                    path: "feature.txt".into(),
+                    old_path: None,
+                    line: 1,
+                    side: PullSide::New,
+                    paired_line: None,
+                },
+                "This line looks good.",
+            )
+            .await,
+        );
+        if let Some(line) = line {
+            steps.expect(
+                "line comment: kind and place",
+                line.kind == PullCommentKind::Line
+                    && line
+                        .anchor
+                        .as_ref()
+                        .is_some_and(|a| a.path == "feature.txt" && a.line == Some(1)),
+            );
+        }
+        steps.check(
+            "approve the pull request",
+            c2.pull_review(
+                &full,
+                number,
+                PullReviewEvent::Approve,
+                "Approved by the live test.",
+            )
+            .await,
+        );
+        if let Some(comments) = steps.check(
+            "comments with the line comment",
+            c.pull_comments(&full, number).await,
+        ) {
+            steps.expect(
+                "comments: the line comment is listed with its place",
+                comments.iter().any(|m| {
+                    m.kind == PullCommentKind::Line
+                        && m.body.contains("looks good")
+                        && m.anchor
+                            .as_ref()
+                            .is_some_and(|a| a.path == "feature.txt" && a.side == PullSide::New)
+                }),
+            );
+            steps.expect(
+                "comments: the approval is listed",
+                comments
+                    .iter()
+                    .any(|m| m.review_state == Some(PullReviewerState::Approved)),
+            );
+        }
+        if let Some(reviews) = steps.check(
+            "reviews after the approval",
+            c.pull_reviews(&full, number).await,
+        ) {
+            steps.expect(
+                "reviews: approved by the second user",
+                reviews
+                    .reviewers
+                    .iter()
+                    .any(|r| r.user.username == reviewer && r.state == PullReviewerState::Approved),
+            );
+            println!(
+                "      decision: {:?}, reviewers: {:?}",
+                reviews.decision, reviews.reviewers
+            );
+        }
+        let reply = c
+            .pull_comment(
+                &full,
+                number,
+                &PullCommentTarget::Reply {
+                    thread_id: "1".into(),
+                },
+                "reply",
+            )
+            .await;
+        steps.expect(
+            "a reply in a line thread is refused with an explanation",
+            reply.is_err(),
+        );
+    }
+
     // CI: nothing yet, then one commit status.
     if let Some(ci) = steps.check(
         "CI without statuses",

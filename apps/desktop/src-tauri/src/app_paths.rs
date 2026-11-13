@@ -64,6 +64,24 @@ pub struct AppPaths {
 impl AppPaths {
     /// Reads the pointer next to the default local data. Never fails on a bad pointer.
     pub fn resolve(app: &AppHandle) -> tauri::Result<Self> {
+        // Debug builds only: `NANOMGG_PROFILE_DIR` (an absolute folder) keeps the logs, cache
+        // and data of this run on their own, so automated tests that drive the real app
+        // never read or change the user's profile.
+        #[cfg(debug_assertions)]
+        if let Some(root) = std::env::var_os("NANOMGG_PROFILE_DIR")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+        {
+            let defaults = Locations {
+                log: root.join("logs"),
+                cache: root.join("cache"),
+                data: root.join("data"),
+            };
+            for dir in [&defaults.log, &defaults.cache, &defaults.data] {
+                std::fs::create_dir_all(dir)?;
+            }
+            return Ok(Self::from_defaults(defaults, root.join("local")));
+        }
         let path = app.path();
         let app_root = path.app_local_data_dir()?;
         let defaults = Locations {
