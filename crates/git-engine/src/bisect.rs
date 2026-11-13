@@ -37,10 +37,12 @@ pub enum BisectMark {
     Skip,
 }
 
-/// `# first bad commit: [<oid>] <subject>` of `git bisect log`.
+/// `# first bad commit: [<oid>] <subject>` of `git bisect log` (git 2.56 and later quote the
+/// term: `# first 'bad' commit: [...]`).
 pub fn parse_first_bad(log: &str) -> Option<(String, String)> {
     log.lines().rev().find_map(|line| {
-        let rest = line.strip_prefix("# first bad commit: [")?;
+        let rest = line.strip_prefix("# first ")?;
+        let (_term, rest) = rest.split_once(" commit: [")?;
         let (oid, subject) = rest.split_once(']')?;
         Some((oid.to_owned(), subject.trim().to_owned()))
     })
@@ -219,6 +221,24 @@ mod tests {
         assert!(!state(&repo.git, &repo.path).unwrap().active);
         assert_eq!(repo.branch(), "main");
         assert_eq!(repo.head(), bad);
+    }
+
+    #[test]
+    fn reads_the_result_line_of_old_and_new_git() {
+        let old = "# bad: [aaa] three\n# first bad commit: [61aa2e1] break it\n";
+        assert_eq!(
+            parse_first_bad(old),
+            Some(("61aa2e1".into(), "break it".into()))
+        );
+        let new = "git bisect good 67c3\n# first 'bad' commit: [61aa2e1] break [it]\n# good: [67c3] one\n";
+        assert_eq!(
+            parse_first_bad(new),
+            Some(("61aa2e1".into(), "break [it]".into()))
+        );
+        assert_eq!(
+            parse_first_bad("# bad: [aaa] three\n# good: [bbb] one\n"),
+            None
+        );
     }
 
     #[test]

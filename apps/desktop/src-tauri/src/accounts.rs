@@ -163,9 +163,12 @@ pub fn sidecar_path() -> Option<PathBuf> {
     let name = format!("nanomgg-credential{}", std::env::consts::EXE_SUFFIX);
     let exe = std::env::current_exe().ok()?;
     let dir = exe.parent()?;
-    [Some(dir.join(&name)), dir.parent().map(|d| d.join(&name))]
-        .into_iter()
-        .flatten()
+    // Next to the app; in a debug build also a few folders up: cargo keeps test binaries in
+    // `deps/` or, with its newer layout, in `build/<crate>/<hash>/out/`.
+    let levels = if cfg!(debug_assertions) { 6 } else { 2 };
+    dir.ancestors()
+        .take(levels)
+        .map(|d| d.join(&name))
         .find(|p| p.is_file())
 }
 
