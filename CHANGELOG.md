@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-13
+
 ### Added
 
 - A push refused because a file is over the server's size limit no longer offers a plain Retry (which only waited for the same long upload and failed again). One click on **Move big files to LFS and push again** finds the big files in the commits not on the server yet, moves them to Git LFS and pushes again; **Take big files out of the commits** keeps them on your computer instead (and in `.gitignore`), for files too big even for LFS. Uncommitted changes are put aside and back by themselves, a backup is made first and the result has an Undo. The limit the server reported (GitHub, GitLab, Bitbucket, Azure DevOps) is remembered, so the next push is checked against it before uploading anything. The transfer queue offers the same fix.
