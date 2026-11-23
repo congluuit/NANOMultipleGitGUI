@@ -7,7 +7,7 @@ use nanomgg_git_engine::commit_write::{self, CommitOptions, CommitResult, GitIde
 use nanomgg_git_engine::diff::{
     self, DiffRequest, FileContents, FileDiff, LineSelection, PatchAction,
 };
-use nanomgg_git_engine::edit::{self, SaveOutcome, WorktreeFile};
+use nanomgg_git_engine::edit::{self, LineEnding, SaveOutcome, TextEncoding, WorktreeFile};
 use nanomgg_git_engine::status::{WorkingTreeStatus, read_status};
 use nanomgg_git_engine::{GitRunner, index};
 use tauri::{AppHandle, Manager};
@@ -57,22 +57,24 @@ pub async fn file_contents(
     .await
 }
 
-/// A working-tree file for the built-in editor.
+/// A working-tree file for the built-in editor, read in `encoding` (detected when `None`).
 #[tauri::command]
 #[specta::specta]
 pub async fn worktree_file_read(
     app: AppHandle,
     repo_id: i64,
     path: String,
+    encoding: Option<TextEncoding>,
 ) -> AppResult<WorktreeFile> {
     with_repo(app, repo_id, move |_, root| {
-        Ok(edit::read_file(root, &path)?)
+        Ok(edit::read_file(root, &path, encoding)?)
     })
     .await
 }
 
-/// Saves a file from the built-in editor. `expected` is the version it was loaded at; when the
-/// file changed on disk since, nothing is written and the outcome says so.
+/// Saves a file from the built-in editor in `encoding`, its line breaks turned into `eol`.
+/// `expected` is the version it was loaded at; when the file changed on disk since, or the
+/// encoding cannot hold a character, nothing is written and the outcome says so.
 #[tauri::command]
 #[specta::specta]
 pub async fn worktree_file_write(
@@ -80,11 +82,42 @@ pub async fn worktree_file_write(
     repo_id: i64,
     path: String,
     text: String,
+    encoding: TextEncoding,
+    eol: LineEnding,
     expected: Option<String>,
 ) -> AppResult<SaveOutcome> {
-    tracing::info!(repo = repo_id, bytes = text.len(), "save file from editor");
+    tracing::info!(
+        repo = repo_id,
+        bytes = text.len(),
+        ?encoding,
+        ?eol,
+        "save file from editor"
+    );
     with_repo(app, repo_id, move |_, root| {
-        Ok(edit::write_file(root, &path, &text, expected.as_deref())?)
+        Ok(edit::write_file(
+            root,
+            &path,
+            &text,
+            encoding,
+            eol,
+            expected.as_deref(),
+        )?)
+    })
+    .await
+}
+
+/// The staged copy of a file read in `encoding` (the editor's change markers for a file that
+/// is not UTF-8); `None` when it is not staged or not text in that encoding.
+#[tauri::command]
+#[specta::specta]
+pub async fn worktree_index_text(
+    app: AppHandle,
+    repo_id: i64,
+    path: String,
+    encoding: TextEncoding,
+) -> AppResult<Option<String>> {
+    with_repo(app, repo_id, move |git, root| {
+        Ok(edit::read_index_text(git, root, &path, encoding)?)
     })
     .await
 }

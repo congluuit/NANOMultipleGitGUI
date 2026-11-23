@@ -100,6 +100,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             worktree::file_contents,
             worktree::worktree_file_read,
             worktree::worktree_file_write,
+            worktree::worktree_index_text,
             worktree::stage_files,
             worktree::unstage_files,
             worktree::stage_all,

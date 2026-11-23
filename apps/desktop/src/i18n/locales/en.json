@@ -4085,9 +4085,38 @@
     "spaces": "Spaces: {{size}}",
     "tabs": "Tab size: {{size}}",
     "utf8Bom": "UTF-8 with BOM",
-    "eolTitle": "Line endings. Click to switch between LF and CRLF.",
-    "mixedEol": "Mixed line endings",
-    "mixedEolTitle": "This file mixes CRLF and LF line endings. Saving converts every line to {{eol}}.",
+    "encoding": {
+      "title": "Encoding of the file. Click to reopen it or save it in another encoding.",
+      "button": "Encoding: {{encoding}}",
+      "reopen": "Reopen with encoding",
+      "save": "Save with encoding",
+      "detect": "Detect automatically",
+      "reopenDirty": "Save or undo your edits first.",
+      "unencodable": "Not saved: {{encoding}} has no code for “{{character}}” (line {{line}}, column {{column}}). Save with UTF-8 instead, or remove the character."
+    },
+    "eol": {
+      "title": "Line endings. Click to convert them.",
+      "button": "Line endings: {{eol}}",
+      "mixed": "Mixed",
+      "none": "No line break",
+      "mixedTitle": "This file mixes LF and CRLF line endings. Pick one to edit it.",
+      "mixedNote": "This file mixes LF and CRLF line endings and the editor can only keep one kind. It stays read-only until you pick the one to use (written with your next save).",
+      "useLf": "Use LF",
+      "useCrlf": "Use CRLF",
+      "convert": "Convert line endings to",
+      "toLf": "LF (Linux, macOS)",
+      "toCrlf": "CRLF (Windows)"
+    },
+    "preview": {
+      "mode": "Show the code or the rendered file",
+      "code": "Code",
+      "preview": "Preview",
+      "svgInvalid": "This SVG cannot be drawn. Check its markup in Code.",
+      "jsonInvalid": "Not valid JSON.",
+      "jsonInvalidAt": "Not valid JSON: line {{line}}, column {{column}}.",
+      "taskDone": "Done",
+      "taskOpen": "Not done"
+    },
     "language": "Language (syntax colors)",
     "conflict": "This file was changed on disk by another program after you started editing it.",
     "reload": "Reload from disk",
@@ -4097,7 +4126,7 @@
     "readOnly": {
       "staged": "Read-only: this is the staged copy.",
       "commit": "Read-only: the file as it is in this commit.",
-      "notUtf8": "Read-only: the file is not UTF-8 text, saving it here could damage it.",
+      "undecodable": "Read-only: this is not valid {{encoding}} text. Reopen it with another encoding from the status bar.",
       "symlink": "Read-only: this is a symbolic link."
     },
     "editWorkingCopy": "Edit the working copy",

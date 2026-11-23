@@ -4085,9 +4085,38 @@
     "spaces": "Dấu cách: {{size}}",
     "tabs": "Độ rộng tab: {{size}}",
     "utf8Bom": "UTF-8 có BOM",
-    "eolTitle": "Kiểu xuống dòng. Bấm để đổi giữa LF và CRLF.",
-    "mixedEol": "Xuống dòng lẫn lộn",
-    "mixedEolTitle": "File này trộn lẫn CRLF và LF. Khi lưu, mọi dòng sẽ chuyển sang {{eol}}.",
+    "encoding": {
+      "title": "Bảng mã của file. Bấm để mở lại hoặc lưu với bảng mã khác.",
+      "button": "Bảng mã: {{encoding}}",
+      "reopen": "Mở lại với bảng mã",
+      "save": "Lưu với bảng mã",
+      "detect": "Tự nhận diện",
+      "reopenDirty": "Hãy lưu hoặc hoàn tác các chỉnh sửa trước.",
+      "unencodable": "Chưa lưu: {{encoding}} không có mã cho ký tự “{{character}}” (dòng {{line}}, cột {{column}}). Hãy lưu với UTF-8, hoặc bỏ ký tự đó."
+    },
+    "eol": {
+      "title": "Kiểu xuống dòng. Bấm để chuyển đổi.",
+      "button": "Kiểu xuống dòng: {{eol}}",
+      "mixed": "Lẫn lộn",
+      "none": "Không xuống dòng",
+      "mixedTitle": "File này trộn lẫn LF và CRLF. Chọn một kiểu để chỉnh sửa.",
+      "mixedNote": "File này trộn lẫn kiểu xuống dòng LF và CRLF, mà trình soạn thảo chỉ giữ được một kiểu. File chỉ xem được cho tới khi bạn chọn kiểu sẽ dùng (ghi ra khi lưu lần tới).",
+      "useLf": "Dùng LF",
+      "useCrlf": "Dùng CRLF",
+      "convert": "Chuyển kiểu xuống dòng sang",
+      "toLf": "LF (Linux, macOS)",
+      "toCrlf": "CRLF (Windows)"
+    },
+    "preview": {
+      "mode": "Xem mã nguồn hoặc bản hiển thị",
+      "code": "Mã",
+      "preview": "Xem trước",
+      "svgInvalid": "Không vẽ được SVG này. Hãy kiểm tra mã ở chế độ Mã.",
+      "jsonInvalid": "JSON không hợp lệ.",
+      "jsonInvalidAt": "JSON không hợp lệ: dòng {{line}}, cột {{column}}.",
+      "taskDone": "Đã xong",
+      "taskOpen": "Chưa xong"
+    },
     "language": "Ngôn ngữ (tô màu cú pháp)",
     "conflict": "File này vừa bị chương trình khác sửa trên đĩa sau khi bạn bắt đầu chỉnh.",
     "reload": "Tải lại từ đĩa",
@@ -4097,7 +4126,7 @@
     "readOnly": {
       "staged": "Chỉ xem: đây là bản đã stage.",
       "commit": "Chỉ xem: nội dung file ở commit này.",
-      "notUtf8": "Chỉ xem: file không phải văn bản UTF-8, lưu ở đây có thể làm hỏng file.",
+      "undecodable": "Chỉ xem: đây không phải văn bản {{encoding}} hợp lệ. Hãy mở lại với bảng mã khác ở thanh trạng thái.",
       "symlink": "Chỉ xem: đây là liên kết tượng trưng (symlink)."
     },
     "editWorkingCopy": "Sửa bản làm việc",

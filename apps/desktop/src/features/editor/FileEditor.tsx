@@ -11,7 +11,9 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Code,
   Command,
+  Eye,
   Hash,
   ListMinus,
   Map as MinimapIcon,
@@ -31,17 +33,27 @@ import { Button } from "@/components/ui/button";
 import { relativeTime } from "@/features/blame/blame";
 import { applyMonacoTheme, languageFor, monaco, token, withAlpha } from "@/features/diff/monaco";
 import { invalidateWorktree, worktreeKeys } from "@/features/worktree/queries";
-import { commands, errorMessage, type BlameResult } from "@/ipc";
+import {
+  commands,
+  errorMessage,
+  type BlameResult,
+  type LineEnding,
+  type TextEncoding,
+} from "@/ipc";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
 import {
   acquireBuffer,
   bufferInfo,
+  convertEol,
   reloadFromDisk,
   releaseBuffer,
   saveBuffer,
+  saveWithEncoding,
   subscribeBuffers,
 } from "./buffers";
+import { EncodingMenu, EolMenu } from "./EncodingStatus";
+import { encodingLabel } from "./encoding";
 import {
   applyChange,
   changeAt,
@@ -53,7 +65,10 @@ import {
   splitLines,
   type LineChange,
 } from "./lineDiff";
-import { takeReveal, useReveal } from "./open";
+import { openInEditor, takeReveal, useReveal } from "./open";
+import { FilePreview } from "./preview/FilePreview";
+import { previewKind } from "./preview/model";
+import { modelTextStore } from "./preview/previewText";
 import { bufferKey, useEditorPrefs, type EditorPrefs } from "./store";
 
 const LINE_HEIGHT = 18;
@@ -69,6 +84,15 @@ interface Props {
   text: string;
   /** Version on disk of an editable working-tree file; `null` shows `text` read-only. */
   version: string | null;
+  /**
+   * Encoding of the file on disk (an editable file), or the one it failed to be read in (a
+   * read-only file that can be reopened). `null`: not a working-tree file.
+   */
+  encoding?: TextEncoding | null;
+  /** Line endings of an editable file as read from disk. */
+  eol?: LineEnding | null;
+  /** Reads the working-tree file again in an encoding (`null`: detected). */
+  onReopen?: (encoding: TextEncoding | null) => void;
   /** Shown above the editor (why it is read-only, for instance). */
   note?: ReactNode;
   /**
@@ -100,6 +124,9 @@ interface EditorState {
 }
 
 const EMPTY_STATE: EditorState = { changes: [], status: null };
+
+/** Code or rendered preview, per file, while the app runs. */
+const previewModes = new Map<string, boolean>();
 
 /** Cursor and scroll position per file, restored when the file is opened again. */
 const viewStates = new Map<string, monaco.editor.ICodeEditorViewState>();
@@ -273,6 +300,9 @@ export default function FileEditor({
   baseLabel,
   text,
   version,
+  encoding = null,
+  eol = null,
+  onReopen,
   note,
   stageMode = null,
   blameRev,
@@ -290,6 +320,17 @@ export default function FileEditor({
   const [saved, setSaved] = useState(false);
   const info = useSyncExternalStore(subscribeBuffers, () => (editable ? bufferInfo(key) : null));
   const model = info?.model ?? null;
+  // Mixed line endings: read-only until LF or CRLF is picked (Monaco keeps only one kind).
+  const mixedEol = !!info?.mixedEol;
+  const writable = editable && !mixedEol;
+  const kind = previewKind(path);
+  const [preview, setPreview] = useState(() => !!kind && !!previewModes.get(key));
+  const showPreview = (on: boolean) => {
+    previewModes.set(key, on);
+    setPreview(on);
+  };
+  const textStore = useMemo(() => modelTextStore(editor, preview), [editor, preview]);
+  const previewText = useSyncExternalStore(textStore.subscribe, textStore.get);
 
   const baseLines = useMemo(() => (base === null ? null : splitLines(base)), [base]);
   const store = useMemo(() => editorStore(editor, baseLines), [editor, baseLines]);
@@ -335,8 +376,19 @@ export default function FileEditor({
 
   // Editable: the file's buffer (kept across views while it has unsaved edits).
   useEffect(() => {
-    if (version !== null) acquireBuffer(repoId, path, text, version);
-  }, [repoId, path, text, version]);
+    if (version !== null) {
+      acquireBuffer(repoId, path, {
+        text,
+        version,
+        encoding: encoding ?? "utf8",
+        eol: eol ?? "none",
+      });
+    }
+  }, [repoId, path, text, version, encoding, eol]);
+
+  useEffect(() => {
+    editor?.updateOptions({ readOnly: !writable });
+  }, [editor, writable]);
 
   useEffect(() => {
     if (!editor || !model || model.isDisposed()) return;
@@ -388,7 +440,7 @@ export default function FileEditor({
     (c: LineChange) => {
       const m = editor?.getModel();
       const lines = live.current.baseLines;
-      if (!editor || !m || !lines || !editable) return;
+      if (!editor || !m || !lines || !writable) return;
       const e = revertEdit(lines, m.getLinesContent(), c, m.getEOL());
       editor.pushUndoStop();
       editor.executeEdits("nanomgg.revertChange", [
@@ -401,7 +453,7 @@ export default function FileEditor({
       editor.setPosition({ lineNumber: c.modifiedStart + 1, column: 1 });
       editor.focus();
     },
-    [editor, editable],
+    [editor, writable],
   );
 
   /** Stages (or unstages) one block: the index gets this block's lines and nothing else. */
@@ -443,7 +495,7 @@ export default function FileEditor({
         const show = (prefs.showRemoved && c.originalCount > 0) || expanded.has(blockKey(c));
         if (!show) continue;
         const actions: { label: string; run: () => void }[] = [];
-        if (editable) actions.push({ label: t("editor.revert"), run: () => revert(c) });
+        if (writable) actions.push({ label: t("editor.revert"), run: () => revert(c) });
         if (stageMode) {
           actions.push({
             label: t(stageMode === "stage" ? "editor.stageBlock" : "editor.unstageBlock"),
@@ -483,7 +535,7 @@ export default function FileEditor({
     baseLines,
     prefs.showRemoved,
     expanded,
-    editable,
+    writable,
     stageMode,
     revert,
     stageBlock,
@@ -542,7 +594,7 @@ export default function FileEditor({
 
   const restoreAll = () => {
     const m = editor?.getModel();
-    if (!editor || !m || base === null || !editable) return;
+    if (!editor || !m || base === null || !writable) return;
     editor.pushUndoStop();
     // A BOM stays out of the text, Monaco keeps it apart.
     const text = base.charCodeAt(0) === 0xfeff ? base.slice(1) : base;
@@ -663,8 +715,18 @@ export default function FileEditor({
   const added = changes.reduce((n, c) => n + c.modifiedCount, 0);
   const removed = changes.reduce((n, c) => n + c.originalCount, 0);
   const current = status ? changeAt(changes, status.line - 1) : -1;
-  const mixedEol = editable && /\r\n/.test(text) && /(^|[^\r])\n/.test(text);
-  const bom = text.startsWith("\uFEFF");
+  // Read-only copies (staged, a commit) are UTF-8 text: a BOM is all there is to tell.
+  const shownEncoding: TextEncoding =
+    (editable ? info?.encoding : encoding) ?? (text.startsWith("\uFEFF") ? "utf8Bom" : "utf8");
+  const shownEol: LineEnding = mixedEol ? "mixed" : status?.eol === "CRLF" ? "crlf" : "lf";
+  const saveAs = (e: TextEncoding) => {
+    void saveWithEncoding(key, e).then((ok) => {
+      if (ok) {
+        setSaved(true);
+        window.setTimeout(() => setSaved(false), 2000);
+      }
+    });
+  };
 
   return (
     <div
@@ -706,7 +768,23 @@ export default function FileEditor({
           </>
         )}
         {toolbarExtra}
-        {canRestore && editable && (
+        {kind && (
+          <div
+            className="flex items-center rounded-md border p-px"
+            role="group"
+            aria-label={t("editor.preview.mode")}
+          >
+            <ModeButton pressed={!preview} onClick={() => showPreview(false)}>
+              <Code />
+              {t("editor.preview.code")}
+            </ModeButton>
+            <ModeButton pressed={preview} onClick={() => showPreview(true)}>
+              <Eye />
+              {t("editor.preview.preview")}
+            </ModeButton>
+          </div>
+        )}
+        {canRestore && writable && (
           <Button
             size="xs"
             variant="outline"
@@ -765,7 +843,7 @@ export default function FileEditor({
         <ToolButton label={t("editor.find")} onClick={() => run("actions.find")}>
           <Search />
         </ToolButton>
-        {editable && (
+        {writable && (
           <ToolButton
             label={t("editor.replace")}
             onClick={() => run("editor.action.startFindReplaceAction")}
@@ -786,6 +864,21 @@ export default function FileEditor({
           {note}
         </div>
       )}
+      {mixedEol && (
+        <div
+          className="flex shrink-0 items-center gap-2 border-b bg-warning/10 px-3 py-1.5 text-xs"
+          data-testid="mixed-eol-note"
+        >
+          <TriangleAlert className="size-4 shrink-0 text-warning" />
+          <span className="flex-1">{t("editor.eol.mixedNote")}</span>
+          <Button size="xs" variant="outline" onClick={() => convertEol(key, "lf")}>
+            {t("editor.eol.useLf")}
+          </Button>
+          <Button size="xs" variant="outline" onClick={() => convertEol(key, "crlf")}>
+            {t("editor.eol.useCrlf")}
+          </Button>
+        </div>
+      )}
       {info?.conflict && (
         <div className="flex shrink-0 items-center gap-2 border-b bg-warning/10 px-3 py-1.5 text-xs">
           <TriangleAlert className="size-4 shrink-0 text-warning" />
@@ -799,7 +892,19 @@ export default function FileEditor({
         </div>
       )}
 
-      <div ref={mount} className="min-h-0 flex-1" data-testid="file-editor" />
+      <div
+        ref={mount}
+        className={cn("min-h-0 flex-1", preview && kind && "hidden")}
+        data-testid="file-editor"
+      />
+      {preview && kind && (
+        <FilePreview
+          kind={kind}
+          text={previewText}
+          path={path}
+          onOpenFile={(p) => openInEditor(repoId, p)}
+        />
+      )}
 
       {status && (
         <div className="flex h-6 shrink-0 items-center gap-3 border-t bg-surface px-3 text-[11px] text-muted-foreground">
@@ -818,15 +923,6 @@ export default function FileEditor({
             </span>
           )}
           <span className="flex-1" />
-          {mixedEol && (
-            <span
-              className="flex items-center gap-1 text-warning"
-              title={t("editor.mixedEolTitle", { eol: status.eol })}
-            >
-              <TriangleAlert className="size-3" />
-              {t("editor.mixedEol")}
-            </span>
-          )}
           <select
             value={`${status.insertSpaces ? "s" : "t"}${status.tabSize}`}
             onChange={(e) => {
@@ -850,24 +946,18 @@ export default function FileEditor({
               </option>
             ))}
           </select>
-          <span>{bom ? t("editor.utf8Bom") : "UTF-8"}</span>
-          <button
-            type="button"
-            disabled={!editable}
-            onClick={() =>
-              editor
-                ?.getModel()
-                ?.pushEOL(
-                  status.eol === "LF"
-                    ? monaco.editor.EndOfLineSequence.CRLF
-                    : monaco.editor.EndOfLineSequence.LF,
-                )
-            }
-            title={editable ? t("editor.eolTitle") : undefined}
-            className="hover:text-foreground disabled:hover:text-muted-foreground"
-          >
-            {status.eol}
-          </button>
+          {editable || onReopen ? (
+            <EncodingMenu
+              encoding={shownEncoding}
+              canReopen={!!onReopen && !info?.dirty}
+              canSave={writable}
+              onReopen={(e) => onReopen?.(e)}
+              onSave={saveAs}
+            />
+          ) : (
+            <span>{encodingLabel(shownEncoding, t)}</span>
+          )}
+          <EolMenu eol={shownEol} canConvert={editable} onConvert={(e) => convertEol(key, e)} />
           <LanguagePicker
             value={status.language}
             onChange={(id) => {
@@ -904,6 +994,28 @@ function ToolButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(pressed && "bg-surface-2 text-foreground")}
+    >
+      {children}
+    </Button>
+  );
+}
+
+function ModeButton({
+  pressed,
+  onClick,
+  children,
+}: {
+  pressed: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="xs"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn("h-5 px-1.5", pressed && "bg-surface-2 text-foreground")}
     >
       {children}
     </Button>
