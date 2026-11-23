@@ -354,7 +354,7 @@ export const guideVi: GuideTopic[] = [
           },
         ],
       },
-        {
+      {
         id: "editor",
         title: "Sửa file ngay trong app: bảng mã, kiểu xuống dòng, xem trước",
         blocks: [

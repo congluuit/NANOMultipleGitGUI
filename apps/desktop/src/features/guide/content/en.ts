@@ -355,7 +355,7 @@ export const guideEn: GuideTopic[] = [
           },
         ],
       },
-        {
+      {
         id: "editor",
         title: "Edit a file in the app: encodings, line endings, preview",
         blocks: [
