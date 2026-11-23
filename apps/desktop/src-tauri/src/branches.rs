@@ -11,6 +11,7 @@ use std::path::Path;
 use std::sync::{LazyLock, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
+use nanomgg_git_engine::forecast::{self, MergeForecast};
 use nanomgg_git_engine::merge::{self, MergeMode, MergeOutcome};
 use nanomgg_git_engine::ops::{
     self, FailureKind, OpError, OpOutcome, OperationState, RepoOperation, ResetMode,
@@ -760,6 +761,25 @@ pub async fn merge_into_current(
         merge::merge(git, repo, ctx, &rev, mode, message.as_deref())
     })
     .await
+}
+
+/// Whether merging `rev` into `base` (default: HEAD) would conflict, and in which files.
+/// Read-only (working tree and index untouched); any failure comes back as `unknown`.
+#[tauri::command]
+#[specta::specta]
+pub async fn merge_forecast(
+    app: AppHandle,
+    repo_id: i64,
+    rev: String,
+    base: Option<String>,
+) -> AppResult<MergeForecast> {
+    let repo = repo_root(&app.state::<AppState>(), repo_id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let st = app.state::<AppState>();
+        forecast::forecast(&st.git, &repo, base.as_deref(), &rev)
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))
 }
 
 #[cfg(test)]

@@ -211,6 +211,11 @@ export const commands = {
 	operationContinue: (repoId: number) => __TAURI_INVOKE<Outcome<OpOutcome>>("operation_continue", { repoId }),
 	/**  Merges `rev` (branch / remote branch / tag / commit id) into the current branch. */
 	mergeIntoCurrent: (repoId: number, rev: string, mode: MergeMode, message: string | null) => __TAURI_INVOKE<Outcome<MergeOutcome>>("merge_into_current", { repoId, rev, mode, message }),
+	/**
+	 *  Whether merging `rev` into `base` (default: HEAD) would conflict, and in which files.
+	 *  Read-only (working tree and index untouched); any failure comes back as `unknown`.
+	 */
+	mergeForecast: (repoId: number, rev: string, base: string | null) => __TAURI_INVOKE<MergeForecast>("merge_forecast", { repoId, rev, base }),
 	remoteFetch: (repoId: number, opId: string, remote: string | null, prune: boolean, tags: boolean, asAccount: {
 	accountId: string,
 	/**  Must belong to the account; omitted → its default identity. */
@@ -2444,6 +2449,18 @@ export type FixAuthorMode =
 /**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
 "rewriteUnpushed";
 
+export type ForecastKind = 
+/**  Could not tell (git older than 2.38, unrelated histories, bad revision…). */
+"unknown" | 
+/**  The target already contains the revision: nothing to merge. */
+"upToDate" | 
+/**  The target is an ancestor of the revision: the merge only moves the branch. */
+"fastForward" | 
+/**  A real merge is needed and it has no conflicts. */
+"clean" | 
+/**  A real merge is needed and these files conflict. */
+"conflicts";
+
 /**  What [`fork_attach`] does with the remotes of the open repository. */
 export type ForkAttachMode = 
 /**  Add the fork as a new remote (`fork` by default); `origin` stays as it is. */
@@ -3309,6 +3326,12 @@ export type LockList = {
 export type LockOutcome<T> = { status: "done"; value: T } | 
 /**  git-lfs refused; `failure.kind` says why (already locked, not owner, no permission…). */
 { status: "failed"; failure: LockFailure };
+
+export type MergeForecast = {
+	kind: ForecastKind,
+	/**  Conflicting paths (repository relative, in git's order) when `kind` is `conflicts`. */
+	conflicts: string[],
+};
 
 export type MergeMode = 
 /**  Only fast-forward; refuse when a merge commit would be needed. */

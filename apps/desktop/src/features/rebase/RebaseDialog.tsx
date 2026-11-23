@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { failureText } from "@/features/commits/outcome";
+import { ForecastView } from "@/features/merge-forecast/MergeForecast";
+import { useMergeForecast } from "@/features/merge-forecast/queries";
 import { commands, errorMessage, type RebasePreview } from "@/ipc";
 import { runRebase } from "./actions";
 import { canStartRebase } from "./model";
@@ -130,6 +132,8 @@ export function RebaseDialog({
     staleTime: 0,
     gcTime: 0,
   });
+  // Started together with the preview, shown once the preview says commits get replayed.
+  const forecast = useMergeForecast(repoId, onto, branch);
   const out = preview.data;
   const p = out?.status === "done" ? out.value : null;
   const label = branch ?? p?.branch ?? "HEAD";
@@ -177,6 +181,9 @@ export function RebaseDialog({
             onAllowPushed={setAllowPushed}
             onAutostash={setAutostash}
           />
+        )}
+        {p && !p.upToDate && !p.fastForward && (
+          <ForecastView forecast={forecast.data} loading={forecast.isPending} estimate />
         )}
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>

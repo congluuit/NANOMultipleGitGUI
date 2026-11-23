@@ -473,6 +473,7 @@ export const guideEn: GuideTopic[] = [
             kind: "list",
             items: [
               "Right-click a branch → **Merge into <current>…**, choose how to merge, then **Merge**.",
+              "**Conflict forecast**: while you choose how to merge, the dialog checks in the background whether the merge will conflict and names the files. Nothing in your folder changes. The rebase dialog shows the same check as an estimate, because a rebase replays commits one by one. To check without opening the dialog, right-click a branch and choose **Check for conflicts with <current>**. Needs Git 2.38 or newer.",
               "Right-click → **Rebase <current> onto <branch>**. The app makes a backup first, so you can always undo.",
               "**Drag & drop**: drag a branch in the left panel (or its label in the graph) onto another branch, then choose Fast-forward, Merge or Rebase.",
               "**Interactive rebase** (right-click a commit → **Interactive rebase from here…**): reorder commits by dragging (or Alt+↑ / Alt+↓), and choose pick / reword / squash / fixup / drop / edit for each one.",

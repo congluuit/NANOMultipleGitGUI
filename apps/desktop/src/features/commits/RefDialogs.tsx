@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { AddWorktreeDialog } from "@/features/linked-worktrees/AddWorktreeDialog";
 import { useLinkedWorktrees } from "@/features/linked-worktrees/queries";
+import { MergeForecastLine } from "@/features/merge-forecast/MergeForecast";
 import { isPlausibleBranchName } from "@/features/repos/branchName";
 import { commands, type MergeMode } from "@/ipc";
 import { deleteRemoteBranch } from "./branchActions";
@@ -206,6 +207,7 @@ function MergeDialog({
             </label>
           ))}
         </div>
+        <MergeForecastLine repoId={repoId} rev={rev} />
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose}>
             {t("common.cancel")}

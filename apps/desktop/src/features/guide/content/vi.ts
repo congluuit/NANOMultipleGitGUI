@@ -472,6 +472,7 @@ export const guideVi: GuideTopic[] = [
             kind: "list",
             items: [
               "Chuột phải một nhánh → **Merge vào <nhánh hiện tại>…**, chọn cách merge, rồi bấm **Merge**.",
+              "**Dự báo xung đột**: trong lúc bạn chọn cách merge, hộp thoại tự kiểm tra ngầm xem merge có bị xung đột không và liệt kê các file sẽ xung đột. Thư mục làm việc không bị thay đổi gì. Hộp thoại rebase cũng hiện kết quả này nhưng chỉ là ước tính, vì rebase áp dụng lại từng commit một. Muốn kiểm tra mà không mở hộp thoại, chuột phải một nhánh và chọn **Kiểm tra xung đột với <nhánh hiện tại>**. Cần Git 2.38 trở lên.",
               "Chuột phải → **Rebase <nhánh hiện tại> lên <nhánh>**. App tạo bản sao lưu trước, nên luôn hoàn tác được.",
               "**Kéo-thả**: kéo một nhánh ở panel trái (hoặc nhãn nhánh trên graph) thả lên nhánh khác, rồi chọn Fast-forward, Merge hoặc Rebase.",
               "**Interactive rebase** (chuột phải commit → **Interactive rebase từ đây…**): kéo để đổi thứ tự commit (hoặc Alt+↑ / Alt+↓), chọn pick / reword / squash / fixup / drop / edit cho từng commit.",
