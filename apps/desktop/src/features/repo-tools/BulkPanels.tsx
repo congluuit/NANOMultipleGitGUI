@@ -3,11 +3,20 @@ import { useQueries } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, GripVertical, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { formatBytes } from "@/features/transfers/format";
 import { worktreeKeys } from "@/features/worktree/queries";
 import { commands, errorMessage, type RepoOverview } from "@/ipc";
 import { cn } from "@/lib/utils";
 import { moveItem, syncOrder } from "./bulk";
-import { bulkCommit, bulkPush, useBulkRun, type BulkItem, type BulkStatus } from "./bulkRun";
+import {
+  bulkCommit,
+  bulkPush,
+  previewLfs,
+  useBulkRun,
+  type BulkItem,
+  type BulkStatus,
+  type LfsPreview,
+} from "./bulkRun";
 
 const STATUS_CLASS: Record<BulkStatus, string> = {
   waiting: "text-muted-foreground",
@@ -115,6 +124,43 @@ function RunFooter({ onBack, children }: { onBack: () => void; children?: React.
   );
 }
 
+interface LfsEstimateState {
+  loading: boolean;
+  value: LfsPreview | undefined;
+}
+
+/** The LFS upload a repository's push will start, or why it could not be estimated. */
+function LfsLine({ estimate }: { estimate: LfsEstimateState | undefined }) {
+  const { t } = useTranslation();
+  if (!estimate) return null;
+  if (estimate.loading) {
+    return (
+      <span className="flex basis-full items-center gap-1 pl-12 text-[11px] text-muted-foreground">
+        <LoaderCircle className="size-3 animate-spin" />
+        {t("overview.bulk.push.lfsChecking")}
+      </span>
+    );
+  }
+  const value = estimate.value;
+  if (!value || value.status === "none") return null;
+  if (value.status === "failed") {
+    return (
+      <span className="basis-full pl-12 text-[11px] text-danger">
+        {t("transfers.estimateFailed", { message: value.message })}
+      </span>
+    );
+  }
+  return (
+    <span className="basis-full pl-12 text-[11px] text-warning">
+      {t("overview.bulk.push.lfsUpload", {
+        count: value.count,
+        size: formatBytes(value.totalBytes),
+      })}
+      {value.unknownSizes > 0 && ` ${t("transfers.unknownSizes", { count: value.unknownSizes })}`}
+    </span>
+  );
+}
+
 /** "Push in order": arrange the repositories, pick what a failure does, push one at a time. */
 export function BulkPushPanel({ rows, onBack, onOpen }: PanelProps) {
   const { t } = useTranslation();
@@ -131,6 +177,23 @@ export function BulkPushPanel({ rows, onBack, onOpen }: PanelProps) {
   );
   const byId = new Map(rows.map((r) => [r.repoId, r]));
   const ordered = current.map((id) => byId.get(id)).filter((r): r is RepoOverview => !!r);
+  // The LFS upload of each push, shown before the run like the single push's confirmation.
+  const estimates = useQueries({
+    queries: rows.map((r) => ({
+      queryKey: ["bulkLfsEstimate", r.repoId] as const,
+      queryFn: () => previewLfs(r),
+      staleTime: 0,
+      gcTime: 0,
+      retry: false,
+    })),
+  });
+  const estimateOf = new Map<number, LfsEstimateState>(
+    rows.map((r, i) => [
+      r.repoId,
+      { loading: !!estimates[i]?.isPending, value: estimates[i]?.data },
+    ]),
+  );
+  const estimating = estimates.some((q) => q.isPending);
 
   if (run?.kind === "push") {
     return (
@@ -179,7 +242,7 @@ export function BulkPushPanel({ rows, onBack, onOpen }: PanelProps) {
                 setDragOver(null);
               }}
               className={cn(
-                "flex items-center gap-2 px-2 py-1.5",
+                "flex flex-wrap items-center gap-x-2 gap-y-0.5 px-2 py-1.5",
                 dragOver === index && "bg-accent",
               )}
               data-testid={`push-order-${row.repoId}`}
@@ -214,6 +277,7 @@ export function BulkPushPanel({ rows, onBack, onOpen }: PanelProps) {
               >
                 <ChevronDown />
               </Button>
+              <LfsLine estimate={estimateOf.get(row.repoId)} />
             </li>
           ))}
         </ol>
@@ -245,8 +309,14 @@ export function BulkPushPanel({ rows, onBack, onOpen }: PanelProps) {
       <RunFooter onBack={onBack}>
         <Button
           size="sm"
-          disabled={ordered.length === 0 || !!run?.running}
-          onClick={() => void bulkPush(ordered, stopOnFailure)}
+          disabled={ordered.length === 0 || !!run?.running || estimating}
+          title={estimating ? t("overview.bulk.push.lfsWait") : undefined}
+          onClick={() => {
+            // This click confirms the LFS uploads listed above.
+            const shown = new Map<number, LfsPreview>();
+            for (const [id, e] of estimateOf) if (e.value) shown.set(id, e.value);
+            void bulkPush(ordered, stopOnFailure, shown);
+          }}
         >
           {t("overview.bulk.push.start", { count: ordered.length })}
         </Button>

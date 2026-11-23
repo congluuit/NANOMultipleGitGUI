@@ -19,7 +19,8 @@ import { guessProvider, relevantFindings } from "@/features/lfs/guard";
 import { lfsKeys } from "@/features/lfs/queries";
 import { newOpId, pushPlan } from "@/features/remote/plan";
 import { repoKeys } from "@/features/repos/queries";
-import { runLfsPush } from "@/features/transfers/actions";
+import { notifyEstimateFailure, repoAccount, runLfsPush } from "@/features/transfers/actions";
+import { failureTexts } from "@/features/transfers/format";
 import {
   fixForFailure,
   selectRepoRunning,
@@ -263,20 +264,81 @@ async function gitPush(row: RepoOverview, plan: PushRequest): Promise<string | n
   }
 }
 
-/** Pushes one repository after its checks pass; `null` when it was pushed. */
-async function pushOne(row: RepoOverview, plan: PushRequest): Promise<string | null> {
-  if (await usesLfs(row.repoId)) {
-    try {
-      const est = await commands.lfsPushEstimate(row.repoId, plan.remote, plan.branch);
-      if (est.status === "done" && est.value.objects.length > 0) {
-        const uploaded = await runLfsPush(row.repoId, plan.remote, plan.branch);
-        if (!uploaded) return t("overview.bulk.reason.lfsFailed");
-      }
-    } catch (e) {
-      console.warn("lfs estimate failed", e);
+/**
+ * The LFS upload a push would start, as shown to the user before the run. A single push asks
+ * for confirmation with this estimate; in bulk mode the click on "Push N repositories" is that
+ * confirmation, so the estimate must be on screen first.
+ */
+export type LfsPreview =
+  /** Not an LFS repository, or nothing to upload. */
+  | { status: "none" }
+  | { status: "upload"; oids: string[]; count: number; totalBytes: number; unknownSizes: number }
+  /** The estimate failed: shown like the single push shows it, the push is still allowed. */
+  | { status: "failed"; message: string };
+
+async function lfsEstimate(repoId: number, plan: PushRequest): Promise<LfsPreview> {
+  if (!(await usesLfs(repoId))) return { status: "none" };
+  try {
+    const est = await commands.lfsPushEstimate(repoId, plan.remote, plan.branch);
+    if (est.status === "failed") {
+      return {
+        status: "failed",
+        message: failureTexts(est.failure, repoAccount(repoId)?.label ?? "").title,
+      };
     }
+    if (est.status !== "done" || est.value.objects.length === 0) return { status: "none" };
+    return {
+      status: "upload",
+      oids: est.value.objects.map((o) => o.oid),
+      count: est.value.objects.length,
+      totalBytes: est.value.totalBytes,
+      unknownSizes: est.value.unknownSizes,
+    };
+  } catch (e) {
+    return { status: "failed", message: errorMessage(e) };
   }
-  return gitPush(row, plan);
+}
+
+/** Estimate of the LFS upload of one repository's push, for the list before the run. */
+export async function previewLfs(row: RepoOverview): Promise<LfsPreview> {
+  if (row.missing || row.error) return { status: "none" };
+  const refs = await fresh(repoKeys.refs(row.repoId), () => commands.repoRefs(row.repoId)).catch(
+    () => null,
+  );
+  const plan = refs ? pushPlan(refs) : null;
+  return plan ? lfsEstimate(row.repoId, plan) : { status: "none" };
+}
+
+/** Whether the upload found now was shown before the run (no object the user did not see). */
+export function lfsUploadApproved(now: LfsPreview, shown: LfsPreview | undefined): boolean {
+  if (now.status !== "upload") return true;
+  if (shown?.status !== "upload") return false;
+  const seen = new Set(shown.oids);
+  return now.oids.every((oid) => seen.has(oid));
+}
+
+type PushResult = { status: "done" | "failed" | "attention"; reason: string | null };
+
+/** Pushes one repository after its checks pass. */
+async function pushOne(
+  row: RepoOverview,
+  plan: PushRequest,
+  shown: LfsPreview | undefined,
+): Promise<PushResult> {
+  const now = await lfsEstimate(row.repoId, plan);
+  if (!lfsUploadApproved(now, shown)) {
+    return { status: "attention", reason: t("overview.bulk.reason.lfsChanged") };
+  }
+  if (now.status === "upload") {
+    const uploaded = await runLfsPush(row.repoId, plan.remote, plan.branch);
+    if (!uploaded) return { status: "failed", reason: t("overview.bulk.reason.lfsFailed") };
+  } else if (now.status === "failed" && shown?.status !== "failed") {
+    // Like the single push: say the estimate failed (unless the row already said so), then
+    // push; git's own hook uploads what is needed.
+    notifyEstimateFailure(now.message);
+  }
+  const error = await gitPush(row, plan);
+  return { status: error ? "failed" : "done", reason: error };
 }
 
 export interface BulkSummary {
@@ -348,8 +410,15 @@ async function sequence(
   return summary;
 }
 
-/** Pushes `rows` one at a time, in the order given. */
-export function bulkPush(rows: readonly RepoOverview[], stopOnFailure: boolean) {
+/**
+ * Pushes `rows` one at a time, in the order given. `shown`: the LFS estimates the user saw
+ * before starting (by repository id); an upload that was not shown is never started.
+ */
+export function bulkPush(
+  rows: readonly RepoOverview[],
+  stopOnFailure: boolean,
+  shown: ReadonlyMap<number, LfsPreview> = new Map(),
+) {
   return sequence("push", rows, stopOnFailure, async (row) => {
     const { update } = useBulkRun.getState();
     // Another fetch / pull / push of this repository is still running.
@@ -364,8 +433,8 @@ export function bulkPush(rows: readonly RepoOverview[], stopOnFailure: boolean) 
       return;
     }
     update(row.repoId, "running");
-    const error = await pushOne(row, check.value);
-    update(row.repoId, error ? "failed" : "done", error);
+    const result = await pushOne(row, check.value, shown.get(row.repoId));
+    update(row.repoId, result.status, result.reason);
   });
 }
 

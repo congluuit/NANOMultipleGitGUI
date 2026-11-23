@@ -152,7 +152,7 @@ export const guideEn: GuideTopic[] = [
               "**Pull all** only touches repositories that are behind and have nothing uncommitted, and only fast-forwards. Anything that needs a decision is left for you.",
               "**Has changes** and **Out of sync** show only the repositories that need something. **By folder** and **By account** put them in groups you can fold.",
               "Tick repositories (or a whole group) and the buttons work on those only. With nothing ticked they work on every repository shown.",
-              "**Push…** pushes one repository at a time, from the top of the list. Drag rows or use the arrows so a library goes before the projects that use it, and choose whether a failure stops the rest. **Stop after this repository** cancels what is left.",
+              "**Push…** pushes one repository at a time, from the top of the list. Drag rows or use the arrows so a library goes before the projects that use it, and choose whether a failure stops the rest. Repositories with LFS files show how much will be uploaded before you start. **Stop after this repository** cancels what is left.",
               "**Commit…** commits what is already staged in each repository with one message. You see which repositories will be committed before you confirm. Nothing is staged for you.",
             ],
           },

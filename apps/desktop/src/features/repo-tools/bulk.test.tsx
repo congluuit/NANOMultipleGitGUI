@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -31,7 +31,7 @@ import {
   targetRows,
   type AccountTag,
 } from "./bulk";
-import { bulkCommit, bulkPush, useBulkRun } from "./bulkRun";
+import { bulkCommit, bulkPush, previewLfs, useBulkRun } from "./bulkRun";
 import { OverviewDialog } from "./OverviewDialog";
 import { toolKeys } from "./queries";
 
@@ -245,6 +245,46 @@ function mockPushSide(opts: { guardFor?: number[]; failFor?: number[]; behindFor
 
 const statusOf = (id: number) => useBulkRun.getState().run?.items.find((i) => i.repoId === id);
 
+const MiB = 1024 * 1024;
+const lfsObject = (oid: string, size = MiB) => ({ oid, size, path: `assets/${oid}.psd` });
+
+/** Repositories in `lfs` use LFS; `estimate` gives the objects each one would upload. */
+function mockLfs(lfs: number[], estimate: (id: number) => ReturnType<typeof lfsObject>[] | "fail") {
+  vi.spyOn(commands, "lfsStatus").mockImplementation(
+    async (id) => ({ usesLfs: lfs.includes(id) }) as Awaited<ReturnType<typeof commands.lfsStatus>>,
+  );
+  vi.spyOn(commands, "lfsPushEstimate").mockImplementation(async (id, remote, branch) => {
+    const objects = estimate(id);
+    if (objects === "fail") {
+      return {
+        status: "failed",
+        failure: {
+          kind: "authRequired",
+          message: "401",
+          retryable: false,
+          billingUrl: null,
+          settingsUrl: null,
+          limitBytes: null,
+          object: null,
+        },
+      };
+    }
+    return {
+      status: "done",
+      value: {
+        remote,
+        branch,
+        objects,
+        totalBytes: objects.reduce((n, o) => n + o.size, 0),
+        unknownSizes: 0,
+      },
+    };
+  });
+  return vi
+    .spyOn(commands, "lfsPush")
+    .mockResolvedValue({ status: "done", value: { files: 1, bytes: MiB, elapsedMs: 5 } });
+}
+
 describe("bulk push", () => {
   const rows = [
     repo({ repoId: 1, name: "lib", ahead: 2 }),
@@ -310,6 +350,52 @@ describe("bulk push", () => {
     expect(statusOf(2)?.status).toBe("attention");
     expect(statusOf(2)?.reason).toContain("another account");
     expect(push.mock.calls.map((c) => c[0])).toEqual([3]);
+  });
+
+  it("uploads LFS files only when the user saw that upload", async () => {
+    const { push } = mockPushSide({});
+    const upload = mockLfs([1], () => [lfsObject("a1"), lfsObject("a2")]);
+    const shown = new Map([[1, await previewLfs(rows[0]!)]]);
+    expect(shown.get(1)).toMatchObject({ status: "upload", count: 2, totalBytes: 2 * MiB });
+    await bulkPush(rows, true, shown);
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(upload.mock.calls[0]![0]).toBe(1);
+    expect(push.mock.calls.map((c) => c[0])).toEqual([1, 2, 3]);
+  });
+
+  it("never uploads LFS files that appeared after the estimate was shown", async () => {
+    const { push } = mockPushSide({});
+    let objects = [lfsObject("a1")];
+    const upload = mockLfs([1], () => objects);
+    const shown = new Map([[1, await previewLfs(rows[0]!)]]);
+    objects = [lfsObject("a1"), lfsObject("b2", 50 * MiB)];
+    await bulkPush(rows, true, shown);
+    expect(upload).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+    expect(statusOf(1)?.status).toBe("attention");
+    expect(statusOf(1)?.reason).toContain("changed since you saw it");
+    // Stop at the first failure: the repositories after it wait.
+    expect(statusOf(2)?.status).toBe("notRun");
+  });
+
+  it("does not upload when no estimate was shown, and continues when asked", async () => {
+    const { push } = mockPushSide({});
+    const upload = mockLfs([2], () => [lfsObject("c3")]);
+    await bulkPush(rows, false);
+    expect(upload).not.toHaveBeenCalled();
+    expect(statusOf(2)?.status).toBe("attention");
+    expect(push.mock.calls.map((c) => c[0])).toEqual([1, 3]);
+  });
+
+  it("still pushes when the estimate failed, as a single push does", async () => {
+    const { push } = mockPushSide({});
+    const upload = mockLfs([1], () => "fail");
+    const shown = new Map([[1, await previewLfs(rows[0]!)]]);
+    expect(shown.get(1)?.status).toBe("failed");
+    await bulkPush([rows[0]!], true, shown);
+    expect(upload).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(statusOf(1)?.status).toBe("done");
   });
 
   it("stops after the current repository when cancelled", async () => {
@@ -445,10 +531,31 @@ describe("OverviewDialog", () => {
     await user.click(screen.getByRole("button", { name: "Move admin up" }));
     expect(names()[0]).toContain("admin");
     await user.click(screen.getByRole("radio", { name: "Continue with the rest" }));
-    await user.click(screen.getByRole("button", { name: "Push 2 repositories" }));
+    const start = screen.getByRole("button", { name: "Push 2 repositories" });
+    // Enabled once the LFS estimates are in (none here: no repository uses LFS).
+    await waitFor(() => expect(start).toBeEnabled());
+    await user.click(start);
     await screen.findByText("2 of 2 finished", undefined, { timeout: 5000 });
     expect(push.mock.calls.map((c) => c[0])).toEqual([3, 1]);
     expect(screen.getAllByText("Done")).toHaveLength(2);
+  });
+
+  it("shows each LFS upload before the push, and the click confirms it", async () => {
+    const { push } = mockPushSide({});
+    const upload = mockLfs([1, 3], (id) => (id === 1 ? [lfsObject("a1", 3 * MiB)] : "fail"));
+    const user = setup();
+    await user.click(screen.getByRole("button", { name: /Push/ }));
+    const start = screen.getByRole("button", { name: "Push 2 repositories" });
+    expect(await screen.findByText("Will upload 1 LFS file, 3 MB.")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Could not estimate the LFS upload: No valid LFS credentials/),
+    ).toBeInTheDocument();
+    // A failed estimate is shown but does not block the push.
+    expect(start).toBeEnabled();
+    await user.click(start);
+    await screen.findByText("2 of 2 finished", undefined, { timeout: 5000 });
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(push.mock.calls.map((c) => c[0])).toEqual([1, 3]);
   });
 
   it("shows which repositories will be committed before committing", async () => {

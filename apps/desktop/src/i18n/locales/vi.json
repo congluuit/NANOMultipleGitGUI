@@ -4270,6 +4270,10 @@
         "onFailure": "Khi một repo lỗi hoặc cần xem",
         "stop": "Dừng lại, không push các repo phía sau",
         "continue": "Vẫn tiếp tục với các repo còn lại",
+        "lfsChecking": "Đang tính dung lượng LFS cần tải lên…",
+        "lfsUpload": "Sẽ tải lên {{count}} file LFS, {{size}}.",
+        "lfsUpload_one": "Sẽ tải lên {{count}} file LFS, {{size}}.",
+        "lfsWait": "Chờ tính xong dung lượng LFS cần tải lên",
         "start": "Push {{count}} repo",
         "start_one": "Push {{count}} repo"
       },
@@ -4311,6 +4315,7 @@
         "tracking": "Nhánh push qua {{remote}}, remote này thuộc tài khoản khác với tài khoản của repo.",
         "busy": "Repo này đang có một lượt truyền dữ liệu khác chưa xong.",
         "lfsFailed": "Tải file LFS lên chưa xong.",
+        "lfsChanged": "Phần LFS cần tải lên đã khác lúc bạn xem (có file mới). Hãy push từ trong repo để xem dung lượng mới.",
         "conflicts": "Còn xung đột chưa giải quyết.",
         "nothingStaged": "Chưa stage gì.",
         "largeFiles": "{{count}} file đã stage có dung lượng lớn hoặc nên đưa vào LFS.",

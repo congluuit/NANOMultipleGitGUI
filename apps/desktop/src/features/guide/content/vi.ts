@@ -151,7 +151,7 @@ export const guideVi: GuideTopic[] = [
               "**Pull tất cả** chỉ đụng tới repo đang chậm hơn server và không có thay đổi chưa commit, và chỉ fast-forward. Trường hợp nào cần bạn quyết định thì được để nguyên.",
               "**Có thay đổi** và **Lệch server** chỉ hiện những repo cần làm gì đó. **Theo thư mục** và **Theo tài khoản** xếp repo thành từng nhóm, bấm vào tên nhóm để thu gọn.",
               "Tích chọn repo (hoặc cả một nhóm) thì các nút chỉ làm việc với những repo đó. Không chọn repo nào thì các nút làm với mọi repo đang hiện.",
-              "**Push…** push lần lượt từng repo, từ trên xuống. Kéo các dòng hoặc bấm mũi tên để thư viện được push trước những dự án dùng nó, và chọn có dừng lại khi một repo lỗi hay không. **Dừng sau repo này** bỏ phần còn lại.",
+              "**Push…** push lần lượt từng repo, từ trên xuống. Kéo các dòng hoặc bấm mũi tên để thư viện được push trước những dự án dùng nó, và chọn có dừng lại khi một repo lỗi hay không. Repo có file LFS hiện trước dung lượng sẽ tải lên rồi bạn mới bắt đầu. **Dừng sau repo này** bỏ phần còn lại.",
               "**Commit…** commit những gì đã stage trong từng repo với cùng một nội dung. Bạn thấy trước repo nào sẽ được commit rồi mới xác nhận. App không tự stage file nào.",
             ],
           },

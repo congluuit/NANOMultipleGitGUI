@@ -4270,6 +4270,10 @@
         "onFailure": "When a repository fails or needs attention",
         "stop": "Stop, do not push the ones after it",
         "continue": "Continue with the rest",
+        "lfsChecking": "Checking the LFS upload…",
+        "lfsUpload": "Will upload {{count}} LFS files, {{size}}.",
+        "lfsUpload_one": "Will upload {{count}} LFS file, {{size}}.",
+        "lfsWait": "Wait until the LFS uploads are estimated",
         "start": "Push {{count}} repositories",
         "start_one": "Push {{count}} repository"
       },
@@ -4311,6 +4315,7 @@
         "tracking": "The branch pushes through {{remote}}, which belongs to another account than the repository's.",
         "busy": "Another transfer of this repository is still running.",
         "lfsFailed": "The LFS upload did not finish.",
+        "lfsChanged": "The LFS upload changed since you saw it (new files to upload). Push from the repository to see the new size.",
         "conflicts": "There are unresolved conflicts.",
         "nothingStaged": "Nothing staged.",
         "largeFiles": "{{count}} staged files are large or should go to LFS.",
