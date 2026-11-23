@@ -1181,7 +1181,7 @@ mod tests {
     fn load_and_save_is_byte_identical_in_every_encoding_and_line_ending() {
         use LineEnding as L;
         use TextEncoding as E;
-        let text = "using UnityEngine;\r\n// Tiếng Việt, café, 日本語, 🎮\r\nclass A {}\r\n";
+        let text = "using UnityEngine;\r\n// Tiếng Việt, café, 日本語, \u{2070E}\r\nclass A {}\r\n";
         let lf = text.replace("\r\n", "\n");
         let mixed = "one\r\ntwo\nthree\rfour";
 
