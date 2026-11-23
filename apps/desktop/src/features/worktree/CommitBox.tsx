@@ -9,6 +9,7 @@ import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
 import { useIssueRefSuggest } from "@/features/issues/IssueRefSuggest";
 import { useLargeFileGuard } from "@/features/lfs/useLargeFileGuard";
+import { useSecretGuard } from "@/features/secret-guard/useSecretGuard";
 import { commitErrorNotice } from "@/features/signing/commitError";
 import { commands } from "@/ipc";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,7 @@ export function CommitBox({
   const update = useWorktreeStore((s) => s.updateDraft);
   const clear = useWorktreeStore((s) => s.clearDraft);
   const guard = useLargeFileGuard(repoId);
+  const secretGuard = useSecretGuard(repoId);
   const [busy, setBusy] = useState(false);
   // Phase 4.2: typing `#` suggests open issues (inserts `#123` / `Closes #123`).
   const summarySuggest = useIssueRefSuggest<HTMLInputElement>(repoId, draft.summary, (summary) =>
@@ -82,8 +84,28 @@ export function CommitBox({
       setBusy(false);
       return;
     }
+    // Secret Guard: added lines that look like passwords, tokens or private keys.
+    const heldForSecrets = await secretGuard.intercept(
+      stagedPaths,
+      (remaining) => void afterSecretGuard(remaining),
+    );
+    if (heldForSecrets) {
+      setBusy(false);
+      return;
+    }
+    await afterSecretGuard(stagedPaths);
+  };
+
+  /** `paths`: what is still staged (the Secret Guard may have unstaged files). */
+  const afterSecretGuard = async (paths: string[]) => {
+    if (paths.length === 0 && stagedPaths.length > 0 && !draft.amend) {
+      useUi.getState().showNotice({ kind: "info", message: t("secretGuard.nothingLeft") });
+      setBusy(false);
+      return;
+    }
+    setBusy(true);
     // Large File Guard (PLAN §6.2): big or binary files may be sent to LFS first.
-    const held = await guard.intercept(stagedPaths, () => void commit());
+    const held = await guard.intercept(paths, () => void commit());
     if (held) {
       setBusy(false);
       return;
@@ -205,6 +227,7 @@ export function CommitBox({
         {draft.amend ? t("commit.submitAmend") : t("commit.submit", { count: stagedCount })}
       </Button>
       {blocked && <p className="text-center text-[11px] text-muted-foreground">{blocked}</p>}
+      {secretGuard.dialog}
       {guard.dialog}
     </div>
   );

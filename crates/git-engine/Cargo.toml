@@ -15,6 +15,10 @@ specta = ["dep:specta"]
 [dependencies]
 specta = { version = "=2.0.0-rc.25", features = ["derive"], optional = true }
 notify-debouncer-mini = "0.7"
+# Secret Guard rules and finding fingerprints (see src/secrets.rs).
+aho-corasick = "1"
+regex = { workspace = true }
+sha2 = "0.10"
 serde = { workspace = true }
 # Undo journal (`.git/nanomgg/undo.json`, see src/undo.rs).
 serde_json = { workspace = true }
