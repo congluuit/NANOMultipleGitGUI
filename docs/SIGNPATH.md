@@ -2,7 +2,7 @@
 
 Tài liệu này là danh sách việc cần làm **sau khi đơn đăng ký SignPath Foundation được duyệt**. Workflow `release.yml` đã có sẵn job `windows-signed`; bạn chỉ cần cấu hình SignPath, thêm biến vào GitHub rồi bật công tắc `SIGNPATH_ENABLED`.
 
-Kết quả: `nanomgg.exe`, `nanomgg-credential.exe`, bộ cài từng bước `_x64_Installer.exe`, bộ cài NSIS `_x64-setup.exe` và `.msi` đều mang chữ ký "SignPath Foundation". Cảnh báo SmartScreen giảm dần khi chứng chỉ tích lũy uy tín (thường sau vài trăm lượt tải).
+Kết quả: `nanomgg.exe`, `nanomgg-credential.exe`, bộ cài từng bước `_Installer.exe`, bộ cài NSIS `-setup.exe` và `.msi` của cả bản x64 lẫn ARM64 đều mang chữ ký "SignPath Foundation". Cảnh báo SmartScreen giảm dần khi chứng chỉ tích lũy uy tín (thường sau vài trăm lượt tải).
 
 ## 1. Nhận quyền truy cập
 
@@ -48,18 +48,20 @@ Trong project → **Artifact Configurations** → **Add**. Tên slug phải đú
 <?xml version="1.0" encoding="utf-8"?>
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>
-    <pe-file path="nsis/*_x64-setup.exe">
+    <pe-file path="nsis/*-setup.exe">
       <authenticode-sign />
     </pe-file>
     <msi-file path="msi/*.msi">
       <authenticode-sign />
     </msi-file>
-    <pe-file path="installer/*_x64_Installer.exe">
+    <pe-file path="installer/*_Installer.exe">
       <authenticode-sign />
     </pe-file>
   </zip-file>
 </artifact-configuration>
 ```
+
+Mỗi kiến trúc (x64, ARM64) gửi một yêu cầu ký riêng với cùng hai configuration này, nên đường dẫn không được ghi cứng `_x64`. Nếu configuration cũ của bạn còn `*_x64-setup.exe` hay `*_x64_Installer.exe`, hãy sửa thành như trên trước bản phát hành đầu tiên có ARM64, nếu không yêu cầu ký của bản ARM64 sẽ báo không khớp `path`.
 
 Chỉ ký file do dự án build ra. Không thêm DLL plugin của NSIS hay file của bên thứ ba (đây là điều kiện của SignPath Foundation).
 
@@ -85,7 +87,7 @@ Repo → **Settings → Secrets and variables → Actions**:
 
 1. Đặt `SIGNPATH_SIGNING_POLICY_SLUG=test-signing`.
 2. Tạo một tag beta, ví dụ `v1.0.1-beta.1` (hoặc **Actions → Release → Run workflow** với một tag có sẵn).
-3. Job **Build (Windows x64, SignPath)** dừng hai lần chờ SignPath. Mở SignPath → **Signing Requests**, kiểm tra và duyệt (policy test có thể tự duyệt).
+3. Hai job **Build (Windows x64, SignPath)** và **Build (Windows arm64, SignPath)**, mỗi job dừng hai lần chờ SignPath. Mở SignPath → **Signing Requests**, kiểm tra và duyệt (policy test có thể tự duyệt).
 4. Tải bộ cài từ bản draft, kiểm tra chữ ký trong PowerShell:
    ```powershell
    Get-AuthenticodeSignature .\NANOMultipleGitGUI_1.0.1-beta.1_x64_Installer.exe | Format-List

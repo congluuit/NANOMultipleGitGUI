@@ -60,7 +60,9 @@ Khi secret + variable có mặt, `release.yml` tự:
 
 Thiếu secret hoặc variable thì release vẫn build như cũ (không có `.sig`/`latest.json`), workflow ghi một dòng _notice_.
 
-> **Windows ký qua SignPath** (`SIGNPATH_ENABLED=true`): bộ cài được SignPath ký **sau** khi bundle, làm đổi nội dung file, nên `.sig` được tạo lại từ bộ cài đã ký cuối cùng (`tauri signer sign`) rồi job `windows-updater-json` thêm mục `windows-x86_64` (NSIS), `windows-x86_64-nsis`, `windows-x86_64-msi` vào `latest.json` sau khi mọi job build xong. Nếu job này lỗi, xem mục C.
+> **Hoàn thiện `latest.json`:** mỗi job build tự ghi nền tảng của nó vào `latest.json`, nên hai job xong cùng lúc có thể làm mất mục của nhau. Sau khi mọi job build xong, job `updater-json` (Complete latest.json) là nơi ghi duy nhất: nó bổ sung mọi nền tảng còn thiếu từ các file `.sig` trên release, rồi báo lỗi nếu vẫn thiếu một trong `windows-x86_64`, `windows-aarch64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64`, `linux-aarch64`. Nếu job này lỗi, xem mục C.
+>
+> **Windows ký qua SignPath** (`SIGNPATH_ENABLED=true`): bộ cài được SignPath ký **sau** khi bundle, làm đổi nội dung file, nên `.sig` được tạo lại từ bộ cài đã ký cuối cùng (`tauri signer sign`) rồi job `updater-json` luôn ghi lại các mục `windows-x86_64` / `windows-aarch64` (NSIS) cùng `-nsis` và `-msi` của chúng.
 
 ### A2b. Ký số Windows (SignPath Foundation)
 
@@ -104,8 +106,8 @@ NANOMGG_UPDATER_PUBKEY=dW50cnVzdGVk...  # nội dung file .pub
    git push origin main v0.2.0
    ```
    > Push file trong `.github/workflows/` cần token có quyền `workflow`. Trong NANOMultipleGitGUI, tài khoản GitHub đăng nhập từ bản 2.9 trở đi đã có sẵn quyền này; tài khoản cũ hãy "Đăng nhập lại" một lần.
-5. **Chờ CI:** tab **Actions → Release** build Windows, macOS, Linux (khoảng 15–25 phút) rồi đính kèm file vào bản **draft** `NANOMultipleGitGUI 0.2.0`.
-6. **Kiểm tra draft:** tải thử bộ cài (trên Windows nên thử `NANOMultipleGitGUI_<version>_x64_Installer.exe`, bộ cài từng bước mà trang Release giới thiệu đầu tiên), xem `SHA256SUMS.txt`; khi đã bật updater (A2) phải có `latest.json` và các file `.sig`. Mở `latest.json` xem có đủ `windows-x86_64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64` và `notes` đúng.
+5. **Chờ CI:** tab **Actions → Release** build Windows x64 và ARM64, macOS, Linux x64 và ARM64 (khoảng 15 đến 25 phút) rồi đính kèm file vào bản **draft** `NANOMultipleGitGUI 0.2.0`.
+6. **Kiểm tra draft:** tải thử bộ cài (trên Windows nên thử `NANOMultipleGitGUI_<version>_x64_Installer.exe`, bộ cài từng bước mà trang Release giới thiệu đầu tiên), xem `SHA256SUMS.txt`; khi đã bật updater (A2) phải có `latest.json` và các file `.sig`. Mở `latest.json` xem có đủ `windows-x86_64`, `windows-aarch64`, `darwin-aarch64`, `darwin-x86_64`, `linux-x86_64`, `linux-aarch64` (job `updater-json` đã kiểm tra) và `notes` đúng. Mỗi kiến trúc có bộ file riêng: Windows `_x64` / `_arm64`, Linux `_amd64` / `_aarch64` / `_arm64.deb` / `.x86_64.rpm` / `.aarch64.rpm`; `SHA256SUMS.txt` liệt kê tất cả.
 7. **Publish:** trên trang Releases, mở draft → sửa ghi chú nếu cần → **Publish release**.
    - **Bản stable:** để nguyên "Set as the latest release". Từ lúc này mọi app (kênh stable và beta) thấy bản mới.
    - **Bản beta** (`0.3.0-beta.1`): tick **Set as a pre-release**. Kênh stable không thấy. Ngay khi Publish, job `beta-channel` của `release.yml` chép `latest.json` của bản này sang pre-release cố định **`updater-beta`** (tự tạo lần đầu) — kênh beta đọc `releases/download/updater-beta/latest.json`. Đừng xóa release/tag `updater-beta`.
@@ -132,7 +134,7 @@ App ở kênh beta kiểm tra **cả hai** manifest (`releases/latest/...` và `
 | App báo "Bản build này chưa bật tự cập nhật"   | Bản đó build khi chưa có A2 (hoặc build từ mã nguồn không có `.env`). Người dùng phải cài bản mới bằng tay một lần; từ đó trở đi tự cập nhật được                        |
 | App báo "Chưa có bản phát hành nào hỗ trợ…"    | Bản `latest` chưa có `latest.json` (release cũ build trước A2), hoặc release còn là draft                                                                                |
 | App người dùng không thấy bản mới              | Release còn là draft hoặc là pre-release (kênh stable); version trong tag không lớn hơn version đang cài; người dùng đã "Bỏ qua bản này" (vẫn thấy khi bấm kiểm tra tay) |
-| "Bản mới chưa có gói cập nhật cho máy của bạn" | `latest.json` thiếu nền tảng đó — một job build lỗi hoặc chưa xong. Build lại tag (Run workflow); với SignPath xem job `windows-updater-json`                            |
+| "Bản mới chưa có gói cập nhật cho máy của bạn" | `latest.json` thiếu nền tảng đó: một job build lỗi hoặc chưa xong. Build lại tag (Run workflow); xem log job `updater-json`                                              |
 | "Gói cập nhật không có chữ ký hợp lệ"          | Build bằng private key khác với public key trong app — dùng lại đúng khóa ở A2. Với SignPath: `.sig` phải được tạo **sau** bước ký installer (đã làm trong workflow)     |
 | Muốn build lại một tag đã có                   | Actions → Release → Run workflow, nhập tag; file trong draft sẽ được ghi đè                                                                                              |
 

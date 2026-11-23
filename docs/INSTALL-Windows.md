@@ -3,7 +3,7 @@
 > **Bản nháp.** Ảnh chụp từng bước sẽ được bổ sung vào `docs/images/` khi có bản phát hành đầu tiên.
 > English version below.
 
-Yêu cầu: Windows 10 hoặc 11, 64-bit (x64). WebView2 có sẵn trên Windows 10/11; nếu thiếu, bộ cài sẽ tự tải.
+Yêu cầu: Windows 10 hoặc 11, 64-bit. Có bản cho máy chip Intel / AMD (`x64`) và máy chip ARM như Snapdragon (`arm64`). WebView2 có sẵn trên Windows 10/11; nếu thiếu, bộ cài sẽ tự tải.
 
 ## 1. Chọn bộ cài
 
@@ -12,6 +12,8 @@ Yêu cầu: Windows 10 hoặc 11, 64-bit (x64). WebView2 có sẵn trên Windows
 | `NANOMultipleGitGUI_<phiên bản>_x64_Installer.exe` | **Khuyến nghị.** Bộ cài từng bước (chào mừng → giấy phép → thư mục → cài → hoàn tất), không cần quyền Administrator. |
 | `NANOMultipleGitGUI_<phiên bản>_x64-setup.exe`     | Bộ cài cổ điển (NSIS), hỗ trợ cài im lặng `/S`. Kết quả cài giống hệt bộ cài từng bước.                              |
 | `NANOMultipleGitGUI_<phiên bản>_x64_en-US.msi`     | Triển khai trong doanh nghiệp (Group Policy, Intune…).                                                               |
+
+Máy chip ARM (Settings > System > About > System type ghi "ARM-based processor"): chọn các file cùng tên nhưng có `arm64` thay cho `x64`, ví dụ `NANOMultipleGitGUI_<phiên bản>_arm64_Installer.exe`. Trên Windows 11 bản `x64` vẫn chạy được ở máy ARM nhờ giả lập, nhưng chậm hơn.
 
 (Tùy chọn) Kiểm tra toàn vẹn file trong PowerShell:
 
@@ -57,7 +59,7 @@ Lối tắt trong Start Menu luôn được tạo. Nếu máy đã có bản cũ
 
 > **Draft.** Step-by-step screenshots will be added to `docs/images/` with the first release.
 
-Requirements: Windows 10 or 11, 64-bit (x64). WebView2 ships with Windows 10/11; the installer downloads it if missing.
+Requirements: Windows 10 or 11, 64-bit. There are builds for Intel / AMD PCs (`x64`) and for ARM PCs such as Snapdragon laptops (`arm64`). WebView2 ships with Windows 10/11; the installer downloads it if missing.
 
 ## 1. Pick an installer
 
@@ -66,6 +68,8 @@ Requirements: Windows 10 or 11, 64-bit (x64). WebView2 ships with Windows 10/11;
 | `NANOMultipleGitGUI_<version>_x64_Installer.exe` | **Recommended.** Step-by-step installer (welcome → license → folder → install → done), no administrator rights needed. |
 | `NANOMultipleGitGUI_<version>_x64-setup.exe`     | Classic NSIS installer, supports silent `/S` installs. Same result as the step-by-step installer.                      |
 | `NANOMultipleGitGUI_<version>_x64_en-US.msi`     | Enterprise deployment (Group Policy, Intune…).                                                                         |
+
+On an ARM PC (Settings > System > About > System type says "ARM-based processor") pick the same files with `arm64` instead of `x64`, for example `NANOMultipleGitGUI_<version>_arm64_Installer.exe`. On Windows 11 the `x64` build also runs there under emulation, only slower.
 
 (Optional) Verify the download in PowerShell with `Get-FileHash .\NANOMultipleGitGUI_*_x64_Installer.exe -Algorithm SHA256` and compare with `SHA256SUMS.txt`.
 
