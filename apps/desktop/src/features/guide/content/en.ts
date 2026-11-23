@@ -306,6 +306,25 @@ export const guideEn: GuideTopic[] = [
         ],
       },
       {
+        id: "editor",
+        title: "Edit a file in the app: encodings, line endings, preview",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "In the **File** mode of a diff the file can be edited and saved (Ctrl+S). It is saved in the encoding and with the line endings it had, a BOM included: a Unity or Visual Studio file (UTF-8 with BOM, CRLF) stays exactly as it was.",
+              "The status bar shows the encoding (UTF-8, UTF-8 with BOM, UTF-16, Windows-1252). Click it for **Reopen with encoding** (the text looks wrong) or **Save with encoding** (convert the file).",
+              "Click **LF** / **CRLF** in the status bar to convert the line endings. A file that mixes both stays read-only until you pick one.",
+              "Markdown, SVG and JSON files have a **Code / Preview** switch: the rendered file, updated as you type. Links open in your browser, HTML and scripts in the file never run.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "A character the encoding cannot hold (Vietnamese text in a Windows-1252 file, for instance) is not saved: the app says which one and where, so you can save with UTF-8 instead.",
+          },
+        ],
+      },
+      {
         id: "write",
         title: "Write the message and commit",
         blocks: [

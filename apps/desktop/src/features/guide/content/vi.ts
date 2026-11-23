@@ -305,6 +305,25 @@ export const guideVi: GuideTopic[] = [
         ],
       },
       {
+        id: "editor",
+        title: "Sửa file ngay trong app: bảng mã, kiểu xuống dòng, xem trước",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "Ở chế độ **File** của diff, bạn sửa và lưu file được (Ctrl+S). File được lưu đúng bảng mã và kiểu xuống dòng ban đầu, kể cả BOM: file của Unity hay Visual Studio (UTF-8 có BOM, CRLF) vẫn giữ nguyên như cũ.",
+              "Thanh trạng thái hiện bảng mã (UTF-8, UTF-8 có BOM, UTF-16, Windows-1252). Bấm vào để **Mở lại với bảng mã** (khi chữ hiện sai) hoặc **Lưu với bảng mã** (để chuyển file sang bảng mã khác).",
+              "Bấm **LF** / **CRLF** ở thanh trạng thái để chuyển kiểu xuống dòng. File trộn lẫn cả hai kiểu chỉ xem được cho tới khi bạn chọn một kiểu.",
+              "File Markdown, SVG và JSON có nút chuyển **Mã / Xem trước**: xem file đã hiển thị, cập nhật ngay khi bạn gõ. Link mở bằng trình duyệt, HTML và script trong file không bao giờ chạy.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "Ký tự mà bảng mã không chứa được (ví dụ chữ tiếng Việt trong file Windows-1252) sẽ không được lưu: app báo ký tự nào, ở đâu, để bạn lưu lại với UTF-8.",
+          },
+        ],
+      },
+      {
         id: "write",
         title: "Viết message rồi commit",
         blocks: [

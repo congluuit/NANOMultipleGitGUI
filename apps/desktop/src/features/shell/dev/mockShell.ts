@@ -371,7 +371,9 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
       exists: !!f,
       binary: false,
       tooLarge: false,
-      notUtf8: false,
+      undecodable: false,
+      encoding: f ? "utf8" : null,
+      eol: f ? (f.worktree.includes("\n") ? "lf" : "none") : null,
       symlink: false,
       version: f ? version(f.worktree) : "missing",
     };
@@ -380,10 +382,10 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     const f = files[a.path as string];
     if (!f) throw new Error("no such file");
     if (a.expected != null && a.expected !== version(f.worktree)) {
-      return { saved: false, version: version(f.worktree) };
+      return { saved: false, version: version(f.worktree), unencodable: null };
     }
     f.worktree = a.text as string;
-    return { saved: true, version: version(f.worktree) };
+    return { saved: true, version: version(f.worktree), unencodable: null };
   },
   undo_state: () => ({ undo: null, redo: null }),
   tool_status: () => ({ git: tool(2, 47), gitLfs: tool(3, 5) }),

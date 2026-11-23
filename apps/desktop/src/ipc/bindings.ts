@@ -40,13 +40,27 @@ export const commands = {
 	worktreeStatus: (repoId: number) => __TAURI_INVOKE<WorkingTreeStatus>("worktree_status", { repoId }),
 	fileDiff: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileDiff>("file_diff", { repoId, request }),
 	fileContents: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileContents>("file_contents", { repoId, request }),
-	/**  A working-tree file for the built-in editor. */
-	worktreeFileRead: (repoId: number, path: string) => __TAURI_INVOKE<WorktreeFile>("worktree_file_read", { repoId, path }),
+	/**  A working-tree file for the built-in editor, read in `encoding` (detected when `None`). */
+	worktreeFileRead: (repoId: number, path: string, encoding: "utf8" | 
+/**  UTF-8 starting with the byte order mark `EF BB BF` (common in Unity / Visual Studio). */
+"utf8Bom" | 
+/**  UTF-16 little endian, with its byte order mark `FF FE`. */
+"utf16Le" | 
+/**  UTF-16 big endian, with its byte order mark `FE FF`. */
+"utf16Be" | 
+/**  Windows-1252 (Western European): every byte is one character, so any file decodes. */
+"windows1252" | null) => __TAURI_INVOKE<WorktreeFile>("worktree_file_read", { repoId, path, encoding }),
 	/**
-	 *  Saves a file from the built-in editor. `expected` is the version it was loaded at; when the
-	 *  file changed on disk since, nothing is written and the outcome says so.
+	 *  Saves a file from the built-in editor in `encoding`, its line breaks turned into `eol`.
+	 *  `expected` is the version it was loaded at; when the file changed on disk since, or the
+	 *  encoding cannot hold a character, nothing is written and the outcome says so.
 	 */
-	worktreeFileWrite: (repoId: number, path: string, text: string, expected: string | null) => __TAURI_INVOKE<SaveOutcome>("worktree_file_write", { repoId, path, text, expected }),
+	worktreeFileWrite: (repoId: number, path: string, text: string, encoding: TextEncoding, eol: LineEnding, expected: string | null) => __TAURI_INVOKE<SaveOutcome>("worktree_file_write", { repoId, path, text, encoding, eol, expected }),
+	/**
+	 *  The staged copy of a file read in `encoding` (the editor's change markers for a file that
+	 *  is not UTF-8); `None` when it is not staged or not text in that encoding.
+	 */
+	worktreeIndexText: (repoId: number, path: string, encoding: TextEncoding) => __TAURI_INVOKE<string | null>("worktree_index_text", { repoId, path, encoding }),
 	stageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("stage_files", { repoId, paths }),
 	unstageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("unstage_files", { repoId, paths }),
 	stageAll: (repoId: number) => __TAURI_INVOKE<null>("stage_all", { repoId }),
@@ -3246,6 +3260,13 @@ export type LfsTransferProgress = {
 	done: boolean,
 };
 
+/**  The line breaks of a text. */
+export type LineEnding = 
+/**  No line break at all. */
+"none" | "lf" | "crlf" | 
+/**  More than one kind (LF and CRLF, or a lone CR). */
+"mixed";
+
 export type LineKind = "context" | "add" | "delete";
 
 /**  Lines picked in one hunk (indices into [`Hunk::lines`]). */
@@ -4531,10 +4552,15 @@ export type RuleTestResult = {
 
 /**  Result of [`write_file`]. */
 export type SaveOutcome = {
-	/**  `false` when the file changed on disk since `expected` was read; nothing was written. */
+	/**
+	 *  `false` when the file changed on disk since `expected` was read, or when the text has a
+	 *  character the encoding cannot hold; nothing was written.
+	 */
 	saved: boolean,
 	/**  Version of the file on disk now. */
 	version: string,
+	/**  The first character the encoding cannot hold, when that is why nothing was written. */
+	unencodable: Unencodable | null,
 };
 
 /**  One matching line. */
@@ -5226,6 +5252,17 @@ export type TerminalInfo = {
 	shell: string,
 };
 
+/**  How the bytes of a text file map to characters. */
+export type TextEncoding = "utf8" | 
+/**  UTF-8 starting with the byte order mark `EF BB BF` (common in Unity / Visual Studio). */
+"utf8Bom" | 
+/**  UTF-16 little endian, with its byte order mark `FF FE`. */
+"utf16Le" | 
+/**  UTF-16 big endian, with its byte order mark `FE FF`. */
+"utf16Be" | 
+/**  Windows-1252 (Western European): every byte is one character, so any file decodes. */
+"windows1252";
+
 export type ThemeBase = "light" | "dark";
 
 export type ThemeImportResult = {
@@ -5374,6 +5411,13 @@ export type UndoStep = {
 	 */
 	pushed: boolean,
 	blocked: UndoBlock | null,
+};
+
+/**  A character the chosen encoding has no code for (1-based line, UTF-16 column). */
+export type Unencodable = {
+	character: string,
+	line: number,
+	column: number,
 };
 
 /**  One commit the push would send. */
@@ -5592,13 +5636,23 @@ export type Worktree = {
 
 /**  A working-tree file as the editor needs it. */
 export type WorktreeFile = {
-	/**  Contents, `None` unless the file exists and is editable text. */
+	/**
+	 *  Contents without the byte order mark, `None` unless the file exists and is editable
+	 *  text. Line breaks are as on disk.
+	 */
 	text: string | null,
+	/**  Encoding of `text` on disk (saving writes it back the same way). */
+	encoding: TextEncoding | null,
+	/**  Line breaks of `text`. */
+	eol: LineEnding | null,
 	exists: boolean,
 	binary: boolean,
 	tooLarge: boolean,
-	/**  Not valid UTF-8 (another encoding): shown read-only so saving cannot corrupt it. */
-	notUtf8: boolean,
+	/**
+	 *  Not text in the encoding asked for (or a broken UTF-16 file): shown read-only so saving
+	 *  cannot corrupt it. `encoding` is then the encoding asked for, if any.
+	 */
+	undecodable: boolean,
 	symlink: boolean,
 	/**  Identifies the bytes on disk; passed back to [`write_file`]. */
 	version: string,
