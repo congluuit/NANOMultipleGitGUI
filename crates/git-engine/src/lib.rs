@@ -40,6 +40,7 @@ pub mod submodule;
 pub mod undo;
 pub mod version;
 pub mod watch;
+pub mod workspace_search;
 pub mod worktrees;
 
 pub use context::{

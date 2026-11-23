@@ -5,31 +5,48 @@ import {
   CaseSensitive,
   ChevronDown,
   ChevronRight,
-  FileText,
+  CircleAlert,
+  FolderGit2,
   LoaderCircle,
   RefreshCw,
   Regex,
+  Square,
   WholeWord,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { openInEditor } from "@/features/editor/open";
-import { commands, errorMessage, type SearchMatch, type SearchOptions } from "@/ipc";
+import { commands, errorMessage, type SearchMatch } from "@/ipc";
 import { cn } from "@/lib/utils";
-import { useSearchState, useSidebarView } from "./store";
-import { baseName, parentOf } from "./tree";
-import { matchLength } from "./search";
+import { useWorkspace } from "@/stores/workspace";
+import { useSearchState, useSidebarView, type SearchScope } from "./store";
+import { groupByFile, toggled } from "./search";
+import { FileGroups } from "./SearchResults";
+import {
+  cancelWorkspaceSearch,
+  groupWorkspaceResults,
+  runWorkspaceSearch,
+  useWorkspaceSearch,
+  workspaceTotals,
+  WORKSPACE_LIMIT,
+} from "./workspaceSearch";
 
 const LIMIT = 2000;
+/** Options line, errors and the summary above the results. */
+const HEADER = "space-y-1 px-2 pt-1 pb-2";
 
-/** Search across the repository's files (`git grep`); a click opens the file at the line. */
+/**
+ * Search across the files (`git grep`) of the active repository, or of every open repository;
+ * a click on a line opens the file at that line.
+ */
 export function SearchPanel({ repoId }: { repoId: number }) {
   const { t } = useTranslation();
   const query = useSearchState((s) => s.query);
   const setQuery = useSearchState((s) => s.setQuery);
   const options = useSearchState((s) => s.options);
   const setOption = useSearchState((s) => s.setOption);
+  const scope = useSearchState((s) => s.scope);
+  const setScope = useSearchState((s) => s.setScope);
   const [debounced, setDebounced] = useState(query);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -43,28 +60,13 @@ export function SearchPanel({ repoId }: { repoId: number }) {
     input.current?.select();
   }, [focusTick]);
 
-  const search = useQuery({
-    queryKey: ["search", repoId, debounced, options],
-    queryFn: () => commands.repoSearch(repoId, debounced, options, LIMIT),
-    enabled: isTauri() && debounced.trim().length > 0,
-    staleTime: 30_000,
-  });
-
-  const groups = useMemo(() => {
-    const map = new Map<string, SearchMatch[]>();
-    for (const m of search.data?.matches ?? []) {
-      const list = map.get(m.path);
-      if (list) list.push(m);
-      else map.set(m.path, [m]);
-    }
-    return [...map.entries()];
-  }, [search.data]);
-
-  const total = search.data?.matches.length ?? 0;
+  const all = scope === "all";
+  const placeholder = all ? t("search.all.placeholder") : t("search.placeholder");
 
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="space-y-1 px-2 pb-2">
+      <div className="space-y-1 px-2">
+        <ScopeSwitch scope={scope} onChange={setScope} />
         <div className="flex items-center gap-0.5 rounded-md border bg-background pr-1 focus-within:border-primary">
           <input
             ref={input}
@@ -72,9 +74,10 @@ export function SearchPanel({ repoId }: { repoId: number }) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") setDebounced(query);
+              if (e.key === "Escape" && all) cancelWorkspaceSearch();
             }}
-            placeholder={t("search.placeholder")}
-            aria-label={t("search.placeholder")}
+            placeholder={placeholder}
+            aria-label={placeholder}
             className="h-7 min-w-0 flex-1 bg-transparent px-2 text-xs placeholder:text-muted-foreground focus:outline-none"
           />
           <OptionToggle
@@ -99,33 +102,116 @@ export function SearchPanel({ repoId }: { repoId: number }) {
             <Regex />
           </OptionToggle>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={options.untracked}
-              onChange={(e) => setOption("untracked", e.target.checked)}
-              className="accent-primary"
-            />
-            {t("search.untracked")}
-          </label>
-          <span className="flex-1" />
-          {search.isFetching ? (
-            <LoaderCircle className="size-3.5 animate-spin" />
-          ) : (
-            debounced.trim() && (
-              <button
-                type="button"
-                title={t("search.refresh")}
-                aria-label={t("search.refresh")}
-                onClick={() => void search.refetch()}
-                className="rounded p-0.5 hover:bg-surface-2 hover:text-foreground"
-              >
-                <RefreshCw className="size-3.5" />
-              </button>
-            )
+      </div>
+      {all ? (
+        <WorkspaceResults query={debounced} />
+      ) : (
+        <RepoResults repoId={repoId} query={debounced} />
+      )}
+    </div>
+  );
+}
+
+/** "This repository" / "All open repositories". */
+function ScopeSwitch({
+  scope,
+  onChange,
+}: {
+  scope: SearchScope;
+  onChange: (scope: SearchScope) => void;
+}) {
+  const { t } = useTranslation();
+  const items: { id: SearchScope; label: string }[] = [
+    { id: "repo", label: t("search.scope.repo") },
+    { id: "all", label: t("search.scope.all") },
+  ];
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t("search.scope.label")}
+      className="flex h-6 items-center gap-0.5 rounded-md bg-surface-2 p-0.5"
+    >
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="radio"
+          aria-checked={scope === item.id}
+          onClick={() => onChange(item.id)}
+          className={cn(
+            "h-5 min-w-0 flex-1 truncate rounded px-1 text-[11px] text-muted-foreground hover:text-foreground",
+            scope === item.id && "bg-background font-medium text-foreground shadow-xs",
           )}
-        </div>
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The "untracked files" checkbox and the busy / refresh button. */
+function SearchBar({ busy, children }: { busy: boolean; children?: ReactNode }) {
+  const { t } = useTranslation();
+  const options = useSearchState((s) => s.options);
+  const setOption = useSearchState((s) => s.setOption);
+  return (
+    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={options.untracked}
+          onChange={(e) => setOption("untracked", e.target.checked)}
+          className="accent-primary"
+        />
+        {t("search.untracked")}
+      </label>
+      <span className="flex-1" />
+      {busy && <LoaderCircle className="size-3.5 animate-spin" />}
+      {children}
+    </div>
+  );
+}
+
+function RefreshButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      title={t("search.refresh")}
+      aria-label={t("search.refresh")}
+      onClick={onClick}
+      className="rounded p-0.5 hover:bg-surface-2 hover:text-foreground"
+    >
+      <RefreshCw className="size-3.5" />
+    </button>
+  );
+}
+
+/** Results of the active repository. */
+function RepoResults({ repoId, query }: { repoId: number; query: string }) {
+  const { t } = useTranslation();
+  const options = useSearchState((s) => s.options);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
+
+  const search = useQuery({
+    queryKey: ["search", repoId, query, options],
+    queryFn: () => commands.repoSearch(repoId, query, options, LIMIT),
+    enabled: isTauri() && query.trim().length > 0,
+    staleTime: 30_000,
+  });
+
+  const groups = useMemo(() => groupByFile(search.data?.matches ?? []), [search.data]);
+  const total = search.data?.matches.length ?? 0;
+
+  return (
+    <>
+      <div className={HEADER}>
+        <SearchBar busy={search.isFetching}>
+          {!search.isFetching && query.trim() && (
+            <RefreshButton onClick={() => void search.refetch()} />
+          )}
+        </SearchBar>
         {search.isError && (
           <p className="text-[11px] break-words text-danger">
             {t("search.error", { message: errorMessage(search.error) })}
@@ -141,85 +227,151 @@ export function SearchPanel({ repoId }: { repoId: number }) {
         )}
       </div>
       <ul className="pb-2" aria-label={t("search.results")}>
-        {groups.map(([path, matches]) => {
-          const open = !collapsed.has(path);
+        <FileGroups
+          groups={groups}
+          collapsed={collapsed}
+          onToggle={(key) => setCollapsed((prev) => toggled(prev, key))}
+          onOpen={(m) => openInEditor(repoId, m.path, { line: m.line, column: m.column })}
+          query={query}
+          options={options}
+        />
+      </ul>
+    </>
+  );
+}
+
+/** Switches to the repository's tab and opens the file at the line. */
+function openMatch(repoId: number, m: SearchMatch) {
+  const ws = useWorkspace.getState();
+  if (ws.activeId !== repoId) ws.setActive(repoId);
+  openInEditor(repoId, m.path, { line: m.line, column: m.column });
+}
+
+/** Results of every open repository, grouped by repository then by file. */
+function WorkspaceResults({ query }: { query: string }) {
+  const { t } = useTranslation();
+  const options = useSearchState((s) => s.options);
+  const tabs = useWorkspace((s) => s.tabs);
+  const state = useWorkspaceSearch();
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
+
+  // A new query or new options start a new search (cancelling the running one).
+  useEffect(() => {
+    if (!isTauri()) return;
+    runWorkspaceSearch(query, options, useWorkspace.getState().tabs.length);
+  }, [query, options]);
+
+  const groups = useMemo(() => groupWorkspaceResults(state.results, tabs), [state.results, tabs]);
+  const totals = workspaceTotals(groups);
+  const running = state.status === "running";
+  const toggle = (key: string) => setCollapsed((prev) => toggled(prev, key));
+  const shownQuery = state.query;
+  const shownOptions = state.options ?? options;
+
+  return (
+    <>
+      <div className={HEADER}>
+        <SearchBar busy={running}>
+          {running ? (
+            <button
+              type="button"
+              title={t("search.all.stop")}
+              aria-label={t("search.all.stop")}
+              onClick={cancelWorkspaceSearch}
+              className="rounded p-0.5 hover:bg-surface-2 hover:text-foreground"
+            >
+              <Square className="size-3.5" />
+            </button>
+          ) : (
+            query.trim() && (
+              <RefreshButton
+                onClick={() => runWorkspaceSearch(query, options, tabs.length, { force: true })}
+              />
+            )
+          )}
+        </SearchBar>
+        {state.status === "error" && state.error && (
+          <p className="text-[11px] break-words text-danger">
+            {t("search.error", { message: state.error })}
+          </p>
+        )}
+        {state.status !== "idle" && state.status !== "error" && (
+          <p className="text-[11px] text-muted-foreground" role="status">
+            {running
+              ? t("search.all.progress", { done: state.results.length, count: state.repoCount })
+              : totals.matches === 0
+                ? t("search.all.none")
+                : t("search.all.summary", {
+                    count: totals.matches,
+                    files: totals.files,
+                    repos: totals.repos,
+                  })}
+            {state.status === "cancelled" && ` ${t("search.all.stopped")}`}
+            {state.summary?.truncated && ` ${t("search.truncated", { limit: WORKSPACE_LIMIT })}`}
+            {!!state.summary?.skipped &&
+              ` ${t("search.all.skipped", { count: state.summary.skipped })}`}
+          </p>
+        )}
+      </div>
+      <ul className="pb-2" aria-label={t("search.results")}>
+        {groups.map((g) => {
+          const repoKey = `repo:${g.repoId}`;
+          const open = !collapsed.has(repoKey);
           const Chevron = open ? ChevronDown : ChevronRight;
+          const failed = g.missing || g.error !== null;
           return (
-            <li key={path}>
+            <li key={g.repoId}>
               <button
                 type="button"
-                title={path}
-                onClick={() =>
-                  setCollapsed((prev) => {
-                    const next = new Set(prev);
-                    if (!next.delete(path)) next.add(path);
-                    return next;
-                  })
-                }
+                aria-expanded={failed ? undefined : open}
+                onClick={() => !failed && toggle(repoKey)}
                 className="flex h-6 w-full items-center gap-1 px-2 text-left text-xs hover:bg-surface-2"
               >
-                <Chevron className="size-3.5 shrink-0 text-muted-foreground" />
-                <FileText className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="shrink-0 font-medium">{baseName(path)}</span>
-                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
-                  {parentOf(path)}
-                </span>
-                <span className="shrink-0 rounded bg-surface-2 px-1 text-[10px]">
-                  {matches.length}
-                </span>
+                {failed ? (
+                  <CircleAlert className="size-3.5 shrink-0 text-danger" />
+                ) : (
+                  <Chevron className="size-3.5 shrink-0 text-muted-foreground" />
+                )}
+                <FolderGit2 className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 truncate font-semibold">{g.name}</span>
+                {failed ? (
+                  <span
+                    className="min-w-0 flex-1 truncate text-[11px] text-danger"
+                    title={g.error ?? undefined}
+                  >
+                    {g.missing ? t("search.all.missing") : g.error}
+                  </span>
+                ) : (
+                  <>
+                    <span className="flex-1" />
+                    <span
+                      className="shrink-0 rounded bg-primary/15 px-1 text-[10px] text-primary"
+                      title={g.truncated ? t("search.all.repoTruncated") : undefined}
+                    >
+                      {g.matches.length}
+                      {g.truncated && "+"}
+                    </span>
+                  </>
+                )}
               </button>
-              {open && (
+              {open && !failed && (
                 <ul>
-                  {matches.map((m) => (
-                    <li key={`${m.line}:${m.column}`}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openInEditor(repoId, m.path, { line: m.line, column: m.column })
-                        }
-                        className="flex w-full items-baseline gap-2 py-0.5 pr-2 pl-8 text-left text-xs hover:bg-surface-2"
-                      >
-                        <span className="w-8 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
-                          {m.line}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-mono text-[11px]">
-                          <Highlighted match={m} query={debounced} options={options} />
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  <FileGroups
+                    groups={g.files}
+                    collapsed={collapsed}
+                    onToggle={toggle}
+                    onOpen={(m) => openMatch(g.repoId, m)}
+                    query={shownQuery}
+                    options={shownOptions}
+                    keyPrefix={`${g.repoId}:`}
+                    nested
+                  />
                 </ul>
               )}
             </li>
           );
         })}
       </ul>
-    </div>
-  );
-}
-
-function Highlighted({
-  match,
-  query,
-  options,
-}: {
-  match: SearchMatch;
-  query: string;
-  options: SearchOptions;
-}) {
-  const start = Math.max(0, match.column - 1 - match.textStart);
-  const len = matchLength(match.text, start, query, options);
-  const text = match.text;
-  // Long lines: start a little before the match so it stays visible.
-  const from = Math.max(0, start - 12);
-  return (
-    <>
-      {from > 0 && "..."}
-      {text.slice(from, start).trimStart()}
-      <mark className="rounded-sm bg-warning/30 text-foreground">
-        {text.slice(start, start + len)}
-      </mark>
-      {text.slice(start + len)}
     </>
   );
 }

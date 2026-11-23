@@ -113,6 +113,12 @@ export const commands = {
 	repoFiles: (repoId: number) => __TAURI_INVOKE<RepoFiles>("repo_files", { repoId }),
 	/**  Lines of the working tree matching `query` (`git grep`). */
 	repoSearch: (repoId: number, query: string, options: SearchOptions, limit: number) => __TAURI_INVOKE<SearchResults>("repo_search", { repoId, query, options, limit }),
+	/**
+	 *  Searches every open repository (`git grep`, a few at a time). Each repository's result is
+	 *  sent on `on_result` as soon as it is known; at most `limit` lines in all. Cancel with
+	 *  `transfer_cancel(opId)`: running searches stop at once and nothing more is sent.
+	 */
+	workspaceSearch: (opId: string, query: string, options: SearchOptions, limit: number, onResult: Channel<RepoSearchResult>) => __TAURI_INVOKE<WorkspaceSearchSummary>("workspace_search", { opId, query, options, limit, onResult }),
 	/**  Creates an empty file (with its missing parent folders). */
 	fileCreate: (repoId: number, path: string) => __TAURI_INVOKE<null>("file_create", { repoId, path }),
 	/**  Creates a folder (with its missing parents). */
@@ -4395,6 +4401,19 @@ export type RepoRefs = {
 	stashes: Stash[],
 };
 
+/**  The result of one repository. */
+export type RepoSearchResult = {
+	repoId: number,
+	name: string,
+	matches: SearchMatch[],
+	/**  More lines matched than were kept (per-repository or total limit). */
+	truncated: boolean,
+	/**  The folder is gone. */
+	missing: boolean,
+	/**  Why the search failed (first line of git's message), `None` when it worked. */
+	error: string | null,
+};
+
 export type RepoStats = {
 	/**  Commits reachable from HEAD. */
 	totalCommits: number,
@@ -5563,6 +5582,20 @@ export type WorkingTreeStatus = {
 	/**  Modified/deleted tracked files and untracked files, in path order. */
 	unstaged: StatusEntry[],
 	conflicted: StatusEntry[],
+};
+
+/**  How a multi-repository search ended. */
+export type WorkspaceSearchSummary = {
+	/**  Repositories whose result was reported. */
+	searched: number,
+	/**  Matching lines reported over every repository. */
+	total: number,
+	/**  The total limit was reached: some lines (or whole repositories) were left out. */
+	truncated: boolean,
+	/**  Repositories not searched because the total limit was reached first. */
+	skipped: number,
+	/**  Stopped by the [`CancelToken`]; results reported before that still stand. */
+	cancelled: boolean,
 };
 
 export type WorkspaceState = {

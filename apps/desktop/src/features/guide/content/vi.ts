@@ -163,6 +163,25 @@ export const guideVi: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "search-all",
+        title: "Tìm trong mọi repo đang mở",
+        blocks: [
+          {
+            kind: "p",
+            text: "Mục **Tìm** ở thanh bên trái có hai phạm vi: **Repo này** và **Tất cả repo**. Nhấn Ctrl+Alt+Shift+F (hoặc dùng bảng lệnh: **Tìm trong mọi repo đang mở...**) để tìm cùng lúc trong mọi repo đang mở, với các tuỳ chọn như cũ: phân biệt hoa thường, nguyên từ, biểu thức chính quy và file mới (chưa theo dõi).",
+          },
+          {
+            kind: "list",
+            items: [
+              "Kết quả hiện dần theo từng repo khi repo đó tìm xong, nhóm theo repo, rồi theo file, rồi theo dòng. Repo nào không tìm được sẽ hiện lý do bằng chữ đỏ.",
+              "Bấm vào một dòng để chuyển sang tab của repo đó và mở file ngay tại dòng đó trong trình soạn thảo có sẵn.",
+              "Gõ từ khoá mới sẽ dừng ngay lần tìm đang chạy. Nút dừng (hoặc Esc trong ô tìm) cũng dừng và giữ lại những gì đã tìm được.",
+              "Tổng cộng chỉ hiện tối đa 2000 dòng (1000 dòng mỗi repo), nên nếu thấy còn nhiều dòng khớp hơn thì hãy thu hẹp từ khoá.",
+            ],
+          },
+        ],
+      },
     ],
   },
   {

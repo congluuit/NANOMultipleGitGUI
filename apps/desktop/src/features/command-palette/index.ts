@@ -22,6 +22,7 @@ import "@/features/undo/commands";
 import "@/features/issues/palette";
 import "@/features/mywork/palette";
 import "@/features/pulls/palette";
+import "@/features/files/palette";
 
 export { CommandPalette } from "./CommandPalette";
 export {

@@ -3956,6 +3956,7 @@
       "bindAccount": "Use account 1…9 for this repository",
       "quickOpen": "Open any file by name",
       "searchFiles": "Search in the files of the repository",
+      "searchAllRepos": "Search in all open repositories",
       "saveFile": "Save the file being edited"
     }
   },
@@ -4103,7 +4104,27 @@
     "summary_one": "{{count}} result in {{files}} file(s).",
     "summary_other": "{{count}} results in {{files}} file(s).",
     "truncated": "Only the first {{limit}} are shown.",
-    "results": "Search results"
+    "results": "Search results",
+    "scope": {
+      "label": "Search in",
+      "repo": "This repo",
+      "all": "All open repos"
+    },
+    "all": {
+      "placeholder": "Search in all open repositories",
+      "cmd": "Search in all open repositories...",
+      "progress_one": "Searching... {{done}} of {{count}} repository done.",
+      "progress_other": "Searching... {{done}} of {{count}} repositories done.",
+      "summary_one": "{{count}} result in {{files}} file(s) of {{repos}} repository(ies).",
+      "summary_other": "{{count}} results in {{files}} file(s) of {{repos}} repository(ies).",
+      "none": "No results in the open repositories.",
+      "stop": "Stop searching",
+      "stopped": "Stopped, only what was found until then is shown.",
+      "skipped_one": "{{count}} repository was not searched.",
+      "skipped_other": "{{count}} repositories were not searched.",
+      "missing": "Folder not found",
+      "repoTruncated": "More lines match in this repository than are shown."
+    }
   },
   "quickOpen": {
     "title": "Open a file",

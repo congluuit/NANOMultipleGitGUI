@@ -40,6 +40,16 @@ export function showSidebarView(view: SidebarView) {
 export const isSearchShortcut = (e: KeyboardEvent) =>
   (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && (e.code === "KeyF" || e.key === "F");
 
+/** `Ctrl/Cmd+Alt+Shift+F`: search in every open repository (`e.key` varies with Alt). */
+export const isWorkspaceSearchShortcut = (e: KeyboardEvent) =>
+  (e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && e.code === "KeyF";
+
+/** Opens the search panel on a scope and focuses its input. */
+export function showSearch(scope: SearchScope) {
+  useSearchState.getState().setScope(scope);
+  showSidebarView("search");
+}
+
 interface ExpandedState {
   /** Expanded folders of the file tree, per repository. */
   expanded: Record<number, string[]>;
@@ -76,17 +86,24 @@ export const useFileDialog = create<{ dialog: FileDialog | null }>()(() => ({ di
 
 export const openFileDialog = (dialog: FileDialog | null) => useFileDialog.setState({ dialog });
 
+/** What the search panel searches: the active repository or every open one. */
+export type SearchScope = "repo" | "all";
+
 /** The search panel keeps its query and results while the sidebar shows something else. */
 interface SearchState {
   query: string;
   options: SearchOptions;
+  scope: SearchScope;
   setQuery: (query: string) => void;
   setOption: (key: keyof SearchOptions, value: boolean) => void;
+  setScope: (scope: SearchScope) => void;
 }
 
 export const useSearchState = create<SearchState>()((set) => ({
   query: "",
   options: { caseSensitive: false, wholeWord: false, regex: false, untracked: true },
+  scope: "repo",
   setQuery: (query) => set({ query }),
   setOption: (key, value) => set((s) => ({ options: { ...s.options, [key]: value } })),
+  setScope: (scope) => set({ scope }),
 }));
