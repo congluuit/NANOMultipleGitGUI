@@ -543,6 +543,11 @@ export const commands = {
 	lfsFiles: (repoId: number) => __TAURI_INVOKE<LfsFile[]>("lfs_files", { repoId }),
 	/**  Size of the local LFS object store. */
 	lfsStorage: (repoId: number) => __TAURI_INVOKE<LfsStorage>("lfs_storage", { repoId }),
+	/**
+	 *  Where the LFS objects of the repository live on the server and, when the provider's API
+	 *  tells it, how much they use (GitLab project statistics, GitHub billing usage).
+	 */
+	lfsServerUsage: (repoId: number) => __TAURI_INVOKE<LfsServerInfo>("lfs_server_usage", { repoId }),
 	/**  `git lfs prune --dry-run`: what would be deleted and how much it frees. */
 	lfsPrunePreview: (repoId: number, verifyRemote: boolean) => __TAURI_INVOKE<PruneReport>("lfs_prune_preview", { repoId, verifyRemote }),
 	/**  `git lfs prune` (after the user confirmed the preview). */
@@ -2579,6 +2584,20 @@ export type GitIdentity = {
 	email: string | null,
 };
 
+/**  One Git LFS line of a GitHub usage summary. */
+export type GithubUsageItem = {
+	product: string,
+	sku: string,
+	/**  As GitHub names it (for example gigabytes or gigabyte hours). */
+	unitType: string,
+	/**  Total use in `unit_type`, included amount and overage together. */
+	quantity: number | null,
+	/**  Part of `quantity` covered by the free allowance. */
+	included: number | null,
+	/**  Amount billed after the allowance, in US dollars. */
+	netAmount: number | null,
+};
+
 /**  A GPG secret key usable for signing (`gpg --list-secret-keys --with-colons`). */
 export type GpgKey = {
 	/**  Long key id (16 hex digits). */
@@ -3197,6 +3216,35 @@ export type LfsPointer = {
 	size: number,
 };
 
+/**  The hosting server the repository's LFS objects go to (`origin` first) and its usage. */
+export type LfsServerInfo = {
+	remote: string | null,
+	/**  Lower-cased host name of the remote. */
+	host: string | null,
+	/**  `owner/repo` or `group/sub/project` on that host. */
+	fullName: string | null,
+	/**  Provider kind of the account bound to the remote, when there is one. */
+	kind: ProviderKind | null,
+	usage: LfsUsageOutcome,
+};
+
+/**  LFS usage reported by the hosting provider. */
+export type LfsServerUsage = 
+/**  GitLab project statistics, in bytes. */
+{ source: "gitlabProject"; 
+/**  LFS objects of the project. */
+lfsBytes: number; 
+/**  The git repository itself. */
+repositoryBytes: number; 
+/**  Everything the project stores (repository, LFS, artifacts, packages...). */
+storageBytes: number } | 
+/**  GitHub billing usage of the repository owner for the current billing period. */
+{ source: "githubBilling"; 
+/**  The account the usage is billed to. */
+owner: string; organization: boolean; 
+/**  Usage items about Git LFS (empty when none was billed this period). */
+items: GithubUsageItem[] };
+
 export type LfsStatus = {
 	gitLfs: ToolInfo,
 	/**
@@ -3245,6 +3293,26 @@ export type LfsTransferProgress = {
 	active: LfsFileProgress[],
 	done: boolean,
 };
+
+/**  The server's LFS usage, or why it is unknown. */
+export type LfsUsageOutcome = { status: "done"; value: LfsServerUsage } | { status: "unavailable"; reason: LfsUsageUnavailable; message: string | null };
+
+/**  Why the server's LFS usage could not be read. */
+export type LfsUsageUnavailable = 
+/**  The repository has no remote on a hosting server. */
+"noRemote" | 
+/**  The remote is not bound to an account of the app. */
+"noAccount" | 
+/**  The account has no token stored. */
+"noToken" | 
+/**  The provider has no API for it (Bitbucket, Azure DevOps, Gitea, GitHub Enterprise...). */
+"notSupported" | 
+/**  The account may not read it (billing needs an owner / admin, GitLab needs Reporter). */
+"noPermission" | 
+/**  The token was refused (expired or revoked). */
+"tokenRejected" | 
+/**  Network or server error. */
+"failed";
 
 export type LineKind = "context" | "add" | "delete";
 

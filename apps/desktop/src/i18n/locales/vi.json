@@ -546,6 +546,7 @@
     "managerDesc": "File lớn của repo này: tải về, khóa, pattern đang track và dọn dẹp.",
     "openManager": "Quản lý LFS…",
     "tab": {
+      "overview": "Tổng quan",
       "files": "File",
       "locks": "Khóa",
       "patterns": "Pattern",
@@ -605,6 +606,7 @@
     "guardClean": "Không có file nặng trong các commit chưa push.",
     "guardFailed": "Không kiểm tra được commit chưa push (nhánh chưa có upstream?).",
     "cmd": {
+      "overview": "LFS: tổng quan, dung lượng và quota…",
       "manager": "LFS: quản lý file…",
       "locks": "LFS: khóa file…",
       "maintenance": "LFS: giải phóng ổ đĩa / kiểm tra toàn vẹn…"
@@ -612,7 +614,9 @@
   },
   "guard": {
     "titleOver": "{{count}} file vượt ngưỡng {{size}}",
+    "titleOver_one": "{{count}} file vượt ngưỡng {{size}}",
     "titleSuggest": "{{count}} file nên lưu bằng Git LFS",
+    "titleSuggest_one": "{{count}} file nên lưu bằng Git LFS",
     "desc": "File lớn commit thẳng vào git sẽ làm repo nặng mãi mãi. Track bằng LFS để git chỉ lưu một pointer nhỏ.",
     "blockNote": "{{count}} file vượt giới hạn cứng {{size}}. Push chắc chắn bị từ chối, nên không thể commit nguyên trạng.",
     "levelBlock": "Vượt giới hạn",
@@ -634,6 +638,29 @@
     "commitAnyway": "Vẫn commit",
     "commitAnywayBlocked": "Không thể: có file vượt giới hạn cứng của provider",
     "trackFailed": "Không track được bằng LFS, commit đã dừng: {{message}}"
+  },
+  "lfsTrack": {
+    "subject": "{{count}} file",
+    "subject_one": "{{count}} file",
+    "title": "Đang chuyển {{count}} file sang LFS",
+    "title_one": "Đang chuyển {{count}} file sang LFS",
+    "desc": "Mỗi file được băm và chép vào kho LFS, rồi stage thành một pointer nhỏ. Nhiều file lớn thì cần chút thời gian.",
+    "stepPatterns": "Thêm pattern vào .gitattributes",
+    "stepConvert": "Stage file thành pointer LFS",
+    "stepCommit": "Commit",
+    "phasePatterns": "Đang thêm pattern ({{done}}/{{total}})",
+    "phaseConvert": "Đang stage thành pointer LFS: {{done}}/{{total}} file",
+    "elapsed": "Đã chạy {{time}}",
+    "background": "Chạy nền",
+    "backgroundHint": "Bạn có thể chuyển sang project khác. Tiến trình hiện ở ô commit và hàng đợi trên thanh trạng thái, khi xong commit sẽ tự chạy.",
+    "backgroundStarted": "Đang chuyển file sang LFS trong nền",
+    "stop": "Dừng",
+    "stopping": "Đang dừng…",
+    "stopped": "Đã dừng sau {{done}}/{{total}} file. Chưa commit gì; các file đã xử lý vẫn được stage dạng pointer LFS.",
+    "partly": "Đã stage {{done}}/{{total}} file thành pointer LFS. Thử lại sẽ làm tiếp phần còn lại.",
+    "done": "Đã stage {{count}} file thành pointer LFS",
+    "done_one": "Đã stage {{count}} file thành pointer LFS",
+    "commitAfter": "Commit sẽ tự chạy khi các file đã được stage thành pointer LFS."
   },
   "remote": {
     "whatsNew": {
@@ -750,7 +777,8 @@
       "pull": "Pull",
       "push": "Push",
       "lfsUpload": "Upload LFS",
-      "lfsDownload": "Tải LFS"
+      "lfsDownload": "Tải LFS",
+      "lfsTrack": "Chuyển sang LFS"
     },
     "status": {
       "running": "Đang chạy",
@@ -2222,6 +2250,102 @@
       "network": "Kiểm tra kết nối mạng rồi thử lại.",
       "other": "Xem chi tiết kỹ thuật bên dưới."
     }
+  },
+  "lfsOverview": {
+    "whereTitle": "File LFS được lưu ở đâu?",
+    "whereIntro": "Git LFS giữ file lớn (video, ảnh, tài nguyên game, thường là file trên khoảng 50 MB) ngoài lịch sử Git thông thường. Một file được track nằm ở bốn chỗ:",
+    "place": {
+      "folder": "Thư mục dự án của bạn",
+      "folderText": "File thật như bình thường. Bạn mở và sửa như mọi file khác, không có gì thay đổi.",
+      "history": "Lịch sử Git (các commit)",
+      "historyText": "Chỉ lưu một “con trỏ” dạng chữ khoảng 130 byte (mã SHA-256 và kích thước file). Nhờ vậy repo luôn nhẹ.",
+      "local": "Kho LFS trên máy này",
+      "localText": "Mỗi phiên bản bạn đã tải hoặc commit có một bản sao trong <code>{{dir}}</code>. Vì vậy file chiếm khoảng gấp đôi dung lượng trên ổ đĩa cho tới khi dọn (prune) bản cũ.",
+      "server": "Kho LFS trên server",
+      "serverText": "Các phiên bản đã push được tải lên một kho LFS riêng của nhà cung cấp. Kho này có quota riêng, tách khỏi dung lượng repo Git."
+    },
+    "flow": {
+      "push": "Push: file LFS mới được tải lên trước, sau đó mới tới các commit chứa con trỏ. Mỗi phiên bản mới được tải lên nguyên file, dù chỉ sửa một chút.",
+      "pull": "Pull / checkout: Git lấy về con trỏ, rồi git-lfs chỉ tải những phiên bản mà nhánh đang mở cần.",
+      "clone": "Clone: giống pull. Bản cũ vẫn nằm trên server cho tới khi bạn cần (tab Bảo trì, Tải mọi phiên bản)."
+    },
+    "example": "Ví dụ: bạn commit một video 60 MB. Thư mục vẫn có file 60 MB, commit chỉ lưu con trỏ khoảng 130 byte, kho LFS trên máy giữ một bản 60 MB, và sau khi push thì kho LFS trên server dùng 60 MB. Sửa rồi commit lại 10 lần thì server giữ 10 phiên bản, khoảng 600 MB.",
+    "sizesTitle": "Repo này",
+    "stat": {
+      "files": "File LFS ở phiên bản này",
+      "head": "Tổng dung lượng",
+      "headHint": "Dung lượng các file LFS của phiên bản đang mở (HEAD). Không tính các phiên bản cũ trên server.",
+      "local": "Kho LFS trên máy",
+      "localHint": "{{count}} object trên máy này, gồm mọi phiên bản đã giữ lại.",
+      "pointers": "Chưa tải về",
+      "pointersHint": "Các file ở đây mới chỉ là con trỏ. Tải về ở tab File."
+    },
+    "sizesHint": "Server thường lưu nhiều hơn phiên bản hiện tại: mọi phiên bản đã push của mọi file LFS đều được tính.",
+    "largest": "File LFS lớn nhất",
+    "tooBig": "{{count}} file lớn hơn {{limit}}, giới hạn mỗi file của gói {{provider}} thấp nhất. Server có thể từ chối khi push.",
+    "tooBig_one": "{{count}} file lớn hơn {{limit}}, giới hạn mỗi file của gói {{provider}} thấp nhất. Server có thể từ chối khi push.",
+    "serverTitle": "Server và quota",
+    "serverLoading": "Đang hỏi server…",
+    "recheck": "Kiểm tra lại",
+    "noRemote": "Repo này chưa có remote trên server nào, nên file LFS chỉ nằm trên máy này.",
+    "remote": "File LFS của repo này được đẩy lên {{provider}} qua remote {{remote}} ({{project}}).",
+    "unknownProvider": "một server không rõ loại",
+    "host": {
+      "github": "GitHub tính LFS theo tài khoản sở hữu repo (bạn, hoặc organization). Storage là tổng mọi phiên bản đã push; bandwidth là lượng tải về, kể cả từ fork và GitHub Actions. Tải lên không tính bandwidth.",
+      "githubEnterprise": "Trên GitHub Enterprise Server, admin của công ty quyết định có bật LFS không và được dùng bao nhiêu. Hãy hỏi họ giới hạn.",
+      "gitlab": "GitLab.com tính repo và file LFS chung theo từng project. Tài liệu không nêu quota tải về (bandwidth) cho LFS.",
+      "gitlabSelfHosted": "Trên GitLab tự host, admin đặt giới hạn dung lượng repo, đã gồm cả file LFS. Hãy hỏi họ giới hạn.",
+      "bitbucket": "Bitbucket Cloud cho mỗi workspace một lượng storage LFS theo gói. Không giới hạn kích thước một file LFS.",
+      "azure": "Azure DevOps cho dùng Git LFS miễn phí và không nêu quota storage LFS. File tải lên lớn bị giới hạn bởi thời gian tải lên tối đa một giờ.",
+      "codeberg": "Codeberg yêu cầu bạn xin trước nếu muốn dùng quá 1.5 GiB cho package, LFS và file đính kèm cộng lại.",
+      "gitea": "Trên server Gitea hoặc Forgejo, admin quyết định: file LFS lớn nhất (mặc định không giới hạn) và, với Forgejo, quota tùy chọn.",
+      "unknown": "App không biết quy định LFS của server này. Xem tài liệu của server hoặc hỏi admin."
+    },
+    "col": {
+      "plan": "Gói",
+      "storage": "Lưu trữ",
+      "bandwidth": "Tải về",
+      "fileMax": "File lớn nhất"
+    },
+    "perMonth": "{{size}} / tháng",
+    "notStated": "không nêu",
+    "noLimit": "không giới hạn",
+    "full": {
+      "github": "Khi dùng hết phần miễn phí: có phương thức thanh toán thì GitHub tính tiền phần vượt (tối đa theo budget). Budget đặt $0 thì LFS bị chặn tới ngày 1 tháng sau. Không có phương thức thanh toán: vượt storage thì vẫn tải về được nhưng không push được file LFS mới; vượt bandwidth thì LFS bị tắt tới tháng sau.",
+      "githubEnterprise": "Khi chạm giới hạn, server từ chối tải lên; admin có thể nâng giới hạn.",
+      "gitlab": "Vượt giới hạn mà không mua thêm storage thì project chuyển sang chỉ-đọc: không push được cho tới khi dọn bớt hoặc mua thêm.",
+      "gitlabSelfHosted": "Vượt giới hạn thì server từ chối push cho tới khi dọn bớt hoặc admin nâng giới hạn.",
+      "bitbucket": "Dùng quá phần có sẵn, Bitbucket thêm storage trả phí theo từng gói 100 GB ($10 / tháng mỗi gói).",
+      "azure": "Tài liệu không nêu quota LFS, nên không có gì để hết ngoài giới hạn thời gian tải lên.",
+      "codeberg": "Codeberg xem xét các project lớn và có thể từ chối phục vụ; hãy xin thêm chỗ trước khi cần.",
+      "gitea": "Khi chạm giới hạn admin đặt, server từ chối tải lên.",
+      "unknown": "Khi chạm giới hạn của server, git-lfs sẽ hiện lỗi của server lúc push."
+    },
+    "checkedOn": "Số liệu lấy từ tài liệu của nhà cung cấp, kiểm tra ngày {{date}}. Nhà cung cấp có thể đổi, nên trang tài liệu là nguồn chuẩn.",
+    "usageTitle": "Đã dùng trên server",
+    "unavailable": {
+      "noRemote": "Không có server: không dùng gì trên mạng.",
+      "noAccount": "Remote chưa gắn với tài khoản nào trong app nên không đọc được mức dùng. Mở trang của nhà cung cấp bên dưới.",
+      "noToken": "Tài khoản chưa lưu token nên không đọc được mức dùng. Đăng nhập lại trong Quản lý tài khoản.",
+      "notSupported": "{{provider}} không cho app đọc mức dùng LFS. Mở trang của nhà cung cấp bên dưới để xem.",
+      "noPermission": "Tài khoản của bạn không được xem mức dùng này (trên GitHub chỉ chủ tài khoản hoặc admin organization xem được billing; trên GitLab cần quyền Reporter trở lên). Mở trang của nhà cung cấp bên dưới.",
+      "tokenRejected": "Server từ chối token của tài khoản (hết hạn hoặc đã thu hồi). Đăng nhập lại trong Quản lý tài khoản.",
+      "failed": "Không kết nối được server để đọc mức dùng. Thử lại sau."
+    },
+    "gitlabUsage": "File LFS: {{lfs}}. Repo Git: {{repo}}. Tổng mọi thứ project lưu: {{total}}.",
+    "gitlabShare": "{{used}} trên {{limit}} của gói Free ({{percent}}%). Project Premium / Ultimate có 500 GiB.",
+    "githubNone": "GitHub không báo mức dùng Git LFS nào tính cho {{owner}} trong tháng này.",
+    "githubItem": "Đã dùng {{quantity}} {{unit}}, trong đó {{included}} miễn phí, tính tiền ${{amount}}",
+    "openUsage": "Mở trang mức dùng",
+    "openDocs": "Tài liệu LFS của nhà cung cấp",
+    "cleanTitle": "Dọn dẹp",
+    "cleanLocal": "Trên máy này: Prune (tab Bảo trì) xóa bản sao cục bộ của các phiên bản cũ đã có trên server và không cần cho phiên bản đang mở. Lệnh này không bao giờ xóa gì trên server, và file sẽ được tải lại khi cần.",
+    "cleanServer": {
+      "github": "Trên server: xóa file, kể cả xóa khỏi lịch sử, không giải phóng storage LFS của GitHub. Chỉ xóa repo (hoặc nhờ GitHub Support) mới giải phóng, nên chỉ track những gì thật sự cần.",
+      "gitlab": "Trên server: sau khi xóa file khỏi lịch sử, mục Settings, Repository, Repository maintenance, Clean up repository của GitLab sẽ gỡ các object LFS không còn dùng và giải phóng chỗ.",
+      "other": "Trên server: xóa file không giải phóng chỗ khi commit cũ vẫn trỏ tới nó. Cách lấy lại chỗ tùy nhà cung cấp; xem tài liệu của họ."
+    },
+    "openMaintenance": "Sang tab Bảo trì"
   },
   "lfsFiles": {
     "loading": "Đang đọc file LFS…",

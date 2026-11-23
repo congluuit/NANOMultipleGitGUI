@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type LfsTab = "patterns" | "files" | "locks" | "maintenance";
+export type LfsTab = "overview" | "patterns" | "files" | "locks" | "maintenance";
 
 interface LfsManagerState {
   repoId: number | null;

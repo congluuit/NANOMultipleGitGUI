@@ -2,12 +2,11 @@ import { useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import i18n from "i18next";
 import { useRepoRefs } from "@/features/repos/queries";
-import { invalidateWorktree } from "@/features/worktree/queries";
-import { commands, errorMessage, type GuardReport } from "@/ipc";
+import { commands, type GuardReport } from "@/ipc";
 import { useUi } from "@/stores/ui";
-import { guessProvider, relevantFindings } from "./guard";
+import { displaySize, guessProvider, relevantFindings } from "./guard";
 import { LargeFileGuardDialog } from "./LargeFileGuardDialog";
-import { invalidateLfs } from "./queries";
+import { cancelLfsTrack, runLfsTrack, useLfsTrackJob } from "./trackJob";
 
 interface Review {
   report: GuardReport;
@@ -20,11 +19,14 @@ interface Review {
  * Large File Guard for the commit box: `intercept(paths, proceed)` runs `large_file_check`
  * and, when something should go to LFS, holds the commit back and shows the dialog
  * (`dialog` must be rendered). Returns whether the commit was held back.
+ *
+ * "Track with LFS" runs as a background job (`trackJob`): the dialog shows its progress and
+ * can be closed meanwhile; the held-back commit runs when the job is done.
  */
 export function useLargeFileGuard(repoId: number) {
   const refs = useRepoRefs(repoId);
   const [review, setReview] = useState<Review | null>(null);
-  const [busy, setBusy] = useState(false);
+  const job = useLfsTrackJob(repoId);
 
   const intercept = async (paths: string[], proceed: () => void): Promise<boolean> => {
     if (paths.length === 0 || !isTauri()) return false;
@@ -48,35 +50,40 @@ export function useLargeFileGuard(repoId: number) {
     proceed?.();
   };
 
-  const track = async (patterns: string[], paths: string[]) => {
-    setBusy(true);
-    try {
-      for (const pattern of patterns) await commands.lfsTrack(repoId, pattern, false);
-      await commands.lfsRestage(repoId, paths);
-    } catch (e) {
-      useUi.getState().showNotice({
-        kind: "error",
-        message: i18n.t("guard.trackFailed", { message: errorMessage(e) }),
-      });
-      return;
-    } finally {
-      setBusy(false);
-      invalidateLfs(repoId);
-      invalidateWorktree(repoId);
-    }
-    continueCommit();
+  const track = (patterns: string[], paths: string[]) => {
+    if (!review) return;
+    const { report, proceed } = review;
+    const sizes = new Map(report.findings.map((f) => [f.path, displaySize(f)]));
+    const files = paths.map((path) => ({ path, size: sizes.get(path) ?? null }));
+    void runLfsTrack(repoId, patterns, files, () => {
+      // Still open on this review (not sent to the background): close it, then commit.
+      setReview((r) => (r?.report === report ? null : r));
+      proceed();
+    });
+  };
+
+  const background = () => {
+    close();
+    useUi.getState().showNotice({
+      kind: "info",
+      repoId,
+      message: i18n.t("lfsTrack.backgroundStarted"),
+      hint: i18n.t("lfsTrack.backgroundHint"),
+    });
   };
 
   const dialog = (
     <LargeFileGuardDialog
       key={review?.seq ?? 0}
       report={review?.report ?? null}
-      busy={busy}
-      onTrack={(patterns, paths) => void track(patterns, paths)}
+      job={job}
+      onTrack={track}
       onCommitAnyway={continueCommit}
       onCancel={close}
+      onBackground={background}
+      onStop={() => cancelLfsTrack(repoId)}
     />
   );
 
-  return { intercept, dialog };
+  return { intercept, dialog, tracking: job };
 }

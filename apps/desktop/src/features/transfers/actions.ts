@@ -13,7 +13,7 @@ import { newOpId } from "@/features/remote/plan";
 import { invalidateRepo } from "@/features/worktree/queries";
 import { useUi } from "@/stores/ui";
 import { formatBytes } from "./format";
-import { setRetry, useTransferQueue, type QueueKind } from "./store";
+import { cancellerOf, setRetry, useTransferQueue, type QueueKind } from "./store";
 
 /**
  * Account a repository's transfers run as (from the account-context query cache, so `null`
@@ -149,6 +149,11 @@ export function downloadAnyway(item: { repoId: number; subject: string | null })
 
 export async function cancelQueued(opId: string) {
   useTransferQueue.getState().patch(opId, { cancelling: true });
+  const local = cancellerOf(opId);
+  if (local) {
+    local();
+    return;
+  }
   await commands.transferCancel(opId).catch(() => false);
 }
 

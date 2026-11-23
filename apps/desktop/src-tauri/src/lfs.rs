@@ -2,17 +2,21 @@
 //! re-staging files as pointers and the Large File Guard (PLAN §6.1, §6.2); locks, the LFS
 //! file list and maintenance (prune / fsck / local size) (PLAN §6.6, §6.7).
 
+use nanomgg_accounts::ProviderKind;
 use nanomgg_lfs::files::{self, LfsFile};
 use nanomgg_lfs::guard::{self, GuardProvider, GuardReport, GuardThresholds};
 use nanomgg_lfs::locks::{self, LfsLock, LockError, LockFailure, LockList};
 use nanomgg_lfs::maintenance::{self, FsckReport, LfsStorage, PruneReport};
 use nanomgg_lfs::{LfsError, LfsStatus, detect, setup};
+use nanomgg_providers::ProviderError;
+use nanomgg_providers::lfs_usage::LfsServerUsage;
 use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Manager};
 
 use crate::accounts;
 use crate::error::{AppError, AppResult};
+use crate::hosting::{account_client, hosted_remote};
 use crate::repos::repo_root;
 use crate::state::AppState;
 
@@ -301,6 +305,132 @@ pub async fn lfs_fsck(
     .await
 }
 
+// ----- server side: where the LFS objects are pushed and how much they use ----------------------
+
+/// Why the server's LFS usage could not be read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum LfsUsageUnavailable {
+    /// The repository has no remote on a hosting server.
+    NoRemote,
+    /// The remote is not bound to an account of the app.
+    NoAccount,
+    /// The account has no token stored.
+    NoToken,
+    /// The provider has no API for it (Bitbucket, Azure DevOps, Gitea, GitHub Enterprise...).
+    NotSupported,
+    /// The account may not read it (billing needs an owner / admin, GitLab needs Reporter).
+    NoPermission,
+    /// The token was refused (expired or revoked).
+    TokenRejected,
+    /// Network or server error.
+    Failed,
+}
+
+/// The server's LFS usage, or why it is unknown.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum LfsUsageOutcome {
+    Done {
+        value: LfsServerUsage,
+    },
+    Unavailable {
+        reason: LfsUsageUnavailable,
+        message: Option<String>,
+    },
+}
+
+/// The hosting server the repository's LFS objects go to (`origin` first) and its usage.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LfsServerInfo {
+    pub remote: Option<String>,
+    /// Lower-cased host name of the remote.
+    pub host: Option<String>,
+    /// `owner/repo` or `group/sub/project` on that host.
+    pub full_name: Option<String>,
+    /// Provider kind of the account bound to the remote, when there is one.
+    pub kind: Option<ProviderKind>,
+    pub usage: LfsUsageOutcome,
+}
+
+fn unavailable(reason: LfsUsageUnavailable, message: Option<String>) -> LfsUsageOutcome {
+    LfsUsageOutcome::Unavailable {
+        reason,
+        message: message.map(|m| nanomgg_logging::redact(&m).into_owned()),
+    }
+}
+
+/// Maps a provider error to the reason the UI explains.
+fn usage_error(e: &ProviderError) -> LfsUsageOutcome {
+    let reason = match e {
+        ProviderError::Unsupported { .. } => LfsUsageUnavailable::NotSupported,
+        ProviderError::Forbidden { .. } | ProviderError::NotFound { .. } => {
+            LfsUsageUnavailable::NoPermission
+        }
+        ProviderError::Unauthorized { .. } => LfsUsageUnavailable::TokenRejected,
+        _ => LfsUsageUnavailable::Failed,
+    };
+    unavailable(reason, Some(e.to_string()))
+}
+
+/// Where the LFS objects of the repository live on the server and, when the provider's API
+/// tells it, how much they use (GitLab project statistics, GitHub billing usage).
+#[tauri::command]
+#[specta::specta]
+pub async fn lfs_server_usage(app: AppHandle, repo_id: i64) -> AppResult<LfsServerInfo> {
+    let a = app.clone();
+    let (mut info, client) = tauri::async_runtime::spawn_blocking(move || {
+        let st = a.state::<AppState>();
+        let mut info = LfsServerInfo {
+            remote: None,
+            host: None,
+            full_name: None,
+            kind: None,
+            usage: unavailable(LfsUsageUnavailable::NoRemote, None),
+        };
+        let Ok(hosted) = hosted_remote(&st, repo_id, None) else {
+            return Ok::<_, AppError>((info, None));
+        };
+        info.remote = Some(hosted.remote.clone());
+        info.host = Some(hosted.host.clone());
+        info.full_name = Some(hosted.full_name.clone());
+        let Some(account_id) = hosted.account_id.clone() else {
+            info.usage = unavailable(LfsUsageUnavailable::NoAccount, None);
+            return Ok((info, None));
+        };
+        info.kind = st
+            .storage
+            .account(&account_id)?
+            .and_then(|acc| st.storage.provider(&acc.provider_id).ok().flatten())
+            .map(|p| p.kind);
+        if info.kind.is_some_and(ProviderKind::git_only) {
+            info.usage = unavailable(LfsUsageUnavailable::NotSupported, None);
+            return Ok((info, None));
+        }
+        if !hosted.has_token {
+            info.usage = unavailable(LfsUsageUnavailable::NoToken, None);
+            return Ok((info, None));
+        }
+        match account_client(&a, &account_id) {
+            Ok(client) => Ok((info, Some(client))),
+            Err(e) => {
+                info.usage = unavailable(LfsUsageUnavailable::Failed, Some(e.to_string()));
+                Ok((info, None))
+            }
+        }
+    })
+    .await
+    .map_err(|e| AppError::Internal(e.to_string()))??;
+    if let (Some(client), Some(full_name)) = (client, info.full_name.clone()) {
+        info.usage = match client.lfs_usage(&full_name).await {
+            Ok(value) => LfsUsageOutcome::Done { value },
+            Err(e) => usage_error(&e),
+        };
+    }
+    Ok(info)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,6 +456,39 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&done).unwrap(),
             serde_json::json!({ "status": "done", "value": 1 })
+        );
+    }
+
+    #[test]
+    fn usage_errors_map_to_reasons() {
+        let reason = |e: ProviderError| match usage_error(&e) {
+            LfsUsageOutcome::Unavailable { reason, .. } => reason,
+            LfsUsageOutcome::Done { .. } => unreachable!(),
+        };
+        assert_eq!(
+            reason(ProviderError::Unsupported {
+                message: "x".into()
+            }),
+            LfsUsageUnavailable::NotSupported
+        );
+        assert_eq!(
+            reason(ProviderError::NotFound {
+                message: "x".into(),
+                hint: None
+            }),
+            LfsUsageUnavailable::NoPermission
+        );
+        assert_eq!(
+            reason(ProviderError::Unauthorized {
+                message: "x".into()
+            }),
+            LfsUsageUnavailable::TokenRejected
+        );
+        assert_eq!(reason(ProviderError::Timeout), LfsUsageUnavailable::Failed);
+        let json = serde_json::to_value(unavailable(LfsUsageUnavailable::NoToken, None)).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({ "status": "unavailable", "reason": "noToken", "message": null })
         );
     }
 

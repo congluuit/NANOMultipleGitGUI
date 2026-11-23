@@ -8,6 +8,7 @@ import { AiReviewButton } from "@/features/ai/review/AiReviewButton";
 import { peekOneShot } from "@/features/accounts/switcher/oneShot";
 import { runCommitGuard } from "@/features/guards";
 import { useIssueRefSuggest } from "@/features/issues/IssueRefSuggest";
+import { TrackProgressStrip } from "@/features/lfs/TrackProgressView";
 import { useLargeFileGuard } from "@/features/lfs/useLargeFileGuard";
 import { commitErrorNotice } from "@/features/signing/commitError";
 import { commands } from "@/ipc";
@@ -58,7 +59,9 @@ export function CommitBox({
       : stagedCount === 0 && !draft.amend
         ? t("commit.nothingStaged")
         : null;
-  const canCommit = !busy && !blocked && draft.summary.trim().length > 0;
+  // "Track with LFS" is staging pointers: its commit follows by itself when it ends.
+  const tracking = guard.tracking;
+  const canCommit = !busy && !tracking && !blocked && draft.summary.trim().length > 0;
 
   const toggleAmend = async (amend: boolean) => {
     update(repoId, { amend });
@@ -194,12 +197,13 @@ export function CommitBox({
         </label>
       </div>
       <CommitAs repoId={repoId} />
+      {tracking && <TrackProgressStrip repoId={repoId} job={tracking} />}
       <Button
         className="w-full"
         size="sm"
         disabled={!canCommit}
         onClick={() => void submit()}
-        title={blocked ?? t("commit.shortcut")}
+        title={tracking ? t("lfsTrack.commitAfter") : (blocked ?? t("commit.shortcut"))}
       >
         {busy && <LoaderCircle className="animate-spin" />}
         {draft.amend ? t("commit.submitAmend") : t("commit.submit", { count: stagedCount })}

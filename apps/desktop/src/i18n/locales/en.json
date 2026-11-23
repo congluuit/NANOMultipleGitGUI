@@ -546,6 +546,7 @@
     "managerDesc": "Large files of this repository: download, lock, tracked patterns and clean-up.",
     "openManager": "Manage LFS…",
     "tab": {
+      "overview": "Overview",
       "files": "Files",
       "locks": "Locks",
       "patterns": "Patterns",
@@ -605,6 +606,7 @@
     "guardClean": "No heavy file in the commits that are not pushed yet.",
     "guardFailed": "Could not check the unpushed commits (no upstream?).",
     "cmd": {
+      "overview": "LFS: overview, storage and quota…",
       "manager": "LFS: manage files…",
       "locks": "LFS: locks…",
       "maintenance": "LFS: free disk space / check integrity…"
@@ -612,7 +614,9 @@
   },
   "guard": {
     "titleOver": "{{count}} files exceed {{size}}",
+    "titleOver_one": "{{count}} file exceeds {{size}}",
     "titleSuggest": "{{count}} files should be stored with Git LFS",
+    "titleSuggest_one": "{{count}} file should be stored with Git LFS",
     "desc": "Large files committed directly bloat the repository forever. Track them with LFS so git only stores a small pointer.",
     "blockNote": "{{count}} files exceed the hard limit of {{size}}. The push would be rejected, so they cannot be committed as is.",
     "levelBlock": "Over limit",
@@ -634,6 +638,29 @@
     "commitAnyway": "Commit anyway",
     "commitAnywayBlocked": "Unavailable: some files exceed the provider's hard limit",
     "trackFailed": "Could not track with LFS, the commit was stopped: {{message}}"
+  },
+  "lfsTrack": {
+    "subject": "{{count}} files",
+    "subject_one": "{{count}} file",
+    "title": "Moving {{count}} files to LFS",
+    "title_one": "Moving {{count}} file to LFS",
+    "desc": "Each file is hashed and copied into the LFS store, then staged as a small pointer. Many big files take a while.",
+    "stepPatterns": "Add patterns to .gitattributes",
+    "stepConvert": "Stage files as LFS pointers",
+    "stepCommit": "Commit",
+    "phasePatterns": "Adding patterns ({{done}}/{{total}})",
+    "phaseConvert": "Staging as LFS pointers: {{done}}/{{total}} files",
+    "elapsed": "Running for {{time}}",
+    "background": "Run in background",
+    "backgroundHint": "You can switch to another project. Progress shows in the commit box and in the transfer queue in the status bar, and the commit runs by itself when this ends.",
+    "backgroundStarted": "Moving files to LFS in the background",
+    "stop": "Stop",
+    "stopping": "Stopping…",
+    "stopped": "Stopped after {{done}}/{{total}} files. Nothing was committed; the files already done stay staged as LFS pointers.",
+    "partly": "{{done}}/{{total}} files were already staged as LFS pointers. Retry goes on with the rest.",
+    "done": "{{count}} files staged as LFS pointers",
+    "done_one": "{{count}} file staged as an LFS pointer",
+    "commitAfter": "The commit runs by itself once the files are staged as LFS pointers."
   },
   "remote": {
     "whatsNew": {
@@ -750,7 +777,8 @@
       "pull": "Pull",
       "push": "Push",
       "lfsUpload": "LFS upload",
-      "lfsDownload": "LFS download"
+      "lfsDownload": "LFS download",
+      "lfsTrack": "LFS track"
     },
     "status": {
       "running": "Running",
@@ -2222,6 +2250,102 @@
       "network": "Check the connection and try again.",
       "other": "See the technical details below."
     }
+  },
+  "lfsOverview": {
+    "whereTitle": "Where do LFS files live?",
+    "whereIntro": "Git LFS keeps big files (videos, images, game assets, usually anything over about 50 MB) outside the normal Git history. A tracked file exists in four places:",
+    "place": {
+      "folder": "Your project folder",
+      "folderText": "The real file, as always. You open and edit it normally; nothing changes for you.",
+      "history": "Git history (commits)",
+      "historyText": "Only a small text pointer of about 130 bytes (the file's SHA-256 and size). That is why the repository stays small.",
+      "local": "This computer's LFS store",
+      "localText": "One copy of every version you downloaded or committed, in <code>{{dir}}</code>. The file therefore takes about twice its size on disk until old versions are pruned.",
+      "server": "The server's LFS storage",
+      "serverText": "Pushed versions are uploaded to a separate LFS storage on the hosting provider. It has its own quota, apart from the Git repository size."
+    },
+    "flow": {
+      "push": "Push: new LFS files are uploaded first, then the commits with their pointers. Every new version is uploaded in full, even after a small edit.",
+      "pull": "Pull / checkout: Git brings the pointers, then git-lfs downloads only the versions the checked-out branch needs.",
+      "clone": "Clone: same as pull. Old versions stay on the server until you need them (Maintenance, Download every version)."
+    },
+    "example": "Example: you commit a 60 MB video. Your folder keeps the 60 MB file, the commit stores a pointer of about 130 bytes, the local LFS store keeps a 60 MB copy, and after push the server's LFS storage uses 60 MB. Edit and commit it 10 times and the server stores 10 versions, about 600 MB.",
+    "sizesTitle": "This repository",
+    "stat": {
+      "files": "LFS files in this version",
+      "head": "Their total size",
+      "headHint": "Size of the LFS files of the checked-out version (HEAD). Older versions on the server are not counted.",
+      "local": "Local LFS store",
+      "localHint": "{{count}} objects on this computer, every version kept so far.",
+      "pointers": "Not downloaded",
+      "pointersHint": "Files that are only pointers here. Download them in the Files tab."
+    },
+    "sizesHint": "The server usually stores more than the current version: every pushed version of every LFS file counts.",
+    "largest": "Largest LFS files",
+    "tooBig": "{{count}} files are bigger than {{limit}}, the per-file limit of the smallest {{provider}} plan. The server may refuse them on push.",
+    "tooBig_one": "{{count}} file is bigger than {{limit}}, the per-file limit of the smallest {{provider}} plan. The server may refuse it on push.",
+    "serverTitle": "Server and quota",
+    "serverLoading": "Checking the server…",
+    "recheck": "Check again",
+    "noRemote": "This repository has no remote on a hosting server, so LFS files are only on this computer.",
+    "remote": "LFS files of this repository go to {{provider}} through remote {{remote}} ({{project}}).",
+    "unknownProvider": "an unknown server",
+    "host": {
+      "github": "GitHub counts LFS per account that owns the repository (you, or the organization). Storage is the total of every pushed version; bandwidth is what is downloaded, including by forks and GitHub Actions. Uploading does not count as bandwidth.",
+      "githubEnterprise": "On GitHub Enterprise Server the company's admin decides whether LFS is on and how much it may use. Ask them for the limits.",
+      "gitlab": "GitLab.com counts the repository and its LFS files together per project. No LFS download (bandwidth) quota is documented.",
+      "gitlabSelfHosted": "On a self-hosted GitLab the admin sets the repository size limit, which includes LFS files. Ask them for the limits.",
+      "bitbucket": "Bitbucket Cloud gives each workspace an LFS storage amount by plan. There is no limit on the size of one LFS file.",
+      "azure": "Azure DevOps offers Git LFS for free and documents no LFS storage quota. Large uploads are limited by the one hour upload time.",
+      "codeberg": "Codeberg asks you to request it first before using more than 1.5 GiB of packages, LFS and attachments together.",
+      "gitea": "On a Gitea or Forgejo server the admin decides: the largest LFS file (no limit by default) and, on Forgejo, optional quotas.",
+      "unknown": "The app does not know this server's LFS rules. Check its documentation or ask its admin."
+    },
+    "col": {
+      "plan": "Plan",
+      "storage": "Storage",
+      "bandwidth": "Download",
+      "fileMax": "Largest file"
+    },
+    "perMonth": "{{size}} / month",
+    "notStated": "not stated",
+    "noLimit": "no limit",
+    "full": {
+      "github": "When the free amount is used up: with a payment method GitHub bills the extra (up to your budget). With a $0 budget LFS is blocked until the 1st of next month. Without a payment method, over storage you can still download but cannot push new LFS files; over bandwidth LFS is turned off until next month.",
+      "githubEnterprise": "When a limit is reached the server refuses the upload; the admin can raise it.",
+      "gitlab": "Over the limit, and without purchased storage, the project becomes read-only: you cannot push until space is freed or more is bought.",
+      "gitlabSelfHosted": "Over the limit the server refuses pushes until space is freed or the admin raises it.",
+      "bitbucket": "Beyond the included storage Bitbucket adds paid storage in units of 100 GB ($10 / month each).",
+      "azure": "No LFS quota is documented, so there is nothing to run out of besides the upload time limit.",
+      "codeberg": "Codeberg reviews large projects and may refuse service; request more space before you need it.",
+      "gitea": "When the admin's limit is reached, the server refuses the upload.",
+      "unknown": "When a server limit is reached, git-lfs shows the server's error on push."
+    },
+    "checkedOn": "Numbers from the provider's documentation, checked on {{date}}. Providers change them, so the documentation link is the reference.",
+    "usageTitle": "Used on the server",
+    "unavailable": {
+      "noRemote": "No hosting server: nothing is used online.",
+      "noAccount": "The remote is not linked to an account in the app, so the usage cannot be read. Open the provider's page below.",
+      "noToken": "The account has no saved token, so the usage cannot be read. Sign in again in Manage accounts.",
+      "notSupported": "{{provider}} does not let apps read the LFS usage. Open the provider's page below to see it.",
+      "noPermission": "Your account may not read this usage (on GitHub only the owner or an organization admin sees billing; on GitLab you need the Reporter role). Open the provider's page below.",
+      "tokenRejected": "The server refused the account's token (expired or revoked). Sign in again in Manage accounts.",
+      "failed": "Could not reach the server to read the usage. Try again later."
+    },
+    "gitlabUsage": "LFS files: {{lfs}}. Git repository: {{repo}}. Everything the project stores: {{total}}.",
+    "gitlabShare": "{{used}} of {{limit}} on the Free plan ({{percent}}%). Premium / Ultimate projects have 500 GiB.",
+    "githubNone": "GitHub reported no Git LFS use billed to {{owner}} this month.",
+    "githubItem": "{{quantity}} {{unit}} used, {{included}} of it free, billed ${{amount}}",
+    "openUsage": "Open usage page",
+    "openDocs": "Provider's LFS documentation",
+    "cleanTitle": "Cleaning up",
+    "cleanLocal": "On this computer: Prune (Maintenance tab) deletes local copies of old versions that are already on the server and not needed by your current checkout. It never deletes anything on the server, and the files come back with a download when needed.",
+    "cleanServer": {
+      "github": "On the server: deleting a file, even from history, does not free GitHub LFS storage. Only deleting the repository (or asking GitHub Support) frees it, so track only what you really need.",
+      "gitlab": "On the server: after removing files from history, GitLab's Settings, Repository, Repository maintenance, Clean up repository unlinks LFS objects nothing uses any more and frees their space.",
+      "other": "On the server: deleting a file does not free space while old commits still point to it. How to reclaim it depends on the provider; check its documentation."
+    },
+    "openMaintenance": "Go to Maintenance"
   },
   "lfsFiles": {
     "loading": "Loading LFS files…",

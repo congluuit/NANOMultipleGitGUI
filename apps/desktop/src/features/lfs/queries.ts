@@ -9,6 +9,7 @@ export const lfsKeys = {
   locks: (id: number) => ["lfsLocks", id] as const,
   files: (id: number) => ["lfsFiles", id] as const,
   storage: (id: number) => ["lfsStorage", id] as const,
+  server: (id: number) => ["lfsServer", id] as const,
 };
 
 export function useLfsStatus(repoId: number, enabled = true) {
@@ -61,6 +62,21 @@ export function useLfsStorage(repoId: number, enabled = true) {
     queryFn: () => commands.lfsStorage(repoId),
     enabled: isTauri() && enabled,
     staleTime: 30_000,
+  });
+}
+
+/**
+ * The server the LFS objects are pushed to and, when its API tells it, how much they use
+ * (network: GitLab project statistics, GitHub billing usage). Kept for 5 minutes, not retried.
+ */
+export function useLfsServerUsage(repoId: number, enabled = true) {
+  return useQuery({
+    queryKey: lfsKeys.server(repoId),
+    queryFn: () => commands.lfsServerUsage(repoId),
+    enabled: isTauri() && enabled,
+    staleTime: 300_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -68,12 +68,13 @@ import {
   useLfsStatus,
   useLfsStorage,
 } from "./queries";
+import { OverviewTab } from "./LfsOverviewTab";
 import { TrackPatternDialog } from "./TrackPatternDialog";
 import { queryClient } from "@/lib/queryClient";
 
-const TABS: LfsTab[] = ["files", "locks", "patterns", "maintenance"];
+const TABS: LfsTab[] = ["overview", "files", "locks", "patterns", "maintenance"];
 
-/** Mount once: the LFS manager (patterns / files / locks / maintenance) of `useLfsManager`. */
+/** Mount once: the LFS manager (overview / files / locks / patterns / maintenance) of `useLfsManager`. */
 export function LfsManagerHost() {
   const repoId = useLfsManager((s) => s.repoId);
   const tab = useLfsManager((s) => s.tab);
@@ -107,6 +108,7 @@ export function LfsManagerHost() {
           ))}
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
+          {repoId !== null && tab === "overview" && <OverviewTab repoId={repoId} />}
           {repoId !== null && tab === "files" && <FilesTab repoId={repoId} />}
           {repoId !== null && tab === "locks" && <LocksTab repoId={repoId} />}
           {repoId !== null && tab === "patterns" && <PatternsTab repoId={repoId} />}
