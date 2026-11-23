@@ -16,6 +16,7 @@ pub mod context;
 pub mod diff;
 pub mod edit;
 pub mod file_history;
+pub mod forecast;
 pub mod graph;
 pub mod guard;
 pub mod history;

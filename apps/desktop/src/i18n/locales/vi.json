@@ -385,6 +385,30 @@
     "deleteTagBody": "Chỉ xóa tag local; tag đã push lên remote vẫn còn.",
     "delete": "Xóa"
   },
+  "mergeForecast": {
+    "menu": "Kiểm tra xung đột với {{branch}}",
+    "checking": "Đang kiểm tra xung đột…",
+    "clean": "Merge suôn sẻ, không có xung đột.",
+    "upToDate": "Đã cập nhật đầy đủ, không có gì để merge.",
+    "fastForward": "Fast-forward: nhánh chỉ tiến lên, không thể có xung đột.",
+    "conflicts_one": "{{count}} file sẽ bị xung đột:",
+    "conflicts_other": "{{count}} file sẽ bị xung đột:",
+    "more_one": "và {{count}} file khác",
+    "more_other": "và {{count}} file khác",
+    "rebaseClean": "Ước tính: không có xung đột. Rebase áp dụng lại từng commit một, nên vẫn có thể dừng lại vì xung đột.",
+    "rebaseConflicts_one": "Ước tính: {{count}} file có thể bị xung đột:",
+    "rebaseConflicts_other": "Ước tính: {{count}} file có thể bị xung đột:",
+    "rebaseNote": "Rebase áp dụng lại từng commit một, nên xung đột thực tế có thể khác.",
+    "openMerge": "Merge…",
+    "notice": {
+      "unknown": "Không kiểm tra được xung đột. Cần Git 2.38 trở lên, và hai nhánh phải có chung lịch sử.",
+      "upToDate": "{{branch}} đã chứa {{rev}}. Không có gì để merge.",
+      "fastForward": "{{rev}} có thể fast-forward vào {{branch}}, không có xung đột.",
+      "clean": "{{rev}} merge vào {{branch}} suôn sẻ, không có xung đột.",
+      "conflicts_one": "Merge {{rev}} vào {{branch}} sẽ bị xung đột ở {{count}} file.",
+      "conflicts_other": "Merge {{rev}} vào {{branch}} sẽ bị xung đột ở {{count}} file."
+    }
+  },
   "ops": {
     "cancelled": "Đã hủy thao tác.",
     "conflicts": "Dừng lại vì có xung đột ở {{count}} file. Giải quyết, stage rồi bấm Tiếp tục (hoặc Hủy).",

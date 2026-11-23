@@ -385,6 +385,30 @@
     "deleteTagBody": "Only the local tag is deleted; a tag already pushed stays on the remote.",
     "delete": "Delete"
   },
+  "mergeForecast": {
+    "menu": "Check for conflicts with {{branch}}",
+    "checking": "Checking for conflicts…",
+    "clean": "Merges cleanly, no conflicts.",
+    "upToDate": "Already up to date, nothing to merge.",
+    "fastForward": "Fast-forward: the branch just moves ahead, no conflicts possible.",
+    "conflicts_one": "{{count}} file will conflict:",
+    "conflicts_other": "{{count}} files will conflict:",
+    "more_one": "and {{count}} more file",
+    "more_other": "and {{count}} more files",
+    "rebaseClean": "Estimate: no conflicts expected. Rebase replays commits one by one, so it can still stop on a conflict.",
+    "rebaseConflicts_one": "Estimate: {{count}} file may conflict:",
+    "rebaseConflicts_other": "Estimate: {{count}} files may conflict:",
+    "rebaseNote": "Rebase replays commits one by one, so the actual conflicts can differ.",
+    "openMerge": "Merge…",
+    "notice": {
+      "unknown": "Could not check for conflicts. This needs Git 2.38 or newer, and both branches must share history.",
+      "upToDate": "{{branch}} already contains {{rev}}. Nothing to merge.",
+      "fastForward": "{{rev}} can be fast-forwarded into {{branch}}, no conflicts.",
+      "clean": "{{rev}} merges cleanly into {{branch}}.",
+      "conflicts_one": "Merging {{rev}} into {{branch}} would conflict in {{count}} file.",
+      "conflicts_other": "Merging {{rev}} into {{branch}} would conflict in {{count}} files."
+    }
+  },
   "ops": {
     "cancelled": "Operation cancelled.",
     "conflicts": "Stopped on conflicts in {{count}} files. Resolve, stage, then Continue (or Abort).",

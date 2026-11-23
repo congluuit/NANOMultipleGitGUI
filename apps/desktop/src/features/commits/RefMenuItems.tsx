@@ -9,6 +9,7 @@ import {
   Link,
   LogIn,
   PencilLine,
+  SearchCheck,
   Tag,
   Trash2,
   Undo2,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/context-menu";
 import { switchBranch } from "@/features/branch-switch/actions";
 import { useHostedRemotes } from "@/features/issues/queries";
+import { checkConflicts } from "@/features/merge-forecast/actions";
 import { openCreatePull } from "@/features/pulls/store";
 import { RebaseBranchItems } from "@/features/rebase/MenuItems";
 import { openRebaseDialog } from "@/features/rebase/store";
@@ -308,6 +310,13 @@ export function LocalBranchItems({
         <GitMerge />
         {t("menu.mergeInto", { branch: current ?? "HEAD" })}
       </ContextMenuItem>
+      <ContextMenuItem
+        disabled={isCurrent || !current}
+        onSelect={() => current && void checkConflicts(repoId, name, current)}
+      >
+        <SearchCheck />
+        {t("mergeForecast.menu", { branch: current ?? "HEAD" })}
+      </ContextMenuItem>
       <RebaseBranchItems repoId={repoId} name={name} current={current} />
       <ContextMenuItem disabled={!h} onSelect={() => openCreatePull(repoId, name)}>
         <Upload />
@@ -447,6 +456,13 @@ export function RemoteBranchItems({
       >
         <GitMerge />
         {t("menu.mergeInto", { branch: current ?? "HEAD" })}
+      </ContextMenuItem>
+      <ContextMenuItem
+        disabled={!current}
+        onSelect={() => current && void checkConflicts(repoId, full, current)}
+      >
+        <SearchCheck />
+        {t("mergeForecast.menu", { branch: current ?? "HEAD" })}
       </ContextMenuItem>
       <RebaseBranchItems repoId={repoId} name={full} current={current} />
       <ContextMenuSeparator />
