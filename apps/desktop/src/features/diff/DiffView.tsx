@@ -22,6 +22,8 @@ import { useWorktreeStore, type DiffMode } from "@/stores/worktree";
 import { HunkList } from "./HunkList";
 import { ImageDiff } from "./ImageDiff";
 import { isImagePath } from "./imageModes";
+import { isTablePath } from "./csvTable";
+import { TableDiff } from "./TableDiff";
 import { countSelected, EMPTY_SEL, toSelections, type LineSel } from "./selection";
 
 const MonacoDiff = lazy(() => import("./MonacoDiff"));
@@ -59,16 +61,19 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
   const image = isImagePath(request.path);
   const [textView, setTextView] = useState(false);
   const showImage = image && !textView;
+  // CSV and TSV open as a table the same way.
+  const table = isTablePath(request.path);
+  const showTable = table && !textView;
 
   const diff = useQuery({
     queryKey: worktreeKeys.diff(repoId, request),
     queryFn: () => commands.fileDiff(repoId, request),
-    enabled: isTauri() && mode === "hunk" && !showImage,
+    enabled: isTauri() && mode === "hunk" && !showImage && !showTable,
   });
   const contents = useQuery({
     queryKey: worktreeKeys.contents(repoId, request),
     queryFn: () => commands.fileContents(repoId, request),
-    enabled: isTauri() && mode !== "hunk" && !showImage,
+    enabled: isTauri() && ((mode !== "hunk" && !showImage) || showTable),
   });
 
   const d = diff.data;
@@ -197,17 +202,23 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
           type="single"
           size="sm"
           variant="outline"
-          value={showImage ? "image" : mode}
+          value={showImage ? "image" : showTable ? "table" : mode}
           onValueChange={(v) => {
             if (!v) return;
-            setTextView(v !== "image");
-            if (v !== "image") setMode(v as DiffMode);
+            const special = v === "image" || v === "table";
+            setTextView(!special);
+            if (!special) setMode(v as DiffMode);
           }}
           className="shrink-0"
         >
           {image && (
             <ToggleGroupItem value="image" className="h-6 px-2 text-[11px]">
               {t("imageDiff.modeImage")}
+            </ToggleGroupItem>
+          )}
+          {table && (
+            <ToggleGroupItem value="table" className="h-6 px-2 text-[11px]">
+              {t("tableDiff.modeTable")}
             </ToggleGroupItem>
           )}
           <ToggleGroupItem value="hunk" className="h-6 px-2 text-[11px]">
@@ -231,7 +242,7 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
             {t("diff.modeFile")}
           </ToggleGroupItem>
         </ToggleGroup>
-        {(mode === "inline" || mode === "split") && !showImage && (
+        {(mode === "inline" || mode === "split") && !showImage && !showTable && (
           <>
             <label className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
               <input
@@ -266,6 +277,8 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
 
       {showImage ? (
         <ImageDiff repoId={repoId} request={request} />
+      ) : showTable ? (
+        <TableDiff contents={contents} path={request.path} onTextView={() => setTextView(true)} />
       ) : mode === "file" ? (
         <FileBody repoId={repoId} request={request} contents={contents} />
       ) : mode === "hunk" ? (
@@ -291,7 +304,7 @@ export function DiffView({ repoId, request, onClose }: DiffViewProps) {
         />
       )}
 
-      {mode === "hunk" && !showImage && canLines && selectedCount > 0 && (
+      {mode === "hunk" && !showImage && !showTable && canLines && selectedCount > 0 && (
         <div className="flex shrink-0 items-center gap-2 border-t bg-surface px-3 py-2 text-xs">
           <span className="text-muted-foreground">
             {t("diff.linesSelected", { count: selectedCount })}

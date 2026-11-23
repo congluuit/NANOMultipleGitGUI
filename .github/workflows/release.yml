@@ -2,6 +2,8 @@ name: Release
 
 # Builds installers for every platform when a version tag (v1.2.3) is pushed and attaches them
 # to a *draft* GitHub Release. A maintainer reviews the draft and publishes it by hand.
+# Platforms: Windows x64 and ARM64 (ARM64 cross-compiled on the x64 runner), macOS universal
+# (Apple silicon + Intel), Linux x64 and ARM64 (native ARM64 runner).
 #
 # Windows signing (SignPath Foundation) is opt-in: set the repository variable
 # SIGNPATH_ENABLED=true plus SIGNPATH_ORGANIZATION_ID / SIGNPATH_PROJECT_SLUG /
@@ -117,6 +119,12 @@ jobs:
             os: ubuntu-22.04
             args: ""
             rust-targets: ""
+          # Native ARM64 runner (free for public repositories). Built on Ubuntu 24.04, so these
+          # packages need glibc 2.39 or newer; `ubuntu-22.04-arm` would reach older distros.
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+            args: ""
+            rust-targets: ""
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -160,11 +168,30 @@ jobs:
           releaseBody: ${{ needs.create-release.outputs.notes }}
           args: ${{ matrix.args }} ${{ steps.updater.outputs.args }}
 
+  # Windows x64 and ARM64. ARM64 is cross-compiled on the x64 runner: its output lands in
+  # target/aarch64-pc-windows-msvc/release and its installers are named `_arm64`, so nothing
+  # clashes with the x64 files.
   windows-unsigned:
-    name: Build (Windows x64, unsigned)
+    name: Build (Windows ${{ matrix.arch }}, unsigned)
     needs: create-release
     if: vars.SIGNPATH_ENABLED != 'true'
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            args: ""
+            out: target/release
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+            args: --target aarch64-pc-windows-msvc
+            out: target/aarch64-pc-windows-msvc/release
+    env:
+      ARCH: ${{ matrix.arch }}
+      OUT: ${{ matrix.out }}
+      TARGET_ARGS: ${{ matrix.args }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -175,7 +202,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      # `ring` compiles its ARM64 assembly with clang; use the one shipped with Visual Studio.
+      - name: Put Visual Studio's clang on PATH
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath
+          if ($vs) { "$vs\VC\Tools\Llvm\x64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
+          else { Write-Output "::warning::Visual Studio clang not found; using clang from PATH." }
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
       - run: pnpm install --frozen-lockfile
       - id: updater
         name: Enable signed update packages
@@ -200,19 +240,19 @@ jobs:
           releaseBody: ${{ needs.create-release.outputs.notes }}
           # The per-user NSIS installer is what updates use (and what the step-by-step installer runs).
           updaterJsonPreferNsis: true
-          args: ${{ steps.updater.outputs.args }}
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.args }}
       - name: Build the step-by-step installer around the NSIS package
         shell: bash
         run: |
-          nsis=$(ls target/release/bundle/nsis/*_x64-setup.exe | head -n 1)
-          NANOMGG_SETUP_PAYLOAD=$(cygpath -w "$nsis") pnpm --filter @nanomgg/installer tauri build --no-bundle
-          mkdir -p target/release/bundle/installer
-          cp target/release/nanomgg-setup.exe "target/release/bundle/installer/NANOMultipleGitGUI_${TAG#v}_x64_Installer.exe"
+          nsis=$(ls "$OUT"/bundle/nsis/*_"$ARCH"-setup.exe | head -n 1)
+          NANOMGG_SETUP_PAYLOAD=$(cygpath -w "$nsis") pnpm --filter @nanomgg/installer tauri build --no-bundle $TARGET_ARGS
+          mkdir -p "$OUT/bundle/installer"
+          cp "$OUT/nanomgg-setup.exe" "$OUT/bundle/installer/NANOMultipleGitGUI_${TAG#v}_${ARCH}_Installer.exe"
       - name: Upload the step-by-step installer to the draft release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" --clobber target/release/bundle/installer/*.exe
+        run: gh release upload "$TAG" --clobber "$OUT"/bundle/installer/*.exe
 
   # SignPath Foundation only signs artifacts produced by a verified GitHub Actions run, so the
   # app binaries and the installers are signed in two separate rounds:
@@ -221,12 +261,29 @@ jobs:
   # (The embedded NSIS package itself stays unsigned: it is extracted to a temp folder and run
   # silently by the signed step-by-step installer, and every binary it installs is signed.)
   # SignPath changes the installer bytes, so the update signatures (.sig) are made afterwards
-  # from the final installers, and `windows-updater-json` adds them to `latest.json`.
+  # from the final installers, and `updater-json` adds them to `latest.json`.
+  # The SignPath artifact configurations must match both architectures (docs/SIGNPATH.md).
   windows-signed:
-    name: Build (Windows x64, SignPath)
+    name: Build (Windows ${{ matrix.arch }}, SignPath)
     needs: create-release
     if: vars.SIGNPATH_ENABLED == 'true'
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            args: ""
+            out: target/release
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+            args: --target aarch64-pc-windows-msvc
+            out: target/aarch64-pc-windows-msvc/release
+    env:
+      ARCH: ${{ matrix.arch }}
+      OUT: ${{ matrix.out }}
+      TARGET_ARGS: ${{ matrix.args }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -237,7 +294,19 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Put Visual Studio's clang on PATH
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath
+          if ($vs) { "$vs\VC\Tools\Llvm\x64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append }
+          else { Write-Output "::warning::Visual Studio clang not found; using clang from PATH." }
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
       - run: pnpm install --frozen-lockfile
       - id: updater
         name: Embed the updater public key
@@ -249,15 +318,15 @@ jobs:
           echo "args=--config $conf" >> "$GITHUB_OUTPUT"
 
       - name: Build app binary (no bundle)
-        run: pnpm tauri build --no-bundle ${{ steps.updater.outputs.args }}
+        run: pnpm tauri build --no-bundle ${{ matrix.args }} ${{ steps.updater.outputs.args }}
 
       - id: upload-exe
         uses: actions/upload-artifact@v7
         with:
-          name: unsigned-exe
+          name: unsigned-exe-${{ matrix.arch }}
           path: |
-            target/release/nanomgg.exe
-            target/release/nanomgg-credential.exe
+            ${{ matrix.out }}/nanomgg.exe
+            ${{ matrix.out }}/nanomgg-credential.exe
           if-no-files-found: error
       - name: Sign app binary
         uses: signpath/github-action-submit-signing-request@v2
@@ -273,30 +342,30 @@ jobs:
       - name: Replace binaries with the signed ones
         shell: pwsh
         run: |
-          Copy-Item signed-exe/nanomgg.exe target/release/nanomgg.exe -Force
+          Copy-Item signed-exe/nanomgg.exe "$env:OUT/nanomgg.exe" -Force
           # The bundler may take the sidecar from either place.
-          Copy-Item signed-exe/nanomgg-credential.exe target/release/nanomgg-credential.exe -Force
-          Copy-Item signed-exe/nanomgg-credential.exe apps/desktop/src-tauri/binaries/nanomgg-credential-x86_64-pc-windows-msvc.exe -Force
+          Copy-Item signed-exe/nanomgg-credential.exe "$env:OUT/nanomgg-credential.exe" -Force
+          Copy-Item signed-exe/nanomgg-credential.exe "apps/desktop/src-tauri/binaries/nanomgg-credential-${{ matrix.target }}.exe" -Force
 
       - name: Bundle installers around the signed binaries
-        run: pnpm tauri bundle --bundles nsis,msi ${{ steps.updater.outputs.args }}
+        run: pnpm tauri bundle --bundles nsis,msi ${{ matrix.args }} ${{ steps.updater.outputs.args }}
 
       - name: Build the step-by-step installer around the NSIS package
         shell: bash
         run: |
-          nsis=$(ls target/release/bundle/nsis/*_x64-setup.exe | head -n 1)
-          NANOMGG_SETUP_PAYLOAD=$(cygpath -w "$nsis") pnpm --filter @nanomgg/installer tauri build --no-bundle
-          mkdir -p target/release/bundle/installer
-          cp target/release/nanomgg-setup.exe "target/release/bundle/installer/NANOMultipleGitGUI_${TAG#v}_x64_Installer.exe"
+          nsis=$(ls "$OUT"/bundle/nsis/*_"$ARCH"-setup.exe | head -n 1)
+          NANOMGG_SETUP_PAYLOAD=$(cygpath -w "$nsis") pnpm --filter @nanomgg/installer tauri build --no-bundle $TARGET_ARGS
+          mkdir -p "$OUT/bundle/installer"
+          cp "$OUT/nanomgg-setup.exe" "$OUT/bundle/installer/NANOMultipleGitGUI_${TAG#v}_${ARCH}_Installer.exe"
 
       - id: upload-installers
         uses: actions/upload-artifact@v7
         with:
-          name: unsigned-installers
+          name: unsigned-installers-${{ matrix.arch }}
           path: |
-            target/release/bundle/nsis/*.exe
-            target/release/bundle/msi/*.msi
-            target/release/bundle/installer/*.exe
+            ${{ matrix.out }}/bundle/nsis/*.exe
+            ${{ matrix.out }}/bundle/msi/*.msi
+            ${{ matrix.out }}/bundle/installer/*.exe
           if-no-files-found: error
       - name: Sign installers
         uses: signpath/github-action-submit-signing-request@v2
@@ -318,7 +387,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           # Updates use the NSIS / MSI packages only.
-          $files = Get-ChildItem signed-installers -Recurse -Include *_x64-setup.exe, *.msi
+          $files = Get-ChildItem signed-installers -Recurse -Include "*_${env:ARCH}-setup.exe", *.msi
           foreach ($f in $files) {
             pnpm tauri signer sign $f.FullName
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -332,44 +401,88 @@ jobs:
           shopt -s globstar nullglob
           gh release upload "$TAG" --clobber signed-installers/**/*.exe signed-installers/**/*.msi signed-installers/**/*.sig
 
-  # tauri-action writes `latest.json` for macOS/Linux; the SignPath job does not use it, so its
-  # Windows entries are added here once every build has finished (no concurrent writers).
-  windows-updater-json:
-    name: Add Windows to latest.json
-    needs: [create-release, build, windows-signed]
-    if: ${{ !failure() && !cancelled() && vars.SIGNPATH_ENABLED == 'true' && needs.create-release.outputs.updater == 'true' }}
+  # Every tauri-action build merges its own platforms into `latest.json` (read, change, upload),
+  # so two builds finishing together can drop each other's entries, and the SignPath job writes
+  # none. Once every build has finished this job is the only writer: it fills each missing
+  # platform from the `.sig` files on the release (always rewriting the Windows entries after
+  # SignPath re-signed the installers), then fails if a platform is still missing.
+  # tauri-action lists at most 50 release assets when it looks up its uploads; a full release
+  # has about 27 (with deb/rpm signatures), so keep an eye on that when adding platforms.
+  updater-json:
+    name: Complete latest.json
+    needs: [create-release, build, windows-unsigned, windows-signed]
+    if: ${{ !failure() && !cancelled() && needs.create-release.outputs.updater == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           NOTES: ${{ needs.create-release.outputs.notes }}
+          SIGNPATH: ${{ vars.SIGNPATH_ENABLED }}
         run: |
+          set -euo pipefail
           mkdir manifest && cd manifest
-          gh release download "$TAG" --repo "$REPO" --pattern latest.json \
-            --pattern '*_x64-setup.exe.sig' --pattern '*_x64_*.msi.sig'
+          gh release download "$TAG" --repo "$REPO" --pattern latest.json --pattern '*.sig'
           if [ ! -f latest.json ]; then
             jq -n --arg v "${TAG#v}" --arg d "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg n "$NOTES" \
               '{version: $v, notes: $n, pub_date: $d, platforms: {}}' > latest.json
           fi
           base="https://github.com/$REPO/releases/download/$TAG"
-          add() {
+          first() { find . -maxdepth 1 -name "$1" -printf '%f\n' | sort | head -n 1; }
+          # put KEY FILE.sig [force]: adds the entry unless it exists (always with force).
+          put() {
             [ -n "$2" ] || return 0
+            if [ -z "${3:-}" ] && jq -e --arg k "$1" '.platforms[$k]' latest.json > /dev/null; then
+              return 0
+            fi
             jq --arg key "$1" --arg url "$base/${2%.sig}" --rawfile sig "$2" \
               '.platforms[$key] = {signature: ($sig | gsub("\\s+$"; "")), url: $url}' \
               latest.json > latest.tmp && mv latest.tmp latest.json
+            echo "$1 <- ${2%.sig}"
           }
-          nsis=$(find . -maxdepth 1 -name '*_x64-setup.exe.sig' -printf '%f\n' | head -n 1)
-          msi=$(find . -maxdepth 1 -name '*_x64_*.msi.sig' -printf '%f\n' | head -n 1)
-          add windows-x86_64 "$nsis"
-          add windows-x86_64-nsis "$nsis"
-          add windows-x86_64-msi "$msi"
+          # Windows: the NSIS installer is the default package, like updaterJsonPreferNsis.
+          force=""
+          if [ "$SIGNPATH" = true ]; then force=1; fi
+          for pair in x64:x86_64 arm64:aarch64; do
+            asset=${pair%%:*}
+            arch=${pair#*:}
+            nsis=$(first "*_${asset}-setup.exe.sig")
+            msi=$(first "*_${asset}_*.msi.sig")
+            put "windows-$arch" "$nsis" $force
+            put "windows-$arch-nsis" "$nsis" $force
+            put "windows-$arch-msi" "$msi" $force
+          done
+          # Linux: arch, AppImage arch, deb arch, rpm arch (the AppImage is the default package).
+          linux() {
+            app=$(first "*_$2.AppImage.sig")
+            put "linux-$1" "$app"
+            put "linux-$1-appimage" "$app"
+            put "linux-$1-deb" "$(first "*_$3.deb.sig")"
+            put "linux-$1-rpm" "$(first "*.$4.rpm.sig")"
+          }
+          linux x86_64 amd64 amd64 x86_64
+          linux aarch64 aarch64 arm64 aarch64
+          # macOS: one universal app serves both architectures.
+          mac=$(first "*.app.tar.gz.sig")
+          for arch in aarch64 x86_64; do
+            put "darwin-$arch" "$mac"
+            put "darwin-$arch-app" "$mac"
+          done
           cat latest.json
           gh release upload "$TAG" --repo "$REPO" --clobber latest.json
+          missing=""
+          for key in windows-x86_64 windows-aarch64 darwin-aarch64 darwin-x86_64 linux-x86_64 linux-aarch64; do
+            jq -e --arg k "$key" '.platforms[$k].signature | length > 0' latest.json > /dev/null \
+              || missing="$missing $key"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::latest.json has no update package for:$missing. Rebuild the tag (Run workflow)."
+            exit 1
+          fi
 
   checksums:
     name: SHA-256 checksums
-    needs: [create-release, build, windows-unsigned, windows-signed, windows-updater-json]
+    needs: [create-release, build, windows-unsigned, windows-signed, updater-json]
     if: ${{ github.event_name != 'release' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -385,7 +498,7 @@ jobs:
           gh release upload "$TAG" --repo "$REPO" --clobber SHA256SUMS.txt
 
   # The beta channel reads `releases/download/updater-beta/latest.json`: when a pre-release is
-  # published, its manifest is copied there. Stable releases need nothing — `releases/latest`
+  # published, its manifest is copied there. Stable releases need nothing: `releases/latest`
   # already points at them, and beta users check both manifests.
   beta-channel:
     name: Update beta channel manifest

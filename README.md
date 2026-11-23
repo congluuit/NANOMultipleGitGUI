@@ -110,11 +110,13 @@ A work repository and a personal project can live on the same Git host while nee
 
 Download a build from **[GitHub Releases](https://github.com/congluuit/NANOMultipleGitGUI/releases)**. The assets attached to each release are the source of truth for available builds and signing status.
 
-| Platform | Package formats                              | Installation guide                         |
-| -------- | -------------------------------------------- | ------------------------------------------ |
-| Windows  | Setup `.exe`, `.msi`                         | [Windows](docs/INSTALL-Windows.md)         |
-| macOS    | Universal `.dmg` for Apple Silicon and Intel | [macOS](docs/INSTALL-macOS.md)             |
-| Linux    | `.AppImage`, `.deb`, `.rpm`                  | Pick the format matching your distribution |
+| Platform | Architectures                       | Package formats             | Installation guide                         |
+| -------- | ----------------------------------- | --------------------------- | ------------------------------------------ |
+| Windows  | x64, ARM64                          | Setup `.exe`, `.msi`        | [Windows](docs/INSTALL-Windows.md)         |
+| macOS    | Universal (Apple Silicon and Intel) | `.dmg`                      | [macOS](docs/INSTALL-macOS.md)             |
+| Linux    | x64, ARM64                          | `.AppImage`, `.deb`, `.rpm` | Pick the format matching your distribution |
+
+File names carry the architecture: `x64` / `amd64` / `x86_64` for Intel and AMD processors, `arm64` / `aarch64` for ARM processors (Windows on Snapdragon, Raspberry Pi 4/5 with a 64-bit OS, ARM servers). The Linux ARM64 packages need glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Fedora 40 and later).
 
 Unsigned builds may trigger an operating-system warning; see the installation guides for details. Git is required, and Git LFS is needed for LFS workflows. The first-run tool check helps detect missing tools.
 
