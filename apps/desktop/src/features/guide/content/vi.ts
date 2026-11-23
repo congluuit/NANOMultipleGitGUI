@@ -305,6 +305,29 @@ export const guideVi: GuideTopic[] = [
         ],
       },
       {
+        id: "table-diff",
+        title: "So sánh file CSV và TSV dạng bảng",
+        blocks: [
+          {
+            kind: "p",
+            text: "File **.csv** hoặc **.tsv** mở trong chế độ **Bảng** của diff: dòng thêm có nền xanh, dòng xóa có nền đỏ, ô bị sửa hiện giá trị cũ bị gạch ngang phía trên giá trị mới. Cột mới, cột bị xóa và cột đổi tên được đánh dấu ở hàng tiêu đề.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Ghép dòng theo** chọn cách ghép dòng giữa hai bản: theo một cột khóa như ID (mặc định dùng cột đầu tiên nếu mọi dòng có giá trị khác nhau), hoặc theo **Vị trí dòng**.",
+              "**Chỉ dòng có thay đổi** ẩn các dòng giữ nguyên; bỏ chọn để xem cả bảng.",
+              "Bỏ chọn **Dòng đầu là tiêu đề cột** khi file không có tên cột.",
+              "Nếu chỉ khác về dấu ngoặc kép, khoảng trắng hay ký tự xuống dòng, màn hình sẽ báo như vậy thay vì đánh dấu mọi dòng.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "Bảng rất lớn mở nhanh hơn ở dạng chữ: bấm **Xem diff dạng chữ**, hoặc chọn **Hunk** hay **Inline** ở đầu khung diff.",
+          },
+        ],
+      },
+      {
         id: "write",
         title: "Viết message rồi commit",
         blocks: [

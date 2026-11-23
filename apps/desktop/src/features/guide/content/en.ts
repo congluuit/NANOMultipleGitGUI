@@ -306,6 +306,29 @@ export const guideEn: GuideTopic[] = [
         ],
       },
       {
+        id: "table-diff",
+        title: "Compare CSV and TSV files as a table",
+        blocks: [
+          {
+            kind: "p",
+            text: "A **.csv** or **.tsv** file opens in the **Table** view of the diff: added rows are green, removed rows red, and a changed cell shows the old value struck out above the new one. New, removed and renamed columns are marked in the header.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Match rows by** picks how rows are paired: by a key column such as an ID (used by default when the first column has a distinct value in every row), or by **Row position**.",
+              "**Only changed rows** hides the unchanged ones; untick it to see the whole table.",
+              "Untick **First row is the header** when the file has no column titles.",
+              "When only quotes, spaces or line endings changed, the view says so instead of marking every row.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "Very large tables open faster as text: click **Show text diff**, or pick **Hunks** or **Inline** at the top of the diff.",
+          },
+        ],
+      },
+      {
         id: "write",
         title: "Write the message and commit",
         blocks: [
