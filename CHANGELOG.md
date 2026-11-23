@@ -5,6 +5,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-24
+
+### Added
+
+- **Conflict forecast before a merge**: the Merge dialog says whether the branch merges cleanly or which files will conflict, before anything is changed. The Rebase dialog shows the same as an estimate, and a branch's menu has **Check for conflicts**.
+- **Secret Guard**: before each commit, the lines you add are checked for passwords, tokens and private keys (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI, Anthropic, npm, PyPI, private keys and more, from the gitleaks rules). The secret is shown masked; unstage the file, ignore it once, or always ignore it in this repository. `gitleaks:allow` and `.gitleaksignore` are respected. Turn it off in Settings.
+- **Search in all open repositories**: the search panel has a "This repo / All repos" switch (also Ctrl+Alt+Shift+F and the command palette). Results arrive repository by repository, and a click opens the file at the line in its tab.
+- **All repositories** window: filter by changes or out of sync, group by folder or by account, tick the repositories to work on, **Push** them in the order you choose (stop at the first failure or go on), and **Commit** what is already staged in several repositories with one message. Every commit and push still goes through Commit Guard, Push Guard and Large File Guard; a repository that needs a look is skipped and marked. The LFS upload of each repository is shown before the push starts.
+- The editor opens and saves files in UTF-8 with BOM, UTF-16 and Windows-1252 exactly as they were, and converts between LF and CRLF from the status bar. Markdown, SVG and JSON files have a **Preview**.
+- **CSV and TSV files** open as a table in the diff: added and removed rows, changed cells with the old value, rows paired by a key column.
+- **Git LFS Overview**: where LFS files are stored, the server's quota, the usage the server reports (GitLab, GitHub billing), the total size and the largest files.
+- **Track with LFS** runs in the background with progress in the transfer queue, and can be stopped.
+- Builds for **Windows on ARM** and **Linux ARM64**.
+
 ## [1.3.0] - 2026-11-13
 
 ### Added

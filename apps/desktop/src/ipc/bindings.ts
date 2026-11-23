@@ -40,13 +40,27 @@ export const commands = {
 	worktreeStatus: (repoId: number) => __TAURI_INVOKE<WorkingTreeStatus>("worktree_status", { repoId }),
 	fileDiff: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileDiff>("file_diff", { repoId, request }),
 	fileContents: (repoId: number, request: DiffRequest) => __TAURI_INVOKE<FileContents>("file_contents", { repoId, request }),
-	/**  A working-tree file for the built-in editor. */
-	worktreeFileRead: (repoId: number, path: string) => __TAURI_INVOKE<WorktreeFile>("worktree_file_read", { repoId, path }),
+	/**  A working-tree file for the built-in editor, read in `encoding` (detected when `None`). */
+	worktreeFileRead: (repoId: number, path: string, encoding: "utf8" | 
+/**  UTF-8 starting with the byte order mark `EF BB BF` (common in Unity / Visual Studio). */
+"utf8Bom" | 
+/**  UTF-16 little endian, with its byte order mark `FF FE`. */
+"utf16Le" | 
+/**  UTF-16 big endian, with its byte order mark `FE FF`. */
+"utf16Be" | 
+/**  Windows-1252 (Western European): every byte is one character, so any file decodes. */
+"windows1252" | null) => __TAURI_INVOKE<WorktreeFile>("worktree_file_read", { repoId, path, encoding }),
 	/**
-	 *  Saves a file from the built-in editor. `expected` is the version it was loaded at; when the
-	 *  file changed on disk since, nothing is written and the outcome says so.
+	 *  Saves a file from the built-in editor in `encoding`, its line breaks turned into `eol`.
+	 *  `expected` is the version it was loaded at; when the file changed on disk since, or the
+	 *  encoding cannot hold a character, nothing is written and the outcome says so.
 	 */
-	worktreeFileWrite: (repoId: number, path: string, text: string, expected: string | null) => __TAURI_INVOKE<SaveOutcome>("worktree_file_write", { repoId, path, text, expected }),
+	worktreeFileWrite: (repoId: number, path: string, text: string, encoding: TextEncoding, eol: LineEnding, expected: string | null) => __TAURI_INVOKE<SaveOutcome>("worktree_file_write", { repoId, path, text, encoding, eol, expected }),
+	/**
+	 *  The staged copy of a file read in `encoding` (the editor's change markers for a file that
+	 *  is not UTF-8); `None` when it is not staged or not text in that encoding.
+	 */
+	worktreeIndexText: (repoId: number, path: string, encoding: TextEncoding) => __TAURI_INVOKE<string | null>("worktree_index_text", { repoId, path, encoding }),
 	stageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("stage_files", { repoId, paths }),
 	unstageFiles: (repoId: number, paths: string[]) => __TAURI_INVOKE<null>("unstage_files", { repoId, paths }),
 	stageAll: (repoId: number) => __TAURI_INVOKE<null>("stage_all", { repoId }),
@@ -113,6 +127,12 @@ export const commands = {
 	repoFiles: (repoId: number) => __TAURI_INVOKE<RepoFiles>("repo_files", { repoId }),
 	/**  Lines of the working tree matching `query` (`git grep`). */
 	repoSearch: (repoId: number, query: string, options: SearchOptions, limit: number) => __TAURI_INVOKE<SearchResults>("repo_search", { repoId, query, options, limit }),
+	/**
+	 *  Searches every open repository (`git grep`, a few at a time). Each repository's result is
+	 *  sent on `on_result` as soon as it is known; at most `limit` lines in all. Cancel with
+	 *  `transfer_cancel(opId)`: running searches stop at once and nothing more is sent.
+	 */
+	workspaceSearch: (opId: string, query: string, options: SearchOptions, limit: number, onResult: Channel<RepoSearchResult>) => __TAURI_INVOKE<WorkspaceSearchSummary>("workspace_search", { opId, query, options, limit, onResult }),
 	/**  Creates an empty file (with its missing parent folders). */
 	fileCreate: (repoId: number, path: string) => __TAURI_INVOKE<null>("file_create", { repoId, path }),
 	/**  Creates a folder (with its missing parents). */
@@ -178,6 +198,14 @@ export const commands = {
 	warnBytes: number,
 	blockBytes: number | null,
 } | null) => __TAURI_INVOKE<GuardReport>("large_file_check", { repoId, paths, provider, thresholds }),
+	/**  Scans the staged changes of `repo_id` for secrets (nothing when the guard is off). */
+	secretGuardCheck: (repoId: number) => __TAURI_INVOKE<SecretGuardCheck>("secret_guard_check", { repoId }),
+	/**  "Always ignore in this repository": remembers the findings' fingerprints in app storage. */
+	secretGuardIgnore: (repoId: number, fingerprints: string[]) => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_ignore", { repoId, fingerprints }),
+	secretGuardPrefs: () => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_prefs"),
+	secretGuardSetEnabled: (enabled: boolean) => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_set_enabled", { enabled }),
+	/**  Forgets every "always ignore" choice (all repositories). */
+	secretGuardClearIgnored: () => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_clear_ignored"),
 	/**  Creates `name` at `start` (commit id or ref name), optionally switching to it. */
 	branchCreate: (repoId: number, name: string, start: string, checkout: boolean) => __TAURI_INVOKE<Outcome<null>>("branch_create", { repoId, name, start, checkout }),
 	branchCheckout: (repoId: number, name: string) => __TAURI_INVOKE<Outcome<null>>("branch_checkout", { repoId, name }),
@@ -211,6 +239,11 @@ export const commands = {
 	operationContinue: (repoId: number) => __TAURI_INVOKE<Outcome<OpOutcome>>("operation_continue", { repoId }),
 	/**  Merges `rev` (branch / remote branch / tag / commit id) into the current branch. */
 	mergeIntoCurrent: (repoId: number, rev: string, mode: MergeMode, message: string | null) => __TAURI_INVOKE<Outcome<MergeOutcome>>("merge_into_current", { repoId, rev, mode, message }),
+	/**
+	 *  Whether merging `rev` into `base` (default: HEAD) would conflict, and in which files.
+	 *  Read-only (working tree and index untouched); any failure comes back as `unknown`.
+	 */
+	mergeForecast: (repoId: number, rev: string, base: string | null) => __TAURI_INVOKE<MergeForecast>("merge_forecast", { repoId, rev, base }),
 	remoteFetch: (repoId: number, opId: string, remote: string | null, prune: boolean, tags: boolean, asAccount: {
 	accountId: string,
 	/**  Must belong to the account; omitted → its default identity. */
@@ -2449,6 +2482,18 @@ export type FixAuthorMode =
 /**  `git rebase -r --exec 'git commit --amend --reset-author'` over every unpushed commit. */
 "rewriteUnpushed";
 
+export type ForecastKind = 
+/**  Could not tell (git older than 2.38, unrelated histories, bad revision…). */
+"unknown" | 
+/**  The target already contains the revision: nothing to merge. */
+"upToDate" | 
+/**  The target is an ancestor of the revision: the merge only moves the branch. */
+"fastForward" | 
+/**  A real merge is needed and it has no conflicts. */
+"clean" | 
+/**  A real merge is needed and these files conflict. */
+"conflicts";
+
 /**  What [`fork_attach`] does with the remotes of the open repository. */
 export type ForkAttachMode = 
 /**  Add the fork as a new remote (`fork` by default); `origin` stays as it is. */
@@ -3314,6 +3359,13 @@ export type LfsUsageUnavailable =
 /**  Network or server error. */
 "failed";
 
+/**  The line breaks of a text. */
+export type LineEnding = 
+/**  No line break at all. */
+"none" | "lf" | "crlf" | 
+/**  More than one kind (LF and CRLF, or a lone CR). */
+"mixed";
+
 export type LineKind = "context" | "add" | "delete";
 
 /**  Lines picked in one hunk (indices into [`Hunk::lines`]). */
@@ -3377,6 +3429,12 @@ export type LockList = {
 export type LockOutcome<T> = { status: "done"; value: T } | 
 /**  git-lfs refused; `failure.kind` says why (already locked, not owner, no permission…). */
 { status: "failed"; failure: LockFailure };
+
+export type MergeForecast = {
+	kind: ForecastKind,
+	/**  Conflicting paths (repository relative, in git's order) when `kind` is `conflicts`. */
+	conflicts: string[],
+};
 
 export type MergeMode = 
 /**  Only fast-forward; refuse when a merge commit would be needed. */
@@ -4463,6 +4521,19 @@ export type RepoRefs = {
 	stashes: Stash[],
 };
 
+/**  The result of one repository. */
+export type RepoSearchResult = {
+	repoId: number,
+	name: string,
+	matches: SearchMatch[],
+	/**  More lines matched than were kept (per-repository or total limit). */
+	truncated: boolean,
+	/**  The folder is gone. */
+	missing: boolean,
+	/**  Why the search failed (first line of git's message), `None` when it worked. */
+	error: string | null,
+};
+
 export type RepoStats = {
 	/**  Commits reachable from HEAD. */
 	totalCommits: number,
@@ -4599,10 +4670,15 @@ export type RuleTestResult = {
 
 /**  Result of [`write_file`]. */
 export type SaveOutcome = {
-	/**  `false` when the file changed on disk since `expected` was read; nothing was written. */
+	/**
+	 *  `false` when the file changed on disk since `expected` was read, or when the text has a
+	 *  character the encoding cannot hold; nothing was written.
+	 */
 	saved: boolean,
 	/**  Version of the file on disk now. */
 	version: string,
+	/**  The first character the encoding cannot hold, when that is why nothing was written. */
+	unencodable: Unencodable | null,
 };
 
 /**  One matching line. */
@@ -4631,6 +4707,43 @@ export type SearchOptions = {
 export type SearchResults = {
 	matches: SearchMatch[],
 	/**  More lines matched than `limit`. */
+	truncated: boolean,
+};
+
+/**  What the guard reports about one secret. */
+export type SecretFinding = {
+	/**  gitleaks rule id. */
+	ruleId: string,
+	/**  Short English label of the rule. */
+	ruleName: string,
+	path: string,
+	/**  Line in the new version of the file (1-based). */
+	line: number,
+	/**  The secret with most of it hidden (see [`mask`]). */
+	masked: string,
+	/**  See [`fingerprint`]. */
+	fingerprint: string,
+};
+
+/**  Result of the pre-commit check. */
+export type SecretGuardCheck = {
+	/**  `false`: the guard is turned off in Settings and nothing was scanned. */
+	enabled: boolean,
+	report: SecretReport,
+};
+
+export type SecretGuardPrefs = {
+	enabled: boolean,
+	/**  Findings always ignored, over every repository. */
+	ignoredCount: number,
+};
+
+export type SecretReport = {
+	findings: SecretFinding[],
+	filesScanned: number,
+	/**  Findings skipped because of `gitleaks:allow`, `.gitleaksignore` or a stored ignore. */
+	ignored: number,
+	/**  Part of the staged diff was not scanned (size cap or too many findings). */
 	truncated: boolean,
 };
 
@@ -5294,6 +5407,17 @@ export type TerminalInfo = {
 	shell: string,
 };
 
+/**  How the bytes of a text file map to characters. */
+export type TextEncoding = "utf8" | 
+/**  UTF-8 starting with the byte order mark `EF BB BF` (common in Unity / Visual Studio). */
+"utf8Bom" | 
+/**  UTF-16 little endian, with its byte order mark `FF FE`. */
+"utf16Le" | 
+/**  UTF-16 big endian, with its byte order mark `FE FF`. */
+"utf16Be" | 
+/**  Windows-1252 (Western European): every byte is one character, so any file decodes. */
+"windows1252";
+
 export type ThemeBase = "light" | "dark";
 
 export type ThemeImportResult = {
@@ -5442,6 +5566,13 @@ export type UndoStep = {
 	 */
 	pushed: boolean,
 	blocked: UndoBlock | null,
+};
+
+/**  A character the chosen encoding has no code for (1-based line, UTF-16 column). */
+export type Unencodable = {
+	character: string,
+	line: number,
+	column: number,
 };
 
 /**  One commit the push would send. */
@@ -5633,6 +5764,20 @@ export type WorkingTreeStatus = {
 	conflicted: StatusEntry[],
 };
 
+/**  How a multi-repository search ended. */
+export type WorkspaceSearchSummary = {
+	/**  Repositories whose result was reported. */
+	searched: number,
+	/**  Matching lines reported over every repository. */
+	total: number,
+	/**  The total limit was reached: some lines (or whole repositories) were left out. */
+	truncated: boolean,
+	/**  Repositories not searched because the total limit was reached first. */
+	skipped: number,
+	/**  Stopped by the [`CancelToken`]; results reported before that still stand. */
+	cancelled: boolean,
+};
+
 export type WorkspaceState = {
 	tabs: RepoTab[],
 	activeId: number | null,
@@ -5660,13 +5805,23 @@ export type Worktree = {
 
 /**  A working-tree file as the editor needs it. */
 export type WorktreeFile = {
-	/**  Contents, `None` unless the file exists and is editable text. */
+	/**
+	 *  Contents without the byte order mark, `None` unless the file exists and is editable
+	 *  text. Line breaks are as on disk.
+	 */
 	text: string | null,
+	/**  Encoding of `text` on disk (saving writes it back the same way). */
+	encoding: TextEncoding | null,
+	/**  Line breaks of `text`. */
+	eol: LineEnding | null,
 	exists: boolean,
 	binary: boolean,
 	tooLarge: boolean,
-	/**  Not valid UTF-8 (another encoding): shown read-only so saving cannot corrupt it. */
-	notUtf8: boolean,
+	/**
+	 *  Not text in the encoding asked for (or a broken UTF-16 file): shown read-only so saving
+	 *  cannot corrupt it. `encoding` is then the encoding asked for, if any.
+	 */
+	undecodable: boolean,
 	symlink: boolean,
 	/**  Identifies the bytes on disk; passed back to [`write_file`]. */
 	version: string,
