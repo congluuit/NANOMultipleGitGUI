@@ -292,6 +292,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             lfs::lfs_set_lockable,
             lfs::lfs_files,
             lfs::lfs_storage,
+            lfs::lfs_server_usage,
             lfs::lfs_prune_preview,
             lfs::lfs_prune,
             lfs::lfs_fsck,

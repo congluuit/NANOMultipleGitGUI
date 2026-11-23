@@ -844,7 +844,30 @@ export const guideEn: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Left panel → **LFS** shows whether the repository uses LFS and which file patterns it tracks. **Manage LFS…** opens the Git LFS window: **Files** (download files that are only pointers), **Locks** (lock a file so others do not edit it at the same time), **Patterns**, **Maintenance** (free disk space, check integrity).",
+            text: "Left panel → **LFS** shows whether the repository uses LFS and which file patterns it tracks. **Manage LFS…** opens the Git LFS window: **Overview** (where files are stored, quota, sizes), **Files** (download files that are only pointers), **Locks** (lock a file so others do not edit it at the same time), **Patterns**, **Maintenance** (free disk space, check integrity).",
+          },
+        ],
+      },
+      {
+        id: "storage",
+        title: "Where LFS files are stored, and quotas",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "**Your folder** keeps the real file; you edit it as usual.",
+              "**The commit** only stores a small pointer (about 130 bytes).",
+              "**This computer** keeps a copy of each version in .git/lfs/objects, so a big file takes about twice its size until **Prune** removes old versions.",
+              "**The server** keeps every pushed version in a separate LFS storage with its own quota (for example 10 GiB on GitHub Free, 10 GiB per project on GitLab.com Free, 1 GB per workspace on Bitbucket Free).",
+            ],
+          },
+          {
+            kind: "p",
+            text: "**Manage LFS… → Overview** explains this for the current repository: the server and its quota table, the usage the server reports when its API allows it (GitLab project statistics, GitHub billing), the total size of the LFS files, the largest files and how to clean up.",
+          },
+          {
+            kind: "warn",
+            text: "Each edit of an LFS file that you push stores a new full copy on the server. Deleting the file later does not give the space back on GitHub; only deleting the repository does.",
           },
         ],
       },

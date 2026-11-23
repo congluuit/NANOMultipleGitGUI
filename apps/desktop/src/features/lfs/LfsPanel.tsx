@@ -207,7 +207,7 @@ export function LfsPanel({ repoId }: { repoId: number }) {
           variant="ghost"
           className="w-full justify-start pl-6 text-muted-foreground"
           disabled={!version}
-          onClick={open(uses ? "files" : "patterns")}
+          onClick={open(uses ? "overview" : "patterns")}
         >
           {uses ? <Settings2 /> : <Wrench />}
           {t("lfs.openManager")}

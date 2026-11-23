@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { initI18n } from "@/i18n";
 import type { GuardFinding, GuardReport } from "@/ipc";
 import { LargeFileGuardDialog } from "./LargeFileGuardDialog";
+import type { TrackProgress } from "./trackJob";
 
 const MB = 1024 * 1024;
 
@@ -123,5 +124,46 @@ describe("LargeFileGuardDialog", () => {
     expect(screen.getByText(/Chỉ stage lại file đã track LFS/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Track bằng LFS (khuyến nghị)" }));
     expect(onTrack).toHaveBeenCalledWith([], ["art/old.psd"]);
+  });
+
+  it("shows the running job with steps, Stop and Run in background", async () => {
+    const user = userEvent.setup();
+    const job: TrackProgress = {
+      opId: "lfsTrack-1",
+      phase: "convert",
+      patterns: 2,
+      donePatterns: 2,
+      files: 176,
+      doneFiles: 40,
+      bytes: 264 * MB,
+      doneBytes: 60 * MB,
+      percent: 23,
+      current: "art/maps/floor_raw.png",
+      startedAt: Date.now() - 65_000,
+      etaSecs: 200,
+      cancelling: false,
+    };
+    const props = {
+      onTrack: vi.fn(),
+      onCommitAnyway: vi.fn(),
+      onCancel: vi.fn(),
+      onBackground: vi.fn(),
+      onStop: vi.fn(),
+    };
+    render(<LargeFileGuardDialog report={sample} job={job} {...props} />);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Đang chuyển 176 file sang LFS")).toBeInTheDocument();
+    expect(within(dialog).getByText("40/176")).toBeInTheDocument();
+    expect(within(dialog).getByText("23%")).toBeInTheDocument();
+    expect(within(dialog).getByText("60 MB / 264 MB")).toBeInTheDocument();
+    expect(within(dialog).getByText("art/maps/floor_raw.png")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Vẫn commit")).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Dừng" }));
+    expect(props.onStop).toHaveBeenCalledOnce();
+    await user.click(within(dialog).getByRole("button", { name: "Chạy nền" }));
+    expect(props.onBackground).toHaveBeenCalledOnce();
+    // Escape sends it to the background too; it never cancels the job.
+    await user.keyboard("{Escape}");
+    expect(props.onCancel).not.toHaveBeenCalled();
   });
 });

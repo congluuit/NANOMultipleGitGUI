@@ -32,6 +32,7 @@ pub mod forks;
 pub mod github;
 pub mod gitlab;
 pub mod issues;
+pub mod lfs_usage;
 pub mod model;
 pub mod mywork;
 pub mod publish;

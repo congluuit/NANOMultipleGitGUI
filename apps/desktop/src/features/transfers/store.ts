@@ -8,8 +8,11 @@ import type {
 } from "@/ipc";
 import { progressText } from "@/features/remote/plan";
 
-/** Kinds of transfers shown in the queue: git fetch/pull/push and LFS up/downloads. */
-export type QueueKind = TransferKind | "lfsUpload" | "lfsDownload";
+/**
+ * Kinds of jobs shown in the queue: git fetch/pull/push, LFS up/downloads and the local
+ * "track with LFS" job of the Large File Guard (files re-staged as pointers).
+ */
+export type QueueKind = TransferKind | "lfsUpload" | "lfsDownload" | "lfsTrack";
 export type QueueStatus = "running" | "done" | "failed" | "cancelled";
 
 export interface QueueItem {
@@ -64,6 +67,19 @@ export function setRetry(opId: string, retry: (() => void) | null) {
 }
 
 export const retryOf = (opId: string) => retries.get(opId) ?? null;
+
+/**
+ * Cancel handlers of jobs the app runs itself (not a backend transfer that
+ * `transfer_cancel` knows about), by operation id.
+ */
+const cancellers = new Map<string, () => void>();
+
+export function setCanceller(opId: string, cancel: (() => void) | null) {
+  if (cancel) cancellers.set(opId, cancel);
+  else cancellers.delete(opId);
+}
+
+export const cancellerOf = (opId: string) => cancellers.get(opId) ?? null;
 
 /** A better way out than Retry for a failed item ("move the big files to LFS and push"). */
 export interface QueueFix {

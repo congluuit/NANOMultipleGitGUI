@@ -1,5 +1,5 @@
 /** Palette commands of step 3.3: submodules, linked worktrees and the LFS manager. */
-import { Eraser, HardDrive, Layers, Lock, Package } from "lucide-react";
+import { Cloud, Eraser, HardDrive, Layers, Lock, Package } from "lucide-react";
 import {
   registerCommands,
   type PaletteCommand,
@@ -18,7 +18,7 @@ export function advancedCommands(c: PaletteContext): PaletteCommand[] {
   if (!repo) return [];
   const id = repo.id;
   const group = t("cmd.group.repo");
-  const lfs = (tab: "files" | "locks" | "maintenance") => () =>
+  const lfs = (tab: "overview" | "files" | "locks" | "maintenance") => () =>
     useLfsManager.getState().open(id, tab);
   return [
     {
@@ -49,6 +49,14 @@ export function advancedCommands(c: PaletteContext): PaletteCommand[] {
       icon: Package,
       keywords: ["lfs", "large file", "pointer", "tai file"],
       run: lfs("files"),
+    },
+    {
+      id: "lfs.overview",
+      title: t("lfs.cmd.overview"),
+      group,
+      icon: Cloud,
+      keywords: ["lfs", "quota", "storage", "dung luong", "luu tru"],
+      run: lfs("overview"),
     },
     {
       id: "lfs.locks",

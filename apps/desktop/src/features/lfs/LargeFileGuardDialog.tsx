@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LoaderCircle, OctagonX, TriangleAlert } from "lucide-react";
+import { LoaderCircle, OctagonX, PackageCheck, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,15 +15,22 @@ import type { GuardFinding, GuardLevel, GuardReport } from "@/ipc";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { choosePatterns, displaySize, relevantFindings, summarize, type TrackMode } from "./guard";
+import type { TrackProgress } from "./trackJob";
+import { TrackProgressView } from "./TrackProgressView";
 
 interface Props {
   /** Guard result to review; `null` = closed. */
   report: GuardReport | null;
-  busy?: boolean;
+  /** The "track with LFS" job of this repository while it runs (the dialog shows its progress). */
+  job?: TrackProgress | null;
   /** Track `patterns` with LFS, re-stage `paths` as pointers, then commit. */
   onTrack: (patterns: string[], paths: string[]) => void;
   onCommitAnyway: () => void;
   onCancel: () => void;
+  /** Closes the dialog while the job goes on (status-bar queue, commit box). */
+  onBackground?: () => void;
+  /** Stops the job after the chunk being converted. */
+  onStop?: () => void;
 }
 
 const LEVEL_CLASS: Record<GuardLevel, string> = {
@@ -98,7 +105,77 @@ function FindingRow({
 }
 
 /** Large File Guard (PLAN §6.2): shown before a commit that would add big / binary files. */
-export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, onCancel }: Props) {
+export function LargeFileGuardDialog({
+  report,
+  job = null,
+  onTrack,
+  onCommitAnyway,
+  onCancel,
+  onBackground,
+  onStop,
+}: Props) {
+  if (report !== null && job) {
+    return <TrackingDialog job={job} onBackground={onBackground} onStop={onStop} />;
+  }
+  return (
+    <ReviewDialog
+      report={report}
+      onTrack={onTrack}
+      onCommitAnyway={onCommitAnyway}
+      onCancel={onCancel}
+    />
+  );
+}
+
+/** While the job runs: steps and progress; closing the dialog sends it to the background. */
+function TrackingDialog({
+  job,
+  onBackground,
+  onStop,
+}: {
+  job: TrackProgress;
+  onBackground?: () => void;
+  onStop?: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Dialog open onOpenChange={(o) => !o && onBackground?.()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PackageCheck className="size-5 shrink-0 text-primary" />
+            {t("lfsTrack.title", { count: job.files })}
+          </DialogTitle>
+          <DialogDescription>{t("lfsTrack.desc")}</DialogDescription>
+        </DialogHeader>
+        <TrackProgressView job={job} />
+        <p className="text-xs text-muted-foreground">{t("lfsTrack.backgroundHint")}</p>
+        <DialogFooter className="sm:justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={job.cancelling}
+            onClick={onStop}
+            className="text-danger"
+          >
+            {job.cancelling && <LoaderCircle className="animate-spin" />}
+            {job.cancelling ? t("lfsTrack.stopping") : t("lfsTrack.stop")}
+          </Button>
+          <Button size="sm" autoFocus onClick={onBackground}>
+            {t("lfsTrack.background")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReviewDialog({
+  report,
+  onTrack,
+  onCommitAnyway,
+  onCancel,
+}: Pick<Props, "report" | "onTrack" | "onCommitAnyway" | "onCancel">) {
   const { t } = useTranslation();
   const findings = report ? relevantFindings(report) : [];
   const [mode, setMode] = useState<TrackMode>("extension");
@@ -120,7 +197,7 @@ export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, on
   const blockBytes = report?.thresholds.blockBytes ?? null;
 
   return (
-    <Dialog open={report !== null} onOpenChange={(o) => !o && !busy && onCancel()}>
+    <Dialog open={report !== null} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -194,7 +271,7 @@ export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, on
         </div>
 
         <DialogFooter className="sm:justify-between">
-          <Button variant="outline" size="sm" disabled={busy} onClick={onCancel}>
+          <Button variant="outline" size="sm" onClick={onCancel}>
             {t("common.cancel")}
           </Button>
           <div className="flex flex-col-reverse gap-2 sm:flex-row">
@@ -208,7 +285,7 @@ export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, on
                 variant="outline"
                 size="sm"
                 className="w-full"
-                disabled={busy || summary.blocked}
+                disabled={summary.blocked}
                 onClick={onCommitAnyway}
               >
                 {t("guard.commitAnyway")}
@@ -217,7 +294,7 @@ export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, on
             <Button
               size="sm"
               autoFocus
-              disabled={busy || selected.length === 0}
+              disabled={selected.length === 0}
               onClick={() =>
                 onTrack(
                   patterns,
@@ -225,7 +302,6 @@ export function LargeFileGuardDialog({ report, busy, onTrack, onCommitAnyway, on
                 )
               }
             >
-              {busy && <LoaderCircle className="animate-spin" />}
               {t("guard.track")}
             </Button>
           </div>

@@ -36,12 +36,22 @@ export function needsProgress(entries: readonly Pick<StatusEntry, "size">[]): bo
  * Splits `entries` into chunks of at most {@link CHUNK_FILES} files and {@link CHUNK_BYTES}
  * bytes (a bigger file gets a chunk of its own), and never more than {@link MAX_CHUNKS} chunks
  * (each `git add` re-reads the index, so a huge batch uses bigger chunks). Order is kept.
+ * `limits` overrides the three numbers (the LFS track job uses smaller chunks).
  */
-export function planChunks<T extends Pick<StatusEntry, "size">>(entries: readonly T[]): T[][] {
-  const maxFiles = Math.max(CHUNK_FILES, Math.ceil(entries.length / MAX_CHUNKS));
+export interface ChunkLimits {
+  files: number;
+  bytes: number;
+  chunks: number;
+}
+
+export function planChunks<T extends Pick<StatusEntry, "size">>(
+  entries: readonly T[],
+  limits: ChunkLimits = { files: CHUNK_FILES, bytes: CHUNK_BYTES, chunks: MAX_CHUNKS },
+): T[][] {
+  const maxFiles = Math.max(limits.files, Math.ceil(entries.length / limits.chunks));
   let total = 0;
   for (const e of entries) total += e.size ?? 0;
-  const maxBytes = Math.max(CHUNK_BYTES, Math.ceil(total / MAX_CHUNKS));
+  const maxBytes = Math.max(limits.bytes, Math.ceil(total / limits.chunks));
   const chunks: T[][] = [];
   let current: T[] = [];
   let bytes = 0;

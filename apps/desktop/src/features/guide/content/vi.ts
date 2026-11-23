@@ -843,7 +843,30 @@ export const guideVi: GuideTopic[] = [
           },
           {
             kind: "p",
-            text: "Panel trái → **LFS** cho biết repo có dùng LFS không và đang theo dõi những mẫu file nào. **Quản lý LFS…** mở cửa sổ Git LFS: **File** (tải các file mới chỉ là con trỏ), **Khóa** (khóa file để người khác không sửa cùng lúc), **Pattern**, **Bảo trì** (giải phóng ổ đĩa, kiểm tra toàn vẹn).",
+            text: "Panel trái → **LFS** cho biết repo có dùng LFS không và đang theo dõi những mẫu file nào. **Quản lý LFS…** mở cửa sổ Git LFS: **Tổng quan** (file lưu ở đâu, quota, dung lượng), **File** (tải các file mới chỉ là con trỏ), **Khóa** (khóa file để người khác không sửa cùng lúc), **Pattern**, **Bảo trì** (giải phóng ổ đĩa, kiểm tra toàn vẹn).",
+          },
+        ],
+      },
+      {
+        id: "storage",
+        title: "File LFS lưu ở đâu, và quota",
+        blocks: [
+          {
+            kind: "list",
+            items: [
+              "**Thư mục của bạn** giữ file thật; bạn sửa như bình thường.",
+              "**Commit** chỉ lưu một con trỏ nhỏ (khoảng 130 byte).",
+              "**Máy này** giữ một bản sao mỗi phiên bản trong .git/lfs/objects, nên file lớn chiếm khoảng gấp đôi dung lượng cho tới khi **Prune** dọn bản cũ.",
+              "**Server** giữ mọi phiên bản đã push trong một kho LFS riêng có quota riêng (ví dụ 10 GiB với GitHub Free, 10 GiB mỗi project với GitLab.com Free, 1 GB mỗi workspace với Bitbucket Free).",
+            ],
+          },
+          {
+            kind: "p",
+            text: "**Quản lý LFS… → Tổng quan** giải thích điều này cho repo đang mở: server và bảng quota, mức đã dùng mà server báo khi API cho phép (thống kê project của GitLab, billing của GitHub), tổng dung lượng file LFS, các file lớn nhất và cách dọn dẹp.",
+          },
+          {
+            kind: "warn",
+            text: "Mỗi lần sửa một file LFS rồi push là server lưu thêm một bản đầy đủ. Xóa file sau đó không lấy lại chỗ trên GitHub; chỉ xóa repo mới lấy lại.",
           },
         ],
       },

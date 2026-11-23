@@ -6,6 +6,7 @@ import {
   ArrowUpFromLine,
   CheckCircle2,
   LoaderCircle,
+  PackageCheck,
   RefreshCw,
   X,
 } from "lucide-react";
@@ -141,6 +142,7 @@ function KindIcon({ item }: { item: QueueItem }) {
     return <ArrowUpFromLine className="size-3.5 shrink-0 text-success" />;
   }
   if (item.kind === "fetch") return <RefreshCw className="size-3.5 shrink-0 text-success" />;
+  if (item.kind === "lfsTrack") return <PackageCheck className="size-3.5 shrink-0 text-success" />;
   return <ArrowDownToLine className="size-3.5 shrink-0 text-success" />;
 }
 
