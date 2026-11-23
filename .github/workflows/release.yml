@@ -119,10 +119,10 @@ jobs:
             os: ubuntu-22.04
             args: ""
             rust-targets: ""
-          # Native ARM64 runner (free for public repositories). Built on Ubuntu 24.04, so these
-          # packages need glibc 2.39 or newer; `ubuntu-22.04-arm` would reach older distros.
+          # Native ARM64 runner (free for public repositories). Ubuntu 22.04 like the x64 build,
+          # so the packages also run on older distros (glibc 2.35 or newer).
           - name: Linux ARM64
-            os: ubuntu-24.04-arm
+            os: ubuntu-22.04-arm
             args: ""
             rust-targets: ""
     runs-on: ${{ matrix.os }}
