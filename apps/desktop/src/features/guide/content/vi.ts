@@ -395,6 +395,29 @@ export const guideVi: GuideTopic[] = [
         ],
       },
       {
+        id: "secrets",
+        title: "Secret Guard (mật khẩu và khóa bí mật)",
+        blocks: [
+          {
+            kind: "p",
+            text: "Trước mỗi commit, app kiểm tra các dòng bạn thêm vào xem có gì giống mật khẩu, token hay khóa riêng không (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI, npm, PyPI, JWT và nhiều loại khác). Nếu thấy, app hiện loại khóa, file, dòng và giá trị đã được che gần hết.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Bỏ stage file**: file vẫn nằm trên máy nhưng không vào commit này (lựa chọn an toàn).",
+              "**Bỏ qua lần này**: vẫn commit, lần sau app hỏi lại.",
+              "**Luôn bỏ qua ở repo này**: dành cho khóa thử hoặc khóa mẫu. App ghi nhớ riêng cho repo này, không ghi gì vào repo.",
+              "**Vẫn commit** bỏ qua tất cả một lần; **Hủy** giữ nguyên nội dung commit và không làm gì.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "Dòng có chữ gitleaks:allow và các mục trong file .gitleaksignore sẽ được bỏ qua. Tắt chức năng này hoặc quên các lựa chọn “luôn bỏ qua” ở **Cài đặt**, mục **Secret Guard**.",
+          },
+        ],
+      },
+      {
         id: "amend",
         title: "Sửa commit vừa làm (amend)",
         blocks: [

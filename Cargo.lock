@@ -3055,11 +3055,14 @@ dependencies = [
 name = "nanomgg-git-engine"
 version = "1.3.0"
 dependencies = [
+ "aho-corasick",
  "nanomgg-test-git-server",
  "nix 0.29.0",
  "notify-debouncer-mini",
+ "regex",
  "serde",
  "serde_json",
+ "sha2",
  "specta",
  "tempfile",
  "thiserror 2.0.21",

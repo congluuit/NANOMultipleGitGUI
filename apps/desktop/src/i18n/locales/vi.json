@@ -659,6 +659,32 @@
     "commitAnywayBlocked": "Không thể: có file vượt giới hạn cứng của provider",
     "trackFailed": "Không track được bằng LFS, commit đã dừng: {{message}}"
   },
+  "secretGuard": {
+    "title": "{{count}} chỗ có thể là thông tin bí mật trong thay đổi đã stage",
+    "title_one": "{{count}} chỗ có thể là thông tin bí mật trong thay đổi đã stage",
+    "desc": "Mật khẩu, token hay khóa riêng nằm trong commit thì ai có quyền đọc repo cũng thấy, và nó còn mãi trong lịch sử dù sau này bạn xóa đi. Hãy để file đó ra khỏi commit này, hoặc bỏ qua nếu đó không phải khóa thật.",
+    "line": "dòng {{line}}",
+    "choiceFor": "Xử lý {{path}} dòng {{line}}",
+    "setAll": "Chọn cho tất cả:",
+    "unstage": "Bỏ stage file",
+    "once": "Bỏ qua lần này",
+    "always": "Luôn bỏ qua ở repo này",
+    "alwaysHint": "\"Luôn bỏ qua\" được app ghi nhớ riêng cho repo này. Không có gì được ghi vào repo.",
+    "ignoredNote": "Đã bỏ qua {{count}} chỗ khác (gitleaks:allow, .gitleaksignore hoặc lựa chọn trước đây).",
+    "ignoredNote_one": "Đã bỏ qua {{count}} chỗ khác (gitleaks:allow, .gitleaksignore hoặc lựa chọn trước đây).",
+    "truncated": "Thay đổi đã stage quá lớn nên chỉ quét được một phần.",
+    "apply": "Áp dụng rồi commit",
+    "commitAnyway": "Vẫn commit",
+    "applyFailed": "Không áp dụng được lựa chọn của Secret Guard, commit đã dừng: {{message}}",
+    "nothingLeft": "Đã bỏ stage hết các file, không còn gì để commit.",
+    "settings": {
+      "title": "Secret Guard (chặn lộ khóa bí mật)",
+      "hint": "Trước mỗi commit, kiểm tra các dòng thêm mới xem có mật khẩu, token hay khóa riêng không (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI và nhiều loại khác). Việc kiểm tra chỉ chạy trên máy này.",
+      "clear": "Quên {{count}} chỗ đang được luôn bỏ qua",
+      "clear_one": "Quên {{count}} chỗ đang được luôn bỏ qua",
+      "cleared": "Đã quên danh sách luôn bỏ qua."
+    }
+  },
   "remote": {
     "whatsNew": {
       "title": "Đã fetch: {{count}} nhánh trên remote thay đổi.",

@@ -396,6 +396,29 @@ export const guideEn: GuideTopic[] = [
         ],
       },
       {
+        id: "secrets",
+        title: "Secret Guard (passwords and keys)",
+        blocks: [
+          {
+            kind: "p",
+            text: "Before each commit the app checks the lines you add for things that look like passwords, tokens or private keys (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI, npm, PyPI, JWT and more). If it finds one, it shows the rule, the file, the line and the value with most of it hidden.",
+          },
+          {
+            kind: "list",
+            items: [
+              "**Unstage the file**: the file stays on your disk but is left out of this commit (the safe choice).",
+              "**Ignore this time**: commit it now, ask again next time.",
+              "**Always ignore in this repo**: for test or example keys. The app remembers it for this repository only; nothing is written into the repository.",
+              "**Commit anyway** ignores everything once; **Cancel** keeps your message and does nothing.",
+            ],
+          },
+          {
+            kind: "tip",
+            text: "A line containing gitleaks:allow and the entries of a .gitleaksignore file are respected. Turn the guard off or forget the “always ignore” choices in **Settings**, section **Secret Guard**.",
+          },
+        ],
+      },
+      {
         id: "amend",
         title: "Fix the last commit (amend)",
         blocks: [

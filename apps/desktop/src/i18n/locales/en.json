@@ -659,6 +659,32 @@
     "commitAnywayBlocked": "Unavailable: some files exceed the provider's hard limit",
     "trackFailed": "Could not track with LFS, the commit was stopped: {{message}}"
   },
+  "secretGuard": {
+    "title": "{{count}} possible secrets in the staged changes",
+    "title_one": "{{count}} possible secret in the staged changes",
+    "desc": "A password, token or private key in a commit can be read by everyone with access to the repository, and it stays in the history even after you delete it. Leave the file out of this commit, or ignore findings that are not real secrets.",
+    "line": "line {{line}}",
+    "choiceFor": "What to do with {{path}} line {{line}}",
+    "setAll": "For all:",
+    "unstage": "Unstage the file",
+    "once": "Ignore this time",
+    "always": "Always ignore in this repo",
+    "alwaysHint": "\"Always ignore\" is remembered by the app for this repository only. Nothing is written into the repository.",
+    "ignoredNote": "{{count}} other findings are ignored (gitleaks:allow, .gitleaksignore or an earlier choice).",
+    "ignoredNote_one": "{{count}} other finding is ignored (gitleaks:allow, .gitleaksignore or an earlier choice).",
+    "truncated": "The staged changes are very large, so only part of them was scanned.",
+    "apply": "Apply and commit",
+    "commitAnyway": "Commit anyway",
+    "applyFailed": "Could not apply the Secret Guard choices, the commit was stopped: {{message}}",
+    "nothingLeft": "Every staged file was unstaged, so there is nothing left to commit.",
+    "settings": {
+      "title": "Secret Guard",
+      "hint": "Before each commit, check the added lines for passwords, tokens and private keys (AWS, GitHub, GitLab, Slack, Stripe, Google, OpenAI and more). The check runs on this computer only.",
+      "clear": "Forget {{count}} always-ignored findings",
+      "clear_one": "Forget {{count}} always-ignored finding",
+      "cleared": "Always-ignored findings were forgotten."
+    }
+  },
   "remote": {
     "whatsNew": {
       "title": "Fetched: {{count}} remote branches changed.",

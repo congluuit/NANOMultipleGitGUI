@@ -43,6 +43,8 @@ mod rebase;
 // One-click fixes offered by the notice bar (stale lock, corrupt index, safe.directory…).
 mod repair;
 mod repos;
+// Secret Guard: scan staged changes for credentials before a commit.
+mod secret_guard;
 mod settings;
 mod signing;
 mod ssh_keys;
@@ -144,6 +146,11 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             lfs::lfs_untrack,
             lfs::lfs_restage,
             lfs::large_file_check,
+            secret_guard::secret_guard_check,
+            secret_guard::secret_guard_ignore,
+            secret_guard::secret_guard_prefs,
+            secret_guard::secret_guard_set_enabled,
+            secret_guard::secret_guard_clear_ignored,
             branches::branch_create,
             branches::branch_checkout,
             branches::branch_checkout_remote,

@@ -25,6 +25,7 @@ import { GuideSettingsButton } from "@/features/guide/GuideSettingsButton";
 import { ShortcutsSettingsButton } from "@/features/shortcuts/ShortcutsDialog";
 import { ThemeSettingsSection } from "@/features/custom-theme/ThemeSettingsSection";
 import { SetupSettingsSection } from "@/features/onboarding/setup/SetupSettingsSection";
+import { SecretGuardSettingsSection } from "@/features/secret-guard/SecretGuardSettingsSection";
 import { UpdaterSettingsSection } from "@/features/updater/UpdaterSettingsSection";
 import { StorageSection } from "@/features/settings/storage/StorageSection";
 import { LANGUAGES, type Language } from "@/i18n";
@@ -140,6 +141,8 @@ export function SettingsDialog() {
                 onChange={setConfirmBranchSwitch}
               />
             </div>
+
+            <SecretGuardSettingsSection />
 
             <div className="grid gap-2 sm:grid-cols-2">
               <Button

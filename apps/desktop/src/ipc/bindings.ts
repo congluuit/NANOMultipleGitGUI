@@ -198,6 +198,14 @@ export const commands = {
 	warnBytes: number,
 	blockBytes: number | null,
 } | null) => __TAURI_INVOKE<GuardReport>("large_file_check", { repoId, paths, provider, thresholds }),
+	/**  Scans the staged changes of `repo_id` for secrets (nothing when the guard is off). */
+	secretGuardCheck: (repoId: number) => __TAURI_INVOKE<SecretGuardCheck>("secret_guard_check", { repoId }),
+	/**  "Always ignore in this repository": remembers the findings' fingerprints in app storage. */
+	secretGuardIgnore: (repoId: number, fingerprints: string[]) => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_ignore", { repoId, fingerprints }),
+	secretGuardPrefs: () => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_prefs"),
+	secretGuardSetEnabled: (enabled: boolean) => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_set_enabled", { enabled }),
+	/**  Forgets every "always ignore" choice (all repositories). */
+	secretGuardClearIgnored: () => __TAURI_INVOKE<SecretGuardPrefs>("secret_guard_clear_ignored"),
 	/**  Creates `name` at `start` (commit id or ref name), optionally switching to it. */
 	branchCreate: (repoId: number, name: string, start: string, checkout: boolean) => __TAURI_INVOKE<Outcome<null>>("branch_create", { repoId, name, start, checkout }),
 	branchCheckout: (repoId: number, name: string) => __TAURI_INVOKE<Outcome<null>>("branch_checkout", { repoId, name }),
@@ -4631,6 +4639,43 @@ export type SearchOptions = {
 export type SearchResults = {
 	matches: SearchMatch[],
 	/**  More lines matched than `limit`. */
+	truncated: boolean,
+};
+
+/**  What the guard reports about one secret. */
+export type SecretFinding = {
+	/**  gitleaks rule id. */
+	ruleId: string,
+	/**  Short English label of the rule. */
+	ruleName: string,
+	path: string,
+	/**  Line in the new version of the file (1-based). */
+	line: number,
+	/**  The secret with most of it hidden (see [`mask`]). */
+	masked: string,
+	/**  See [`fingerprint`]. */
+	fingerprint: string,
+};
+
+/**  Result of the pre-commit check. */
+export type SecretGuardCheck = {
+	/**  `false`: the guard is turned off in Settings and nothing was scanned. */
+	enabled: boolean,
+	report: SecretReport,
+};
+
+export type SecretGuardPrefs = {
+	enabled: boolean,
+	/**  Findings always ignored, over every repository. */
+	ignoredCount: number,
+};
+
+export type SecretReport = {
+	findings: SecretFinding[],
+	filesScanned: number,
+	/**  Findings skipped because of `gitleaks:allow`, `.gitleaksignore` or a stored ignore. */
+	ignored: number,
+	/**  Part of the staged diff was not scanned (size cap or too many findings). */
 	truncated: boolean,
 };
 

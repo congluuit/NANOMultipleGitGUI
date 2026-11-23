@@ -32,6 +32,7 @@ pub mod refs;
 pub mod remote;
 pub mod repo;
 pub mod runner;
+pub mod secrets;
 pub mod signature;
 pub mod sparse;
 pub mod stash;
