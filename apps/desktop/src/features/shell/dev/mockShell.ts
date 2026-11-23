@@ -270,6 +270,21 @@ const handlers: Record<string, (args: Record<string, unknown>) => unknown> = {
     );
     return { matches, truncated: false };
   },
+  // Every tab answers with the sample files, one result per message of the channel.
+  workspace_search: (a) => {
+    const id = (a.onResult as { id: number }).id;
+    const internals = (window as unknown as { __TAURI_INTERNALS__: Record<string, unknown> })
+      .__TAURI_INTERNALS__;
+    const run = internals.runCallback as (id: number, data: unknown) => void;
+    const found = handlers.repo_search?.(a) as { matches: unknown[] };
+    workspace.tabs.forEach((tab, index) => {
+      const message = { repoId: tab.id, name: tab.name, truncated: false, missing: false };
+      run(id, { index, message: { ...message, matches: found.matches, error: null } });
+    });
+    const total = found.matches.length * workspace.tabs.length;
+    const searched = workspace.tabs.length;
+    return later(200, () => ({ searched, total, truncated: false, skipped: 0, cancelled: false }));
+  },
   file_create: (a) => {
     const path = a.path as string;
     if (files[path]) throw new Error(`${path} already exists`);

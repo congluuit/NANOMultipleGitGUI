@@ -14,22 +14,27 @@ import { cleanPath, createFile, createFolder, deletePath, joinPath, renamePath }
 import { useWorkspace } from "@/stores/workspace";
 import {
   isSearchShortcut,
+  isWorkspaceSearchShortcut,
   openFileDialog,
-  showSidebarView,
+  showSearch,
   useFileDialog,
   type FileDialog,
 } from "./store";
 import { baseName } from "./tree";
 
-/** The file tree's dialogs and the Ctrl+Shift+F shortcut (search panel). Mount once. */
+/**
+ * The file tree's dialogs and the search shortcuts: Ctrl+Shift+F (this repository) and
+ * Ctrl+Alt+Shift+F (every open repository). Mount once.
+ */
 export function FilesHost() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!isSearchShortcut(e) || useWorkspace.getState().activeId === null) return;
+      const all = isWorkspaceSearchShortcut(e);
+      if (!(all || isSearchShortcut(e)) || useWorkspace.getState().activeId === null) return;
       if (e.target instanceof Element && e.target.closest(".xterm")) return;
       e.preventDefault();
       e.stopPropagation();
-      showSidebarView("search");
+      showSearch(all ? "all" : "repo");
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);

@@ -3980,6 +3980,7 @@
       "bindAccount": "Dùng tài khoản 1…9 cho repo này",
       "quickOpen": "Mở nhanh file bất kỳ theo tên",
       "searchFiles": "Tìm trong các file của repo",
+      "searchAllRepos": "Tìm trong mọi repo đang mở",
       "saveFile": "Lưu file đang sửa"
     }
   },
@@ -4127,7 +4128,27 @@
     "summary_one": "{{count}} kết quả trong {{files}} file.",
     "summary_other": "{{count}} kết quả trong {{files}} file.",
     "truncated": "Chỉ hiện {{limit}} kết quả đầu.",
-    "results": "Kết quả tìm kiếm"
+    "results": "Kết quả tìm kiếm",
+    "scope": {
+      "label": "Tìm trong",
+      "repo": "Repo này",
+      "all": "Tất cả repo"
+    },
+    "all": {
+      "placeholder": "Tìm trong mọi repo đang mở",
+      "cmd": "Tìm trong mọi repo đang mở...",
+      "progress_one": "Đang tìm... xong {{done}}/{{count}} repo.",
+      "progress_other": "Đang tìm... xong {{done}}/{{count}} repo.",
+      "summary_one": "{{count}} kết quả trong {{files}} file của {{repos}} repo.",
+      "summary_other": "{{count}} kết quả trong {{files}} file của {{repos}} repo.",
+      "none": "Không có kết quả trong các repo đang mở.",
+      "stop": "Dừng tìm",
+      "stopped": "Đã dừng, chỉ hiện những gì tìm được đến lúc đó.",
+      "skipped_one": "{{count}} repo chưa được tìm.",
+      "skipped_other": "{{count}} repo chưa được tìm.",
+      "missing": "Không tìm thấy thư mục",
+      "repoTruncated": "Repo này còn nhiều dòng khớp hơn số đang hiện."
+    }
   },
   "quickOpen": {
     "title": "Mở file",

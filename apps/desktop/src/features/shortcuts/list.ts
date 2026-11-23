@@ -19,6 +19,7 @@ export type ShortcutId =
   | "bindAccount"
   | "quickOpen"
   | "searchFiles"
+  | "searchAllRepos"
   | "saveFile";
 
 export interface ShortcutEntry {
@@ -52,6 +53,7 @@ export const SHORTCUTS: readonly ShortcutEntry[] = [
   { id: "commit", group: "repo", keys: (m) => [`${mod(m)}+Enter`] },
   { id: "quickOpen", group: "repo", keys: (m) => [`${mod(m)}+P`] },
   { id: "searchFiles", group: "repo", keys: (m) => [`${mod(m)}+Shift+F`] },
+  { id: "searchAllRepos", group: "repo", keys: (m) => [`${mod(m)}+${alt(m)}+Shift+F`] },
   { id: "saveFile", group: "repo", keys: (m) => [`${mod(m)}+S`] },
   { id: "bindAccount", group: "repo", keys: (m) => [`${mod(m)}+${alt(m)}+1…9`] },
 ];

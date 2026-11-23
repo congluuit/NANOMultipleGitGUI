@@ -122,6 +122,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             file_views::diff_images,
             files::repo_files,
             files::repo_search,
+            files::workspace_search,
             files::file_create,
             files::folder_create,
             files::path_rename,

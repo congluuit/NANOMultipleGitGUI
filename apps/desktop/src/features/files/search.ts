@@ -1,4 +1,22 @@
-import type { SearchOptions } from "@/ipc";
+import type { SearchMatch, SearchOptions } from "@/ipc";
+
+/** Matching lines grouped by file, files in the order git reported them. */
+export function groupByFile(matches: readonly SearchMatch[]): [string, SearchMatch[]][] {
+  const map = new Map<string, SearchMatch[]>();
+  for (const m of matches) {
+    const list = map.get(m.path);
+    if (list) list.push(m);
+    else map.set(m.path, [m]);
+  }
+  return [...map.entries()];
+}
+
+/** Adds `key` to the set, or removes it when present (collapsed groups). */
+export function toggled(set: ReadonlySet<string>, key: string): Set<string> {
+  const next = new Set(set);
+  if (!next.delete(key)) next.add(key);
+  return next;
+}
 
 /**
  * Length of the match starting at `start` in a result line, to highlight it. git reports only

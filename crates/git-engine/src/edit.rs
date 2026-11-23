@@ -320,8 +320,36 @@ pub fn search(
     opts: SearchOptions,
     limit: usize,
 ) -> Result<SearchResults, GitError> {
-    let mut out = SearchResults::default();
+    Ok(search_stoppable(git, root, query, opts, limit, &|| false)?.results)
+}
+
+/// How often a running search checks whether it should stop.
+const STOP_POLL: std::time::Duration = std::time::Duration::from_millis(15);
+
+/// Result of [`search_stoppable`].
+#[derive(Debug, Default)]
+pub(crate) struct SearchRun {
+    pub results: SearchResults,
+    /// `should_stop` answered true: git was killed, `results` holds what was found until then.
+    pub stopped: bool,
+}
+
+/// [`search`] that kills `git grep` within a few milliseconds once `should_stop` returns true,
+/// even while git is still looking and prints nothing.
+pub(crate) fn search_stoppable(
+    git: &GitRunner,
+    root: &Path,
+    query: &str,
+    opts: SearchOptions,
+    limit: usize,
+    should_stop: &dyn Fn() -> bool,
+) -> Result<SearchRun, GitError> {
+    let mut out = SearchRun::default();
     if query.is_empty() {
+        return Ok(out);
+    }
+    if should_stop() {
+        out.stopped = true;
         return Ok(out);
     }
     let mut args = vec!["grep", "-z", "-n", "--column", "-I", "--no-color"];
@@ -347,27 +375,54 @@ pub fn search(
         let _ = stderr.read_to_string(&mut s);
         s
     });
-    let mut reader = BufReader::new(child.stdout.take().expect("piped stdout"));
-    let mut buf = Vec::new();
-    loop {
-        buf.clear();
-        if reader.read_until(b'\n', &mut buf)? == 0 {
-            break;
+    // Lines are read on their own thread so this one can watch `should_stop` while git is
+    // silent (a big repository with few matches).
+    let stdout = child.stdout.take().expect("piped stdout");
+    let (tx, rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(256);
+    let lines = std::thread::spawn(move || -> std::io::Result<()> {
+        let mut reader = BufReader::new(stdout);
+        loop {
+            let mut buf = Vec::new();
+            if reader.read_until(b'\n', &mut buf)? == 0 || tx.send(buf).is_err() {
+                return Ok(());
+            }
         }
-        if out.matches.len() >= limit {
-            out.truncated = true;
+    });
+    let mut killed = false;
+    loop {
+        if should_stop() {
+            out.stopped = true;
+            killed = true;
             let _ = child.kill();
             break;
         }
-        if let Some(m) = parse_grep_line(&buf) {
-            out.matches.push(m);
+        match rx.recv_timeout(STOP_POLL) {
+            Ok(line) => {
+                if out.results.matches.len() >= limit {
+                    out.results.truncated = true;
+                    killed = true;
+                    let _ = child.kill();
+                    break;
+                }
+                if let Some(m) = parse_grep_line(&line) {
+                    out.results.matches.push(m);
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         }
     }
-    drop(reader);
+    // The reader stops at the end of the output, or at its next line once nobody listens.
+    drop(rx);
     let status = child.wait()?;
+    let read = lines.join().unwrap_or(Ok(()));
     let stderr = errors.join().unwrap_or_default();
+    if killed {
+        return Ok(out);
+    }
+    read?;
     // 1: nothing matched.
-    if out.truncated || status.success() || (status.code() == Some(1) && stderr.trim().is_empty()) {
+    if status.success() || (status.code() == Some(1) && stderr.trim().is_empty()) {
         return Ok(out);
     }
     Err(GitError::Failed {

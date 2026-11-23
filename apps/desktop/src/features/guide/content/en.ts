@@ -172,6 +172,25 @@ export const guideEn: GuideTopic[] = [
           },
         ],
       },
+      {
+        id: "search-all",
+        title: "Search in every open repository",
+        blocks: [
+          {
+            kind: "p",
+            text: "The **Search** view of the left panel has two scopes: **This repo** and **All open repos**. Press Ctrl+Alt+Shift+F (or use the command palette: **Search in all open repositories...**) to search every open repository at once, with the same options: match case, whole words, regular expression and new (untracked) files.",
+          },
+          {
+            kind: "list",
+            items: [
+              "Results appear repository by repository as each one finishes, grouped by repository, then file, then line. A repository that could not be searched shows the reason in red.",
+              "Click a line to switch to that repository's tab and open the file at that line in the built-in editor.",
+              "Typing a new query stops the running search at once. The stop button (or Esc in the search box) stops it too and keeps what was found.",
+              "At most 2000 lines are shown in all (1000 per repository), so narrow the query if you see that more lines match.",
+            ],
+          },
+        ],
+      },
     ],
   },
   {
