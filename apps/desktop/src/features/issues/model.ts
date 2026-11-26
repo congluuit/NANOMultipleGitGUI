@@ -7,7 +7,9 @@ export type TextPart =
   /** `#12` (GitHub: issue or PR; GitLab: issue) or `!12` (GitLab merge request). */
   | { type: "ref"; raw: string; number: number; mergeRequest: boolean };
 
-const TOKEN = /(https:\/\/[^\s<>"'`]+)|(?<![\w&/#!])([#!])(\d{1,7})(?![\w-])/g;
+// No lookbehind: WebKit before Safari 16.4 (macOS Monterey and older) rejects it when parsing,
+// which kills the whole main bundle and leaves a blank window. The boundary is group 2 instead.
+const TOKEN = /(https:\/\/[^\s<>"'`]+)|(^|[^\w&/#!])([#!])(\d{1,7})(?![\w-])/g;
 
 /** Splits `text` into parts; `!12` is only a reference on GitLab. */
 export function splitRefs(text: string, family: ProviderFamily | null): TextPart[] {
@@ -20,9 +22,9 @@ export function splitRefs(text: string, family: ProviderFamily | null): TextPart
     else parts.push({ type: "text", text });
   };
   for (const m of text.matchAll(TOKEN)) {
-    const index = m.index ?? 0;
+    const index = (m.index ?? 0) + (m[2]?.length ?? 0);
     push(text.slice(last, index));
-    last = index + m[0].length;
+    last = (m.index ?? 0) + m[0].length;
     if (m[1]) {
       // Trailing punctuation belongs to the sentence, not the URL.
       const url = m[1].replace(/[.,;:!?)\]]+$/, "");
@@ -30,13 +32,14 @@ export function splitRefs(text: string, family: ProviderFamily | null): TextPart
       push(m[1].slice(url.length));
       continue;
     }
-    const mergeRequest = m[2] === "!";
-    const number = Number(m[3]);
+    const raw = m[3]! + m[4]!;
+    const mergeRequest = m[3] === "!";
+    const number = Number(m[4]);
     if ((mergeRequest && family !== "gitlab") || number <= 0) {
-      push(m[0]);
+      push(raw);
       continue;
     }
-    parts.push({ type: "ref", raw: m[0], number, mergeRequest });
+    parts.push({ type: "ref", raw, number, mergeRequest });
   }
   push(text.slice(last));
   return parts;

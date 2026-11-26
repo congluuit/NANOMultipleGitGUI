@@ -24,6 +24,16 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // macOS 12 and older ship WebKit without regex lookbehind (Safari 16.4+). A lookbehind
+      // literal is a parse error there, so the whole bundle fails and the window stays blank.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[regex.pattern=/\\(\\?<[=!]/]",
+          message:
+            "Regex lookbehind breaks the app on macOS 12 (WebKit < 16.4). Capture the boundary in a group instead.",
+        },
+      ],
     },
   },
   {
