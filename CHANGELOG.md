@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-26
+
+### Fixed
+
+- The app no longer opens to a blank white window on macOS Monterey (12) and older Macs. A text pattern used to find issue references (`#12`) was not understood by the older Safari engine these systems use, which stopped the whole window from loading.
+
 ## [1.4.0] - 2026-11-24
 
 ### Added
